@@ -9,16 +9,6 @@
     "name": "pg_stat_statements_info",
     "sql": "CREATE OR REPLACE VIEW extensions.pg_stat_statements_info AS\n SELECT dealloc,\n    stats_reset\n   FROM pg_stat_statements_info() pg_stat_statements_info(dealloc, stats_reset);"
   },
-  "public.calendar_monthly_stats": {
-    "schema": "public",
-    "name": "calendar_monthly_stats",
-    "sql": "CREATE OR REPLACE VIEW public.calendar_monthly_stats AS\n SELECT user_id,\n    (EXTRACT(year FROM date))::integer AS year,\n    (EXTRACT(month FROM date))::integer AS month,\n    count(*) FILTER (WHERE (status = 'work'::text)) AS work_days,\n    count(*) FILTER (WHERE (status = 'worked'::text)) AS worked_days,\n    count(*) FILTER (WHERE (status = 'vacation'::text)) AS vacation_days\n   FROM calendar_days\n  GROUP BY user_id, (EXTRACT(year FROM date)), (EXTRACT(month FROM date));"
-  },
-  "public.calendar_yearly_stats": {
-    "schema": "public",
-    "name": "calendar_yearly_stats",
-    "sql": "CREATE OR REPLACE VIEW public.calendar_yearly_stats AS\n SELECT user_id,\n    (EXTRACT(year FROM date))::integer AS year,\n    count(*) FILTER (WHERE (status = 'work'::text)) AS work_days,\n    count(*) FILTER (WHERE (status = 'worked'::text)) AS worked_days,\n    count(*) FILTER (WHERE (status = 'vacation'::text)) AS vacation_days\n   FROM calendar_days\n  GROUP BY user_id, (EXTRACT(year FROM date));"
-  },
   "vault.decrypted_secrets": {
     "schema": "vault",
     "name": "decrypted_secrets",

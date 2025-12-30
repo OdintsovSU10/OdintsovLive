@@ -1,5 +1,5 @@
 -- Database Schema SQL Export
--- Generated: 2025-12-30T15:42:37.487117
+-- Generated: 2025-12-30T16:42:20.646668
 -- Database: postgres
 -- Host: aws-1-eu-west-1.pooler.supabase.com
 
@@ -365,16 +365,22 @@ COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when 
 
 -- Table: public.calendar_days
 CREATE TABLE IF NOT EXISTS public.calendar_days (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL,
+    id integer NOT NULL DEFAULT nextval('calendar_days_id_seq'::regclass),
     date date NOT NULL,
     status text NOT NULL,
+    CONSTRAINT calendar_days_date_key UNIQUE (date),
+    CONSTRAINT calendar_days_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.profiles
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id uuid NOT NULL,
+    email text,
+    approved boolean DEFAULT false,
+    is_admin boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    CONSTRAINT calendar_days_pkey PRIMARY KEY (id),
-    CONSTRAINT calendar_days_user_id_date_key UNIQUE (date),
-    CONSTRAINT calendar_days_user_id_date_key UNIQUE (user_id),
-    CONSTRAINT calendar_days_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
+    CONSTRAINT profiles_pkey PRIMARY KEY (id)
 );
 
 -- Table: public.salary_calculations
@@ -669,27 +675,6 @@ CREATE OR REPLACE VIEW extensions.pg_stat_statements_info AS
  SELECT dealloc,
     stats_reset
    FROM pg_stat_statements_info() pg_stat_statements_info(dealloc, stats_reset);
-
--- View: public.calendar_monthly_stats
-CREATE OR REPLACE VIEW public.calendar_monthly_stats AS
- SELECT user_id,
-    (EXTRACT(year FROM date))::integer AS year,
-    (EXTRACT(month FROM date))::integer AS month,
-    count(*) FILTER (WHERE (status = 'work'::text)) AS work_days,
-    count(*) FILTER (WHERE (status = 'worked'::text)) AS worked_days,
-    count(*) FILTER (WHERE (status = 'vacation'::text)) AS vacation_days
-   FROM calendar_days
-  GROUP BY user_id, (EXTRACT(year FROM date)), (EXTRACT(month FROM date));
-
--- View: public.calendar_yearly_stats
-CREATE OR REPLACE VIEW public.calendar_yearly_stats AS
- SELECT user_id,
-    (EXTRACT(year FROM date))::integer AS year,
-    count(*) FILTER (WHERE (status = 'work'::text)) AS work_days,
-    count(*) FILTER (WHERE (status = 'worked'::text)) AS worked_days,
-    count(*) FILTER (WHERE (status = 'vacation'::text)) AS vacation_days
-   FROM calendar_days
-  GROUP BY user_id, (EXTRACT(year FROM date));
 
 -- View: vault.decrypted_secrets
 CREATE OR REPLACE VIEW vault.decrypted_secrets AS
@@ -1541,6 +1526,20 @@ AS $function$
       FROM pg_authid
       WHERE rolname=$1 and rolcanlogin;
   END;
+  $function$
+
+
+-- Function: public.handle_new_user
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+  BEGIN
+    INSERT INTO public.profiles (id, email, approved, is_admin)
+    VALUES (NEW.id, NEW.email, false, false);
+    RETURN NEW;
+  END;
   $function$
 
 
@@ -3217,8 +3216,8 @@ $function$
 -- TRIGGERS
 -- ============================================
 
--- Trigger: calendar_days_updated_at on public.calendar_days
-CREATE TRIGGER calendar_days_updated_at BEFORE UPDATE ON public.calendar_days FOR EACH ROW EXECUTE FUNCTION update_updated_at()
+-- Trigger: on_auth_user_created on auth.users
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
 
 -- Trigger: salary_calculations_updated_at on public.salary_calculations
 CREATE TRIGGER salary_calculations_updated_at BEFORE UPDATE ON public.salary_calculations FOR EACH ROW EXECUTE FUNCTION update_updated_at()
@@ -3421,13 +3420,7 @@ CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
 CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone);
 
 -- Index on public.calendar_days
-CREATE UNIQUE INDEX calendar_days_user_id_date_key ON public.calendar_days USING btree (user_id, date);
-
--- Index on public.calendar_days
-CREATE INDEX idx_calendar_days_user_date ON public.calendar_days USING btree (user_id, date);
-
--- Index on public.calendar_days
-CREATE INDEX idx_calendar_days_user_year_month ON public.calendar_days USING btree (user_id, EXTRACT(year FROM date), EXTRACT(month FROM date));
+CREATE UNIQUE INDEX calendar_days_date_key ON public.calendar_days USING btree (date);
 
 -- Index on public.salary_calculations
 CREATE INDEX idx_salary_calculations_user_year ON public.salary_calculations USING btree (user_id, year);

@@ -1,14 +1,26 @@
-.theme-toggle {
+.top-bar {
   position: fixed;
   top: 24px;
   right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 150;
+}
+
+.moscow-time {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.theme-toggle {
   display: flex;
   gap: 8px;
   background: var(--surface);
   padding: 6px;
   border-radius: 30px;
   border: 1px solid var(--border);
-  z-index: 150;
 }
 
 .theme-toggle button {
@@ -33,15 +45,43 @@
   color: #1A1A1A;
 }
 
+.theme-toggle .admin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.theme-toggle .admin-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--primary);
+}
+
 @media (max-width: 430px) {
-  .theme-toggle {
+  .top-bar {
     top: 16px;
     right: 16px;
+  }
+
+  .moscow-time {
+    display: none;
+  }
+
+  .theme-toggle {
     padding: 4px;
   }
 
   .theme-toggle button {
     padding: 8px 14px;
     font-size: 12px;
+  }
+
+  .theme-toggle .admin-btn {
+    width: 32px;
+    height: 32px;
   }
 }

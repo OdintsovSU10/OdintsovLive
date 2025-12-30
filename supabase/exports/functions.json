@@ -468,6 +468,13 @@
     "comment": null,
     "sql": "CREATE OR REPLACE FUNCTION pgbouncer.get_auth(p_usename text)\n RETURNS TABLE(username text, password text)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  BEGIN\n      RAISE DEBUG 'PgBouncer auth request: %', p_usename;\n\n      RETURN QUERY\n      SELECT\n          rolname::text,\n          CASE WHEN rolvaliduntil < now()\n              THEN null\n              ELSE rolpassword::text\n          END\n      FROM pg_authid\n      WHERE rolname=$1 and rolcanlogin;\n  END;\n  $function$\n"
   },
+  "public.handle_new_user()": {
+    "schema": "public",
+    "name": "handle_new_user",
+    "arguments": "",
+    "comment": null,
+    "sql": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\n  BEGIN\r\n    INSERT INTO public.profiles (id, email, approved, is_admin)\r\n    VALUES (NEW.id, NEW.email, false, false);\r\n    RETURN NEW;\r\n  END;\r\n  $function$\n"
+  },
   "public.update_updated_at()": {
     "schema": "public",
     "name": "update_updated_at",

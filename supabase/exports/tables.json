@@ -2094,15 +2094,8 @@
       {
         "name": "id",
         "comment": null,
-        "default": "gen_random_uuid()",
-        "data_type": "uuid",
-        "is_nullable": false
-      },
-      {
-        "name": "user_id",
-        "comment": null,
-        "default": null,
-        "data_type": "uuid",
+        "default": "nextval('calendar_days_id_seq'::regclass)",
+        "data_type": "integer",
         "is_nullable": false
       },
       {
@@ -2118,23 +2111,17 @@
         "default": null,
         "data_type": "text",
         "is_nullable": false
-      },
-      {
-        "name": "created_at",
-        "comment": null,
-        "default": "now()",
-        "data_type": "timestamp with time zone",
-        "is_nullable": true
-      },
-      {
-        "name": "updated_at",
-        "comment": null,
-        "default": "now()",
-        "data_type": "timestamp with time zone",
-        "is_nullable": true
       }
     ],
     "constraints": [
+      {
+        "name": "calendar_days_date_key",
+        "type": "UNIQUE",
+        "column": "date",
+        "foreign_table": null,
+        "foreign_column": null,
+        "foreign_table_schema": null
+      },
       {
         "name": "calendar_days_pkey",
         "type": "PRIMARY KEY",
@@ -2150,30 +2137,66 @@
         "foreign_table": null,
         "foreign_column": null,
         "foreign_table_schema": null
+      }
+    ]
+  },
+  "public.profiles": {
+    "schema": "public",
+    "name": "profiles",
+    "comment": null,
+    "columns": [
+      {
+        "name": "id",
+        "comment": null,
+        "default": null,
+        "data_type": "uuid",
+        "is_nullable": false
       },
       {
-        "name": "calendar_days_user_id_date_key",
-        "type": "UNIQUE",
-        "column": "date",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
+        "name": "email",
+        "comment": null,
+        "default": null,
+        "data_type": "text",
+        "is_nullable": true
       },
       {
-        "name": "calendar_days_user_id_date_key",
-        "type": "UNIQUE",
-        "column": "user_id",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
+        "name": "approved",
+        "comment": null,
+        "default": "false",
+        "data_type": "boolean",
+        "is_nullable": true
       },
       {
-        "name": "calendar_days_user_id_fkey",
+        "name": "is_admin",
+        "comment": null,
+        "default": "false",
+        "data_type": "boolean",
+        "is_nullable": true
+      },
+      {
+        "name": "created_at",
+        "comment": null,
+        "default": "now()",
+        "data_type": "timestamp with time zone",
+        "is_nullable": true
+      }
+    ],
+    "constraints": [
+      {
+        "name": "profiles_id_fkey",
         "type": "FOREIGN KEY",
-        "column": "user_id",
+        "column": "id",
         "foreign_table": "users",
         "foreign_column": "id",
         "foreign_table_schema": "auth"
+      },
+      {
+        "name": "profiles_pkey",
+        "type": "PRIMARY KEY",
+        "column": "id",
+        "foreign_table": null,
+        "foreign_column": null,
+        "foreign_table_schema": null
       }
     ]
   },

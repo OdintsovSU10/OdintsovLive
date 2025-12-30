@@ -116,6 +116,15 @@
     padding: 16px 12px;
   }
 
+  .sidebar-header .logo > div {
+    display: none;
+  }
+
+  .sidebar-header .logo svg {
+    width: 36px;
+    height: 36px;
+  }
+
   .sidebar .nav-link {
     justify-content: center;
     padding: 12px;

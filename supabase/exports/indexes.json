@@ -439,29 +439,13 @@
     "is_primary": false,
     "sql": "CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone)"
   },
-  "public.calendar_days.calendar_days_user_id_date_key": {
+  "public.calendar_days.calendar_days_date_key": {
     "schema": "public",
-    "name": "calendar_days_user_id_date_key",
+    "name": "calendar_days_date_key",
     "table_name": "calendar_days",
     "is_unique": true,
     "is_primary": false,
-    "sql": "CREATE UNIQUE INDEX calendar_days_user_id_date_key ON public.calendar_days USING btree (user_id, date)"
-  },
-  "public.calendar_days.idx_calendar_days_user_date": {
-    "schema": "public",
-    "name": "idx_calendar_days_user_date",
-    "table_name": "calendar_days",
-    "is_unique": false,
-    "is_primary": false,
-    "sql": "CREATE INDEX idx_calendar_days_user_date ON public.calendar_days USING btree (user_id, date)"
-  },
-  "public.calendar_days.idx_calendar_days_user_year_month": {
-    "schema": "public",
-    "name": "idx_calendar_days_user_year_month",
-    "table_name": "calendar_days",
-    "is_unique": false,
-    "is_primary": false,
-    "sql": "CREATE INDEX idx_calendar_days_user_year_month ON public.calendar_days USING btree (user_id, EXTRACT(year FROM date), EXTRACT(month FROM date))"
+    "sql": "CREATE UNIQUE INDEX calendar_days_date_key ON public.calendar_days USING btree (date)"
   },
   "public.salary_calculations.idx_salary_calculations_user_year": {
     "schema": "public",

@@ -9,6 +9,7 @@ import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import CalendarPage from './pages/CalendarPage'
 import SalaryPage from './pages/SalaryPage'
+import SalaryMonthPage from './pages/SalaryMonthPage'
 import AdminPage from './pages/AdminPage'
 
 type Theme = 'light' | 'dark'
@@ -109,14 +110,14 @@ function App() {
         <Sidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed(!collapsed)}
-          isAdmin={profile?.is_admin}
         />
-        <ThemeToggle theme={theme} onToggle={setTheme} />
+        <ThemeToggle theme={theme} onToggle={setTheme} isAdmin={profile?.is_admin} />
         <main className={`main-content ${collapsed ? 'collapsed' : ''}`}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/salary" element={<SalaryPage />} />
+            <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
             {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
           </Routes>
         </main>
