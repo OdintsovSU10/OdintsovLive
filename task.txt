@@ -1,0 +1,26 @@
+Ты — senior backend engineer.
+У меня есть структура репозитория:
+supabase/migrations:
+prod.sql # полный дамп схемы БД (канон)
+
+supabase/exports:
+tables.json # описание таблиц
+indexes.json # описание индексов
+triggers.json # описание триггеров
+functions.json # описание функций
+enums.json # описание перечислений
+Нужно сгенерировать удобные «выжимки» для ИИ (Claude Code, Codex) и поместить в supabase/ai_context:
+ai_manifest.json # дата генерации, хэши исходных файлов
+ai_tables_min.json # имя таблицы, столбцы (имя/тип/nullable/PK/FK), короткий смысл
+ai_relations.json # связи FK между ключевыми сущностями
+ai_functions_min.json # сигнатуры функций и 1-строчное назначение
+ai_triggers_min.json # таблица → функция → событие/момент
+ai_enums_min.json # перечисления с их значениями
+ai_tables_full.json # как ai_tables_min, но с индексами, check, unique
+ai_functions_full.json # расширенное описание функций (побочные эффекты, связанные таблицы)
+ai_examples.sql # 8–12 эталонных SQL-запросов и операций с учётом триггеров и функций
+Требования: 1. Используй данные (tables.json, indexes.json, triggers.json, functions.json, enums.json) и prod.sql.
+2. ai_manifest.json должен содержать дату генерации и SHA256-хэши всех файлов.
+3. ai_tables_min.json — компактный (до ~100 КБ), без лишнего. Только поля и FK.
+4. ai_relations.json — только ключевые внешние связи.
+5. ai_examples.sql — реальные корректные примеры insert/update/select для основных сущностей (invoices, payments, invoice_documents, contractors и т.п.), демонстрирующие работу триггеров (fn_sync_invoice_payment, calculate_payment_vat и др.)

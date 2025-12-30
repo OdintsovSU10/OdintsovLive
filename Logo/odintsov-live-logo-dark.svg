@@ -1,0 +1,12 @@
+<svg width="280" height="80" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon -->
+  <circle cx="40" cy="40" r="38" stroke="#C4A77D" stroke-width="2" fill="none"/>
+  <path d="M28 24V56H52" stroke="#F5F5F5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="52" cy="56" r="4" fill="#C4A77D"/>
+  
+  <!-- Text: Odintsov -->
+  <text x="96" y="42" font-family="Georgia, serif" font-size="28" font-weight="600" fill="#F5F5F5" letter-spacing="-0.5">Odintsov</text>
+  
+  <!-- Text: LIVE -->
+  <text x="96" y="62" font-family="Arial, sans-serif" font-size="14" font-weight="400" fill="#C4A77D" letter-spacing="4">LIVE</text>
+</svg>

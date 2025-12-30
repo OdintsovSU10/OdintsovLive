@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap');
+
+:root {
+  --primary: #C4A77D;
+  --primary-hover: #B8956A;
+  --primary-light: rgba(196, 167, 125, 0.15);
+
+  --bg-primary: #F8F6F3;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F0EDE8;
+  --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
+  --surface-hover: #F8F6F3;
+
+  --sidebar-bg: #1A1A1A;
+  --sidebar-text: rgba(255, 255, 255, 0.6);
+  --sidebar-text-hover: rgba(255, 255, 255, 0.85);
+  --sidebar-text-active: #FFFFFF;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-muted: #8A8A8A;
+
+  --status-work: rgba(251, 191, 36, 0.85);
+  --status-worked: rgba(34, 197, 94, 0.85);
+  --status-vacation: rgba(59, 130, 246, 0.85);
+
+  --border: #E8E4DE;
+  --border-light: rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --transition: 0.3s ease;
+
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 72px;
+
+  --font-headline: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+[data-theme="dark"] {
+  --primary-hover: #D4B78D;
+
+  --bg-primary: #0F0F0F;
+  --bg-secondary: #1A1A1A;
+  --bg-tertiary: #252525;
+  --surface: #1A1A1A;
+  --surface-solid: #1A1A1A;
+  --surface-hover: #252525;
+
+  --sidebar-bg: #0A0A0A;
+
+  --text-primary: #F5F5F5;
+  --text-secondary: #8A8A8A;
+  --text-muted: #6B6B6B;
+
+  --border: #2A2A2A;
+  --border-light: rgba(255, 255, 255, 0.04);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+  letter-spacing: -0.02em;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+code, pre {
+  font-family: var(--font-mono);
+}

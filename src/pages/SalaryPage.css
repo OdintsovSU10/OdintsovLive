@@ -1,0 +1,348 @@
+.salary-page {
+  padding: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.salary-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.year-select {
+  font-family: var(--font-headline);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.year-select:hover {
+  background: var(--bg-tertiary);
+}
+
+.year-select:focus {
+  outline: none;
+}
+
+.year-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.year-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.year-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.year-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.summary-item.total {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.summary-item.total .summary-value {
+  color: var(--primary);
+}
+
+.months-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+
+.month-row:hover {
+  background: var(--surface-hover);
+}
+
+.month-row.empty {
+  opacity: 0.5;
+}
+
+.month-row.current {
+  border-left: 3px solid var(--primary);
+  background: var(--primary-light);
+}
+
+.month-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.month-stats {
+  display: flex;
+  gap: 16px;
+  margin-right: 24px;
+}
+
+.month-stat {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: center;
+}
+
+.month-stat.worked {
+  color: var(--status-worked);
+}
+
+.month-stat.vacation {
+  color: var(--status-vacation);
+}
+
+.month-earned {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 100px;
+  text-align: right;
+}
+
+.month-row {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+
+.modal {
+  background: var(--surface-solid);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.modal-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-field {
+  margin-bottom: 24px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.modal-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-input-wrap input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.modal-input-wrap input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.modal-input-wrap span {
+  color: var(--text-muted);
+}
+
+.modal-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.modal-stat {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.modal-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.modal-stat-value {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.modal-stat-value.worked {
+  color: rgb(34, 197, 94);
+}
+
+.modal-stat-value.vacation {
+  color: rgb(59, 130, 246);
+}
+
+.modal-calc {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.calc-row.total {
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 2px solid var(--primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+@media (max-width: 430px) {
+  .salary-page {
+    padding: 16px;
+  }
+
+  .year-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .month-stats {
+    display: none;
+  }
+
+  .month-earned {
+    min-width: auto;
+  }
+
+  .modal {
+    max-width: 100%;
+  }
+}

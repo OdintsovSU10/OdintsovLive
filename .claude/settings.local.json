@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(certutil -hashfile:*)",
+      "Bash(findstr:*)",
+      "Bash(certutil:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(npx -y @anthropic-ai/claude-code mcp add supabase --transport stdio -- npx -y @supabase/mcp-server-supabase@latest --access-token %SUPABASE_ACCESS_TOKEN%)",
+      "WebFetch(domain:www.consultant.ru)",
+      "Bash(gh auth:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
