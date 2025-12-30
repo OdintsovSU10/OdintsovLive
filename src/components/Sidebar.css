@@ -76,6 +76,39 @@
   font-weight: 500;
 }
 
+.nav-group-toggle {
+  width: 100%;
+}
+
+.nav-group-toggle .nav-group-arrow {
+  margin-left: auto;
+  transition: transform var(--transition);
+}
+
+.nav-group.expanded .nav-group-arrow {
+  transform: rotate(180deg);
+}
+
+.nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding-left: 12px;
+}
+
+.sidebar.collapsed .nav-group-items {
+  padding-left: 0;
+}
+
+.nav-sublink {
+  padding: 10px 14px;
+}
+
+.nav-sublink svg {
+  opacity: 0.8;
+}
+
 .sidebar-footer {
   padding: 8px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);

@@ -1,5 +1,5 @@
 -- Database Schema SQL Export
--- Generated: 2025-12-30T16:42:20.646668
+-- Generated: 2025-12-31T00:51:21.515254
 -- Database: postgres
 -- Host: aws-1-eu-west-1.pooler.supabase.com
 
@@ -368,8 +368,11 @@ CREATE TABLE IF NOT EXISTS public.calendar_days (
     id integer NOT NULL DEFAULT nextval('calendar_days_id_seq'::regclass),
     date date NOT NULL,
     status text NOT NULL,
-    CONSTRAINT calendar_days_date_key UNIQUE (date),
-    CONSTRAINT calendar_days_pkey PRIMARY KEY (id)
+    user_id uuid NOT NULL,
+    CONSTRAINT calendar_days_pkey PRIMARY KEY (id),
+    CONSTRAINT calendar_days_user_date_key UNIQUE (date),
+    CONSTRAINT calendar_days_user_date_key UNIQUE (user_id),
+    CONSTRAINT calendar_days_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Table: public.profiles
@@ -383,26 +386,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     CONSTRAINT profiles_pkey PRIMARY KEY (id)
 );
 
--- Table: public.salary_calculations
-CREATE TABLE IF NOT EXISTS public.salary_calculations (
+-- Table: public.salary_payments
+CREATE TABLE IF NOT EXISTS public.salary_payments (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL,
     year integer NOT NULL,
     month integer NOT NULL,
-    work_days integer NOT NULL DEFAULT 0,
-    worked_days integer NOT NULL DEFAULT 0,
-    vacation_days integer NOT NULL DEFAULT 0,
-    work_salary numeric(12,2) NOT NULL DEFAULT 0,
-    vacation_salary numeric(12,2) NOT NULL DEFAULT 0,
-    total_salary numeric(12,2) NOT NULL DEFAULT 0,
-    daily_rate numeric(12,2) NOT NULL DEFAULT 0,
+    amount numeric(12,2) NOT NULL,
+    date date NOT NULL,
+    note text,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    CONSTRAINT salary_calculations_pkey PRIMARY KEY (id),
-    CONSTRAINT salary_calculations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-    CONSTRAINT salary_calculations_user_id_year_month_key UNIQUE (month),
-    CONSTRAINT salary_calculations_user_id_year_month_key UNIQUE (user_id),
-    CONSTRAINT salary_calculations_user_id_year_month_key UNIQUE (year)
+    CONSTRAINT salary_payments_pkey PRIMARY KEY (id),
+    CONSTRAINT salary_payments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Table: public.salary_settings
@@ -414,6 +409,10 @@ CREATE TABLE IF NOT EXISTS public.salary_settings (
     base_salary numeric(12,2) NOT NULL DEFAULT 100000,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    bonus numeric(12,2) DEFAULT 0,
+    transport_base_cost numeric(12,2) DEFAULT 0,
+    work_days_norm integer DEFAULT 22,
+    manual_vacation_rate numeric,
     CONSTRAINT salary_settings_pkey PRIMARY KEY (id),
     CONSTRAINT salary_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
     CONSTRAINT salary_settings_user_id_year_month_key UNIQUE (month),
@@ -675,6 +674,64 @@ CREATE OR REPLACE VIEW extensions.pg_stat_statements_info AS
  SELECT dealloc,
     stats_reset
    FROM pg_stat_statements_info() pg_stat_statements_info(dealloc, stats_reset);
+
+-- View: public.salary_calculations
+CREATE OR REPLACE VIEW public.salary_calculations AS
+ WITH day_counts AS (
+         SELECT calendar_days.user_id,
+            (EXTRACT(year FROM calendar_days.date))::integer AS year,
+            ((EXTRACT(month FROM calendar_days.date))::integer - 1) AS month,
+            count(*) FILTER (WHERE (calendar_days.status = 'work'::text)) AS work_days,
+            count(*) FILTER (WHERE (calendar_days.status = 'worked'::text)) AS worked_days,
+            count(*) FILTER (WHERE (calendar_days.status = 'vacation'::text)) AS vacation_days
+           FROM calendar_days
+          GROUP BY calendar_days.user_id, (EXTRACT(year FROM calendar_days.date)), (EXTRACT(month FROM calendar_days.date))
+        )
+ SELECT user_id,
+    year,
+    month,
+    work_days,
+    worked_days,
+    vacation_days
+   FROM day_counts;
+
+-- View: public.vacation_rate
+CREATE OR REPLACE VIEW public.vacation_rate AS
+ WITH month_data AS (
+         SELECT cd.user_id,
+            (EXTRACT(year FROM cd.date))::integer AS year,
+            ((EXTRACT(month FROM cd.date))::integer - 1) AS month,
+            count(*) FILTER (WHERE (cd.status = ANY (ARRAY['work'::text, 'worked'::text]))) AS worked_days,
+            count(*) FILTER (WHERE (cd.status = 'vacation'::text)) AS vacation_days,
+            (EXTRACT(day FROM (date_trunc('month'::text, (cd.date)::timestamp with time zone) + '1 mon -1 days'::interval)))::integer AS calendar_days
+           FROM calendar_days cd
+          GROUP BY cd.user_id, (EXTRACT(year FROM cd.date)), (EXTRACT(month FROM cd.date)), (date_trunc('month'::text, (cd.date)::timestamp with time zone))
+        ), salary_data AS (
+         SELECT salary_settings.user_id,
+            salary_settings.year,
+            salary_settings.month,
+            ((COALESCE(salary_settings.base_salary, (0)::numeric) + COALESCE(salary_settings.bonus, (0)::numeric)) + COALESCE(salary_settings.transport_base_cost, (0)::numeric)) AS total_payment
+           FROM salary_settings
+        )
+ SELECT md.user_id,
+    md.year,
+    md.month,
+    COALESCE(sd.total_payment, (0)::numeric) AS base_salary,
+    md.worked_days,
+    md.vacation_days,
+    md.calendar_days,
+        CASE
+            WHEN (md.vacation_days > 0) THEN (29.3 * ((md.worked_days)::numeric / (NULLIF(md.calendar_days, 0))::numeric))
+            ELSE 29.3
+        END AS adjusted_days,
+    COALESCE((sum(COALESCE(sd.total_payment, (0)::numeric)) OVER w / NULLIF(sum(
+        CASE
+            WHEN (md.vacation_days > 0) THEN (29.3 * ((md.worked_days)::numeric / (NULLIF(md.calendar_days, 0))::numeric))
+            ELSE 29.3
+        END) OVER w, (0)::numeric)), (0)::numeric) AS daily_vacation_rate
+   FROM (month_data md
+     LEFT JOIN salary_data sd ON (((md.user_id = sd.user_id) AND (md.year = sd.year) AND (md.month = sd.month))))
+  WINDOW w AS (PARTITION BY md.user_id ORDER BY md.year, md.month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW);
 
 -- View: vault.decrypted_secrets
 CREATE OR REPLACE VIEW vault.decrypted_secrets AS
@@ -3219,9 +3276,6 @@ $function$
 -- Trigger: on_auth_user_created on auth.users
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
 
--- Trigger: salary_calculations_updated_at on public.salary_calculations
-CREATE TRIGGER salary_calculations_updated_at BEFORE UPDATE ON public.salary_calculations FOR EACH ROW EXECUTE FUNCTION update_updated_at()
-
 -- Trigger: salary_settings_updated_at on public.salary_settings
 CREATE TRIGGER salary_settings_updated_at BEFORE UPDATE ON public.salary_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at()
 
@@ -3420,13 +3474,13 @@ CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
 CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone);
 
 -- Index on public.calendar_days
-CREATE UNIQUE INDEX calendar_days_date_key ON public.calendar_days USING btree (date);
+CREATE UNIQUE INDEX calendar_days_user_date_key ON public.calendar_days USING btree (user_id, date);
 
--- Index on public.salary_calculations
-CREATE INDEX idx_salary_calculations_user_year ON public.salary_calculations USING btree (user_id, year);
+-- Index on public.salary_payments
+CREATE INDEX idx_salary_payments_user_year ON public.salary_payments USING btree (user_id, year);
 
--- Index on public.salary_calculations
-CREATE UNIQUE INDEX salary_calculations_user_id_year_month_key ON public.salary_calculations USING btree (user_id, year, month);
+-- Index on public.salary_payments
+CREATE INDEX idx_salary_payments_user_year_month ON public.salary_payments USING btree (user_id, year, month);
 
 -- Index on public.salary_settings
 CREATE INDEX idx_salary_settings_user_year ON public.salary_settings USING btree (user_id, year);

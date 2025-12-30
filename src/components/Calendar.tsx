@@ -51,8 +51,13 @@ function isToday(year: number, month: number, day: number): boolean {
   return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
 }
 
+function isCurrentMonth(year: number, month: number): boolean {
+  const today = new Date()
+  return today.getFullYear() === year && today.getMonth() === month
+}
+
 export default function Calendar() {
-  const [year, setYear] = useState(2026)
+  const [year, setYear] = useState(() => new Date().getFullYear())
   const [allDays, setAllDays] = useState<DayData>(() => {
     const saved = localStorage.getItem('calendar-days')
     return saved ? JSON.parse(saved) : {}
@@ -68,9 +73,13 @@ export default function Calendar() {
   }, [allDays])
 
   const loadFromSupabase = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
     const { data } = await supabase
       .from('calendar_days')
       .select('date, status')
+      .eq('user_id', user.id)
 
     if (data && data.length > 0) {
       const loaded: DayData = {}
@@ -84,20 +93,24 @@ export default function Calendar() {
   }
 
   const saveToSupabase = useCallback(async (key: string, status: DayStatus | null) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
     setSaving(true)
     const [y, m, d] = key.split('-').map(Number)
     const date = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
     if (status === null || status === 'none') {
-      const { error } = await supabase.from('calendar_days').delete().eq('date', date)
+      const { error } = await supabase.from('calendar_days').delete().eq('date', date).eq('user_id', user.id)
       if (error) console.error('Delete error:', error)
     } else {
       const { error } = await supabase.from('calendar_days').upsert(
-        { date, status },
-        { onConflict: 'date' }
+        { user_id: user.id, date, status },
+        { onConflict: 'user_id,date' }
       )
       if (error) console.error('Upsert error:', error)
     }
+
     setSaving(false)
   }, [])
 
@@ -122,6 +135,9 @@ export default function Calendar() {
   }
 
   const resetMonth = async (monthIndex: number) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
     const prefix = `${year}-${monthIndex}-`
     const keysToDelete = Object.keys(allDays).filter(k => k.startsWith(prefix))
 
@@ -138,7 +154,7 @@ export default function Calendar() {
       return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     })
 
-    await supabase.from('calendar_days').delete().in('date', dates)
+    await supabase.from('calendar_days').delete().in('date', dates).eq('user_id', user.id)
   }
 
   const yearDays = Object.entries(allDays).filter(([key]) => key.startsWith(`${year}-`))
@@ -205,7 +221,7 @@ export default function Calendar() {
 
       <div className="calendar-grid">
         {MONTHS.map((monthName, monthIndex) => (
-          <div key={monthIndex} className="month">
+          <div key={monthIndex} className={`month ${isCurrentMonth(year, monthIndex) ? 'current' : ''}`}>
             <div className="month-header">
               <h3>{monthName}</h3>
               <button

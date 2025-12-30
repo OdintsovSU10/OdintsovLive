@@ -1,0 +1,296 @@
+.rent-page {
+  padding: 24px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+}
+
+.rent-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.rent-header .year-select {
+  font-family: var(--font-headline);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.rent-header .year-select:hover {
+  background: var(--bg-tertiary);
+}
+
+.rent-header .year-select:focus {
+  outline: none;
+}
+
+.rent-header .year-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.rent-header .year-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.rent-header .year-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.rent-page .year-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.year-summary .summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.year-summary .summary-item.total {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.year-summary .summary-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.year-summary .summary-value {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.year-summary .summary-item.total .summary-value {
+  color: var(--primary);
+}
+
+.rent-content {
+  display: grid;
+  grid-template-columns: 2fr 2fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.rent-page .chart-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rent-page .chart-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.rent-page .months-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  margin-top: 8px;
+}
+
+.rent-page .months-total .total-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rent-page .months-total .total-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.months-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rent-chart {
+  position: sticky;
+  top: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.rent-chart .chart-title {
+  font-family: var(--font-headline);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.month-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.month-row:hover {
+  background: var(--surface-hover);
+}
+
+.month-row.empty {
+  opacity: 0.5;
+}
+
+.month-row.current {
+  border-left: 3px solid var(--primary);
+  background: var(--primary-light);
+}
+
+.month-row.paid {
+  border-left: 3px solid var(--status-worked);
+}
+
+.month-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.month-amounts {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.rent-amount {
+  color: var(--text-secondary);
+}
+
+.separator {
+  color: var(--text-muted);
+}
+
+.water-amount {
+  color: var(--status-vacation);
+}
+
+.electricity-amount {
+  color: var(--primary);
+}
+
+.month-total {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 100px;
+  text-align: right;
+}
+
+.month-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+.paid-icon {
+  color: var(--status-worked);
+}
+
+.month-arrow {
+  color: var(--text-muted);
+  margin-left: 12px;
+  transition: transform var(--transition);
+}
+
+.month-row:hover .month-arrow {
+  transform: translateX(4px);
+  color: var(--text-primary);
+}
+
+@media (max-width: 1024px) {
+  .rent-content {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .rent-content {
+    grid-template-columns: 1fr;
+  }
+
+  .rent-page .chart-column {
+    order: 2;
+  }
+
+  .rent-page .months-list {
+    order: 1;
+  }
+
+  .rent-page .chart-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 430px) {
+  .rent-page {
+    padding: 16px;
+  }
+
+  .month-amounts,
+  .month-status {
+    display: none;
+  }
+
+  .month-total {
+    min-width: auto;
+  }
+
+  .rent-chart {
+    padding: 12px;
+  }
+}

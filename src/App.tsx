@@ -10,6 +10,9 @@ import HomePage from './pages/HomePage'
 import CalendarPage from './pages/CalendarPage'
 import SalaryPage from './pages/SalaryPage'
 import SalaryMonthPage from './pages/SalaryMonthPage'
+import VacationRatePage from './pages/VacationRatePage'
+import RentPage from './pages/RentPage'
+import RentMonthPage from './pages/RentMonthPage'
 import AdminPage from './pages/AdminPage'
 
 type Theme = 'light' | 'dark'
@@ -118,6 +121,9 @@ function App() {
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/salary" element={<SalaryPage />} />
             <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
+            <Route path="/vacation-rate" element={<VacationRatePage />} />
+            <Route path="/rent" element={<RentPage />} />
+            <Route path="/rent/:year/:month" element={<RentMonthPage />} />
             {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
           </Routes>
         </main>

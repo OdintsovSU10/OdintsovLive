@@ -439,29 +439,29 @@
     "is_primary": false,
     "sql": "CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone)"
   },
-  "public.calendar_days.calendar_days_date_key": {
+  "public.calendar_days.calendar_days_user_date_key": {
     "schema": "public",
-    "name": "calendar_days_date_key",
+    "name": "calendar_days_user_date_key",
     "table_name": "calendar_days",
     "is_unique": true,
     "is_primary": false,
-    "sql": "CREATE UNIQUE INDEX calendar_days_date_key ON public.calendar_days USING btree (date)"
+    "sql": "CREATE UNIQUE INDEX calendar_days_user_date_key ON public.calendar_days USING btree (user_id, date)"
   },
-  "public.salary_calculations.idx_salary_calculations_user_year": {
+  "public.salary_payments.idx_salary_payments_user_year": {
     "schema": "public",
-    "name": "idx_salary_calculations_user_year",
-    "table_name": "salary_calculations",
+    "name": "idx_salary_payments_user_year",
+    "table_name": "salary_payments",
     "is_unique": false,
     "is_primary": false,
-    "sql": "CREATE INDEX idx_salary_calculations_user_year ON public.salary_calculations USING btree (user_id, year)"
+    "sql": "CREATE INDEX idx_salary_payments_user_year ON public.salary_payments USING btree (user_id, year)"
   },
-  "public.salary_calculations.salary_calculations_user_id_year_month_key": {
+  "public.salary_payments.idx_salary_payments_user_year_month": {
     "schema": "public",
-    "name": "salary_calculations_user_id_year_month_key",
-    "table_name": "salary_calculations",
-    "is_unique": true,
+    "name": "idx_salary_payments_user_year_month",
+    "table_name": "salary_payments",
+    "is_unique": false,
     "is_primary": false,
-    "sql": "CREATE UNIQUE INDEX salary_calculations_user_id_year_month_key ON public.salary_calculations USING btree (user_id, year, month)"
+    "sql": "CREATE INDEX idx_salary_payments_user_year_month ON public.salary_payments USING btree (user_id, year, month)"
   },
   "public.salary_settings.idx_salary_settings_user_year": {
     "schema": "public",

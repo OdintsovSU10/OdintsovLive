@@ -30,21 +30,22 @@ export default function ThemeToggle({ theme, onToggle, isAdmin }: ThemeTogglePro
   return (
     <div className="top-bar">
       <span className="moscow-time">{moscowTime}</span>
+      {isAdmin && (
+        <Link to="/admin" className="admin-btn" title="Админ">
+          <Settings size={16} strokeWidth={1.5} />
+        </Link>
+      )}
       <div className="theme-toggle">
-        {isAdmin && (
-          <Link to="/admin" className="admin-btn" title="Админ">
-            <Settings size={16} strokeWidth={1.5} />
-          </Link>
-        )}
+        <div className={`slider-bg ${theme}`} />
         <button
           className={theme === 'light' ? 'active' : ''}
-          onClick={() => onToggle('light')}
+          onClick={() => onToggle(theme === 'light' ? 'dark' : 'light')}
         >
           ☀ Light
         </button>
         <button
           className={theme === 'dark' ? 'active' : ''}
-          onClick={() => onToggle('dark')}
+          onClick={() => onToggle(theme === 'dark' ? 'light' : 'dark')}
         >
           ◐ Dark
         </button>

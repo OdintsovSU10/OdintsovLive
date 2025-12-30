@@ -10,20 +10,40 @@
 
 .moscow-time {
   font-family: var(--font-headline);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   color: var(--text-primary);
+  line-height: 1;
 }
 
 .theme-toggle {
+  position: relative;
   display: flex;
-  gap: 8px;
+  align-items: center;
   background: var(--surface);
-  padding: 6px;
+  padding: 4px;
   border-radius: 30px;
   border: 1px solid var(--border);
 }
 
+.slider-bg {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: var(--primary);
+  border-radius: 24px;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.slider-bg.dark {
+  transform: translateX(100%);
+}
+
 .theme-toggle button {
+  position: relative;
+  z-index: 1;
   padding: 10px 20px;
   border-radius: 24px;
   border: none;
@@ -33,7 +53,7 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: color var(--transition);
 }
 
 .theme-toggle button:hover {
@@ -41,22 +61,23 @@
 }
 
 .theme-toggle button.active {
-  background: var(--primary);
   color: #1A1A1A;
 }
 
-.theme-toggle .admin-btn {
+.admin-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
   transition: all var(--transition);
 }
 
-.theme-toggle .admin-btn:hover {
+.admin-btn:hover {
   background: var(--bg-tertiary);
   color: var(--primary);
 }
@@ -72,7 +93,7 @@
   }
 
   .theme-toggle {
-    padding: 4px;
+    padding: 3px;
   }
 
   .theme-toggle button {
@@ -80,8 +101,15 @@
     font-size: 12px;
   }
 
-  .theme-toggle .admin-btn {
-    width: 32px;
-    height: 32px;
+  .slider-bg {
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    height: calc(100% - 6px);
+  }
+
+  .admin-btn {
+    width: 36px;
+    height: 36px;
   }
 }

@@ -1,7 +1,31 @@
 .salary-month-page {
   padding: 24px;
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+}
+
+.salary-month-page .month-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.content-left,
+.content-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.content-left .month-section,
+.content-right .month-section {
+  margin-bottom: 0;
 }
 
 .month-page-header {
@@ -106,6 +130,11 @@
 
 .inline-input span {
   color: var(--text-muted);
+}
+
+.inline-input.small input {
+  width: 60px;
+  text-align: center;
 }
 
 .stats-grid {
@@ -348,6 +377,12 @@
   color: var(--status-worked);
 }
 
+@media (max-width: 768px) {
+  .salary-month-page .month-content {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 430px) {
   .salary-month-page {
     padding: 16px;
@@ -367,5 +402,9 @@
 
   .inline-input input {
     width: 100px;
+  }
+
+  .inline-input.small input {
+    width: 50px;
   }
 }

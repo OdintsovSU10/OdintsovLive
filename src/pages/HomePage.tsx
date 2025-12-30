@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
-import { Calendar, Wallet } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home } from 'lucide-react'
 import Logo from '../components/Logo'
 import './HomePage.css'
 
 const pages = [
   { path: '/calendar', Icon: Calendar, title: 'Календарь', desc: 'Учёт рабочих дней' },
   { path: '/salary', Icon: Wallet, title: 'Зарплата', desc: 'Расчёт заработка' },
+  { path: '/vacation-rate', Icon: Umbrella, title: 'Отпускные', desc: 'Расчёт ставки' },
+  { path: '/rent', Icon: Home, title: 'Аренда', desc: 'Платежи за квартиру' },
 ]
 
 export default function HomePage() {

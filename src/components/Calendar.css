@@ -158,6 +158,15 @@
   padding: 16px;
 }
 
+.month.current {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.month.current h3 {
+  color: var(--primary);
+}
+
 .month-header {
   position: relative;
   display: flex;

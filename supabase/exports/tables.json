@@ -2111,17 +2111,16 @@
         "default": null,
         "data_type": "text",
         "is_nullable": false
+      },
+      {
+        "name": "user_id",
+        "comment": null,
+        "default": null,
+        "data_type": "uuid",
+        "is_nullable": false
       }
     ],
     "constraints": [
-      {
-        "name": "calendar_days_date_key",
-        "type": "UNIQUE",
-        "column": "date",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
-      },
       {
         "name": "calendar_days_pkey",
         "type": "PRIMARY KEY",
@@ -2137,6 +2136,30 @@
         "foreign_table": null,
         "foreign_column": null,
         "foreign_table_schema": null
+      },
+      {
+        "name": "calendar_days_user_date_key",
+        "type": "UNIQUE",
+        "column": "date",
+        "foreign_table": null,
+        "foreign_column": null,
+        "foreign_table_schema": null
+      },
+      {
+        "name": "calendar_days_user_date_key",
+        "type": "UNIQUE",
+        "column": "user_id",
+        "foreign_table": null,
+        "foreign_column": null,
+        "foreign_table_schema": null
+      },
+      {
+        "name": "calendar_days_user_id_fkey",
+        "type": "FOREIGN KEY",
+        "column": "user_id",
+        "foreign_table": "users",
+        "foreign_column": "id",
+        "foreign_table_schema": "auth"
       }
     ]
   },
@@ -2200,9 +2223,9 @@
       }
     ]
   },
-  "public.salary_calculations": {
+  "public.salary_payments": {
     "schema": "public",
-    "name": "salary_calculations",
+    "name": "salary_payments",
     "comment": null,
     "columns": [
       {
@@ -2234,63 +2257,28 @@
         "is_nullable": false
       },
       {
-        "name": "work_days",
+        "name": "amount",
         "comment": null,
-        "default": "0",
-        "data_type": "integer",
-        "is_nullable": false
-      },
-      {
-        "name": "worked_days",
-        "comment": null,
-        "default": "0",
-        "data_type": "integer",
-        "is_nullable": false
-      },
-      {
-        "name": "vacation_days",
-        "comment": null,
-        "default": "0",
-        "data_type": "integer",
-        "is_nullable": false
-      },
-      {
-        "name": "work_salary",
-        "comment": null,
-        "default": "0",
+        "default": null,
         "data_type": "numeric(12,2)",
         "is_nullable": false
       },
       {
-        "name": "vacation_salary",
+        "name": "date",
         "comment": null,
-        "default": "0",
-        "data_type": "numeric(12,2)",
+        "default": null,
+        "data_type": "date",
         "is_nullable": false
       },
       {
-        "name": "total_salary",
+        "name": "note",
         "comment": null,
-        "default": "0",
-        "data_type": "numeric(12,2)",
-        "is_nullable": false
-      },
-      {
-        "name": "daily_rate",
-        "comment": null,
-        "default": "0",
-        "data_type": "numeric(12,2)",
-        "is_nullable": false
-      },
-      {
-        "name": "created_at",
-        "comment": null,
-        "default": "now()",
-        "data_type": "timestamp with time zone",
+        "default": null,
+        "data_type": "text",
         "is_nullable": true
       },
       {
-        "name": "updated_at",
+        "name": "created_at",
         "comment": null,
         "default": "now()",
         "data_type": "timestamp with time zone",
@@ -2299,15 +2287,7 @@
     ],
     "constraints": [
       {
-        "name": "salary_calculations_month_check",
-        "type": "CHECK",
-        "column": "month",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
-      },
-      {
-        "name": "salary_calculations_pkey",
+        "name": "salary_payments_pkey",
         "type": "PRIMARY KEY",
         "column": "id",
         "foreign_table": null,
@@ -2315,36 +2295,12 @@
         "foreign_table_schema": null
       },
       {
-        "name": "salary_calculations_user_id_fkey",
+        "name": "salary_payments_user_id_fkey",
         "type": "FOREIGN KEY",
         "column": "user_id",
         "foreign_table": "users",
         "foreign_column": "id",
         "foreign_table_schema": "auth"
-      },
-      {
-        "name": "salary_calculations_user_id_year_month_key",
-        "type": "UNIQUE",
-        "column": "month",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
-      },
-      {
-        "name": "salary_calculations_user_id_year_month_key",
-        "type": "UNIQUE",
-        "column": "user_id",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
-      },
-      {
-        "name": "salary_calculations_user_id_year_month_key",
-        "type": "UNIQUE",
-        "column": "year",
-        "foreign_table": null,
-        "foreign_column": null,
-        "foreign_table_schema": null
       }
     ]
   },
@@ -2400,6 +2356,34 @@
         "comment": null,
         "default": "now()",
         "data_type": "timestamp with time zone",
+        "is_nullable": true
+      },
+      {
+        "name": "bonus",
+        "comment": null,
+        "default": "0",
+        "data_type": "numeric(12,2)",
+        "is_nullable": true
+      },
+      {
+        "name": "transport_base_cost",
+        "comment": null,
+        "default": "0",
+        "data_type": "numeric(12,2)",
+        "is_nullable": true
+      },
+      {
+        "name": "work_days_norm",
+        "comment": null,
+        "default": "22",
+        "data_type": "integer",
+        "is_nullable": true
+      },
+      {
+        "name": "manual_vacation_rate",
+        "comment": null,
+        "default": null,
+        "data_type": "numeric",
         "is_nullable": true
       }
     ],
