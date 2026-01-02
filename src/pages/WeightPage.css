@@ -1,0 +1,218 @@
+.weight-page {
+  padding: 24px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.weight-add-section {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.today-date {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.today-weight {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.today-weight strong {
+  color: var(--primary);
+}
+
+.weight-input-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.weight-input-row input {
+  flex: 1;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.weight-input-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.weight-input-row input::placeholder {
+  color: var(--text-muted);
+}
+
+.weight-input-row button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: var(--primary);
+  color: #1a1a1a;
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+
+.weight-input-row button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.weight-input-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.weight-stats {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.weight-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-width: 90px;
+}
+
+.weight-stat .stat-value {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.weight-stat .stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.weight-chart-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.weight-chart-container h3 {
+  margin: 0 0 16px 0;
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.weight-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.weight-tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.weight-tab:hover {
+  background: var(--bg-tertiary);
+}
+
+.weight-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #1a1a1a;
+}
+
+.weight-history {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.history-date {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.history-weight {
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.history-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.history-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+@media (max-width: 430px) {
+  .weight-page { padding: 72px 16px 16px; }
+  .weight-stats { gap: 8px; }
+  .weight-stat { padding: 12px 16px; min-width: 70px; }
+  .weight-stat .stat-value { font-size: 1.25rem; }
+}

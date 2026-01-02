@@ -278,7 +278,34 @@
 
 @media (max-width: 430px) {
   .rent-page {
-    padding: 16px;
+    padding: 72px 16px 16px;
+  }
+
+  .rent-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .rent-page .chart-column {
+    order: 1;
+    width: 100%;
+  }
+
+  .rent-page .months-list {
+    order: 2;
+    width: 100%;
+  }
+
+  .rent-chart {
+    width: 100%;
+    position: static;
+    padding: 12px;
+  }
+
+  .month-row {
+    width: 100%;
   }
 
   .month-amounts,
@@ -290,7 +317,7 @@
     min-width: auto;
   }
 
-  .rent-chart {
-    padding: 12px;
+  .rent-page .year-summary {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

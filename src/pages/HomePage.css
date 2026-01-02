@@ -18,29 +18,48 @@
 
 .subtitle {
   color: var(--text-muted);
-  margin: 0 0 48px;
+  margin: 0 0 16px;
   font-size: 1rem;
 }
 
-.quick-links {
+.home-datetime {
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 32px;
+}
+
+.home-date {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.home-time {
+  font-family: var(--font-headline);
+  font-size: 2.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.quick-links {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   justify-content: center;
-  flex-wrap: wrap;
 }
 
 .quick-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 40px;
+  padding: 28px 20px;
   background: var(--surface);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   transition: all var(--transition);
-  min-width: 180px;
 }
 
 .quick-card:hover {
@@ -73,18 +92,69 @@
   color: var(--text-muted);
 }
 
+@media (max-width: 768px) {
+  .quick-links {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 430px) {
   .home-page {
-    padding: 24px 16px;
+    padding: 72px 16px 24px;
+  }
+
+  .subtitle {
+    margin-bottom: 16px;
+  }
+
+  .home-date {
+    font-size: 0.9rem;
+  }
+
+  .home-time {
+    font-size: 2rem;
   }
 
   .quick-links {
-    flex-direction: column;
-    width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
   .quick-card {
-    width: 100%;
-    padding: 24px;
+    padding: 20px 16px;
+  }
+
+  .quick-icon {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 12px;
+  }
+
+  .quick-title {
+    font-size: 0.9rem;
+  }
+
+  .quick-desc {
+    font-size: 0.75rem;
+  }
+}
+
+/* iPhone 12 Pro and smaller */
+@media (max-width: 390px) {
+  .quick-links {
+    gap: 10px;
+  }
+
+  .quick-card {
+    padding: 16px 12px;
+  }
+
+  .quick-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .quick-title {
+    font-size: 0.85rem;
   }
 }

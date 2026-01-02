@@ -84,8 +84,12 @@
 
 @media (max-width: 430px) {
   .top-bar {
-    top: 16px;
-    right: 16px;
+    position: fixed;
+    top: 8px;
+    right: 12px;
+    left: auto;
+    gap: 8px;
+    z-index: 201;
   }
 
   .moscow-time {
@@ -97,8 +101,12 @@
   }
 
   .theme-toggle button {
-    padding: 8px 14px;
-    font-size: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .theme-toggle .btn-text {
+    display: none;
   }
 
   .slider-bg {
@@ -109,7 +117,7 @@
   }
 
   .admin-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
 }

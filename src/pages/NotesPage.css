@@ -1,0 +1,541 @@
+.notes-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.notes-header h1 {
+  font-family: var(--font-headline);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.add-note-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--primary);
+  color: #1A1A1A;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.add-note-btn:hover {
+  opacity: 0.9;
+}
+
+.note-editor {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+
+.editor-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.editor-toolbar button:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 8px;
+}
+
+.note-content-editor {
+  min-height: 150px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.note-content-editor:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.note-content-editor:empty:before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.btn-cancel {
+  color: var(--text-secondary);
+}
+
+.btn-cancel:hover {
+  background: var(--bg-tertiary);
+}
+
+.btn-save {
+  background: var(--primary);
+  color: #1A1A1A;
+}
+
+.btn-save:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-card-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.swipe-action {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.swipe-action.visible {
+  opacity: 1;
+}
+
+.swipe-pin {
+  left: 0;
+  background: var(--primary);
+  color: #1A1A1A;
+}
+
+.swipe-delete {
+  right: 0;
+  background: #ef4444;
+  color: white;
+}
+
+.note-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background var(--transition);
+}
+
+.note-card.swiping-right {
+  transform: translateX(60px);
+}
+
+.note-card.swiping-left {
+  transform: translateX(-60px);
+}
+
+.note-card:hover {
+  background: var(--surface-hover);
+}
+
+.note-card.pinned {
+  border-left: 3px solid var(--primary);
+  background: var(--primary-light);
+}
+
+.note-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.note-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.note-card-text h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.note-card-text .note-preview {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.note-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.note-card-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.note-card-actions .edit-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.note-card-actions .pin-btn:hover,
+.note-card-actions .pin-btn.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.note-card-actions .delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.note-date {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.pinned-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.modal-content {
+  padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Confirm Modal */
+.confirm-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.confirm-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  animation: confirmAppear 0.2s ease;
+}
+
+@keyframes confirmAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.confirm-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 50%;
+  color: #ef4444;
+}
+
+.confirm-modal h3 {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.confirm-note-title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  word-break: break-word;
+}
+
+.confirm-text {
+  margin: 0 0 24px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-btn-cancel,
+.confirm-btn-delete {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+
+.confirm-btn-cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.confirm-btn-cancel:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.confirm-btn-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.confirm-btn-delete:hover {
+  background: #dc2626;
+}
+
+@media (max-width: 430px) {
+  .notes-page {
+    padding: 72px 16px 16px;
+  }
+
+  .notes-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .add-note-btn span {
+    display: none;
+  }
+
+  .add-note-btn {
+    padding: 12px;
+  }
+
+  .note-editor {
+    padding: 16px;
+  }
+
+  .editor-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .note-card {
+    padding: 14px 16px;
+  }
+
+  .note-card-text h3 {
+    font-size: 1.25rem;
+  }
+
+  .swipe-action {
+    display: flex;
+  }
+
+  .note-card-actions .pin-btn,
+  .note-card-actions .delete-btn {
+    display: none;
+  }
+
+  .modal-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .modal {
+    max-height: 90vh;
+  }
+
+  .confirm-modal {
+    padding: 24px;
+    margin: 0 16px;
+  }
+
+  .confirm-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .confirm-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-content {
+    padding: 16px;
+  }
+}

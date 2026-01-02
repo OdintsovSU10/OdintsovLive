@@ -2,6 +2,7 @@
   padding: 24px;
   max-width: 100%;
   margin: 0 auto;
+  overflow-x: hidden;
 }
 
 .loading {
@@ -523,23 +524,103 @@
 /* Mobile */
 @media (max-width: 430px) {
   .salary-page {
-    padding: 16px;
+    padding: 72px 16px 16px;
+  }
+
+  .salary-header {
+    margin-bottom: 16px;
+  }
+
+  .year-select {
+    font-size: 1.5rem;
+  }
+
+  .salary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .chart-column {
+    order: 1;
+    width: 100%;
+  }
+
+  .months-list {
+    order: 2;
+    width: 100%;
+  }
+
+  .salary-chart {
+    width: 100%;
+    position: static;
+  }
+
+  .chart-summary {
+    width: 100%;
+  }
+
+  .month-row {
+    width: 100%;
   }
 
   .month-stats,
   .month-salary,
   .month-salary-input,
-  .month-rate,
   .month-norm {
     display: none;
   }
 
+  .month-row {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .month-name {
+    min-width: 70px;
+    font-size: 0.85rem;
+  }
+
+  .month-rate {
+    flex: 1;
+    font-size: 0.7rem;
+    text-align: left;
+    margin-left: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
   .month-earned {
+    flex-shrink: 0;
+    min-width: 75px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 6px;
+    text-align: right;
+  }
+
+  .month-actions {
+    flex-shrink: 0;
+    margin-left: 4px;
     min-width: auto;
+    gap: 4px;
+  }
+
+  .month-arrow {
+    margin-left: 2px;
   }
 
   .payments-badge span {
     display: none;
+  }
+
+  .add-payment-btn-small {
+    width: 28px;
+    height: 28px;
   }
 
   .inline-add-payment {
@@ -553,6 +634,58 @@
   }
 
   .salary-chart {
-    padding: 12px;
+    padding: 16px;
+  }
+
+  .chart-summary {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .summary-item {
+    padding: 16px 12px;
+  }
+
+  .summary-label {
+    font-size: 0.75rem;
+  }
+
+  .summary-value {
+    font-size: 1.75rem;
+  }
+
+  .months-total {
+    padding: 14px 16px;
+  }
+}
+
+/* iPhone 12 Pro and smaller */
+@media (max-width: 390px) {
+  .month-name {
+    min-width: 60px;
+    font-size: 0.8rem;
+  }
+
+  .month-rate {
+    font-size: 0.6rem;
+  }
+
+  .month-earned {
+    min-width: 70px;
+    font-size: 0.75rem;
+  }
+
+  .summary-value {
+    font-size: 1.5rem;
+  }
+
+  .add-payment-btn-small {
+    width: 24px;
+    height: 24px;
+  }
+
+  .payments-badge {
+    padding: 2px 4px;
   }
 }

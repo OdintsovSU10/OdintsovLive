@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { getWorkDaysNorm } from '../lib/workNorms'
 import './Calendar.css'
 
 type DayStatus = 'none' | 'work' | 'worked' | 'vacation'
@@ -57,6 +59,7 @@ function isCurrentMonth(year: number, month: number): boolean {
 }
 
 export default function Calendar() {
+  const navigate = useNavigate()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [allDays, setAllDays] = useState<DayData>(() => {
     const saved = localStorage.getItem('calendar-days')
@@ -220,10 +223,28 @@ export default function Calendar() {
       </div>
 
       <div className="calendar-grid">
-        {MONTHS.map((monthName, monthIndex) => (
+        {MONTHS.map((monthName, monthIndex) => {
+          const prefix = `${year}-${monthIndex}-`
+          const monthDays = Object.entries(allDays).filter(([k]) => k.startsWith(prefix))
+          const workCount = monthDays.filter(([, s]) => s === 'work').length
+          const workedCount = monthDays.filter(([, s]) => s === 'worked').length
+          const vacationCount = monthDays.filter(([, s]) => s === 'vacation').length
+          const norm = getWorkDaysNorm(year, monthIndex)
+          return (
           <div key={monthIndex} className={`month ${isCurrentMonth(year, monthIndex) ? 'current' : ''}`}>
             <div className="month-header">
-              <h3>{monthName}</h3>
+              <h3
+                className="month-title"
+                onClick={() => navigate(`/salary/${year}/${monthIndex}`)}
+              >
+                {monthName}
+              </h3>
+              <span className="month-norm">{norm}</span>
+              <div className="month-stats">
+                <span className="ms work">{workCount}</span>
+                <span className="ms worked">{workedCount}</span>
+                <span className="ms vacation">{vacationCount}</span>
+              </div>
               <button
                 className="reset-month-btn"
                 onClick={() => resetMonth(monthIndex)}
@@ -260,7 +281,8 @@ export default function Calendar() {
               })}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

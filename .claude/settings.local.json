@@ -19,11 +19,14 @@
       "Bash(claude mcp add github -- npx -y @modelcontextprotocol/server-github)",
       "Bash(claude mcp add github -e GITHUB_PERSONAL_ACCESS_TOKEN=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 -- npx -y @modelcontextprotocol/server-github)",
       "Bash(claude mcp remove:*)",
-      "Bash(git fetch:*)",
-      "Bash(npm run build:*)",
-      "mcp__supabase__list_projects",
-      "Bash(npx:*)",
-      "Bash(dir:*)"
+      "Bash(npx playwright install:*)",
+      "Bash(npx playwright:*)",
+      "Bash(jq:*)",
+      "Bash(cat:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)"
     ]
   }
 }

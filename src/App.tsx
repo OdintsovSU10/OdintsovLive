@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { Coffee } from 'lucide-react'
 import './App.css'
 import Sidebar from './components/Sidebar'
 import ThemeToggle from './components/ThemeToggle'
+import Logo from './components/Logo'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import CalendarPage from './pages/CalendarPage'
@@ -13,6 +15,9 @@ import SalaryMonthPage from './pages/SalaryMonthPage'
 import VacationRatePage from './pages/VacationRatePage'
 import RentPage from './pages/RentPage'
 import RentMonthPage from './pages/RentMonthPage'
+import WeightPage from './pages/WeightPage'
+import BodyParamsPage from './pages/BodyParamsPage'
+import NotesPage from './pages/NotesPage'
 import AdminPage from './pages/AdminPage'
 
 type Theme = 'light' | 'dark'
@@ -27,6 +32,8 @@ function App() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [idleMode, setIdleMode] = useState(false)
+  const [idleDateTime, setIdleDateTime] = useState({ date: '', time: '' })
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('theme') as Theme
     if (saved) return saved
@@ -37,6 +44,31 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    if (!idleMode) return
+    const update = () => {
+      const now = new Date()
+      setIdleDateTime({
+        date: now.toLocaleDateString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }).replace(' г.', ''),
+        time: now.toLocaleTimeString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      })
+    }
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [idleMode])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -118,15 +150,30 @@ function App() {
         <main className={`main-content ${collapsed ? 'collapsed' : ''}`}>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/notes" element={<NotesPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/salary" element={<SalaryPage />} />
             <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
             <Route path="/vacation-rate" element={<VacationRatePage />} />
             <Route path="/rent" element={<RentPage />} />
             <Route path="/rent/:year/:month" element={<RentMonthPage />} />
+            <Route path="/body/weight" element={<WeightPage />} />
+            <Route path="/body/params" element={<BodyParamsPage />} />
             {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
           </Routes>
         </main>
+
+        <button className="idle-btn" onClick={() => setIdleMode(true)} title="Ожидание">
+          <Coffee size={20} />
+        </button>
+
+        {idleMode && (
+          <div className="idle-screen" onClick={() => setIdleMode(false)}>
+            <Logo size={100} />
+            <div className="idle-time">{idleDateTime.time}</div>
+            <div className="idle-date">{idleDateTime.date}</div>
+          </div>
+        )}
       </div>
     </BrowserRouter>
   )

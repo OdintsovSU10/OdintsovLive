@@ -10,17 +10,22 @@ interface ThemeToggleProps {
 }
 
 export default function ThemeToggle({ theme, onToggle, isAdmin }: ThemeToggleProps) {
-  const [moscowTime, setMoscowTime] = useState('')
+  const [moscowDateTime, setMoscowDateTime] = useState('')
 
   useEffect(() => {
     const updateTime = () => {
-      const time = new Date().toLocaleTimeString('ru-RU', {
+      const now = new Date()
+      const date = now.toLocaleDateString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        day: 'numeric',
+        month: 'short'
+      })
+      const time = now.toLocaleTimeString('ru-RU', {
         timeZone: 'Europe/Moscow',
         hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        minute: '2-digit'
       })
-      setMoscowTime(time)
+      setMoscowDateTime(`${date}, ${time}`)
     }
     updateTime()
     const interval = setInterval(updateTime, 1000)
@@ -29,7 +34,7 @@ export default function ThemeToggle({ theme, onToggle, isAdmin }: ThemeTogglePro
 
   return (
     <div className="top-bar">
-      <span className="moscow-time">{moscowTime}</span>
+      <span className="moscow-time">{moscowDateTime}</span>
       {isAdmin && (
         <Link to="/admin" className="admin-btn" title="Админ">
           <Settings size={16} strokeWidth={1.5} />
@@ -41,13 +46,13 @@ export default function ThemeToggle({ theme, onToggle, isAdmin }: ThemeTogglePro
           className={theme === 'light' ? 'active' : ''}
           onClick={() => onToggle(theme === 'light' ? 'dark' : 'light')}
         >
-          ☀ Light
+          ☀<span className="btn-text"> Light</span>
         </button>
         <button
           className={theme === 'dark' ? 'active' : ''}
           onClick={() => onToggle(theme === 'dark' ? 'light' : 'dark')}
         >
-          ◐ Dark
+          ◐<span className="btn-text"> Dark</span>
         </button>
       </div>
     </div>

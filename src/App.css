@@ -1,6 +1,7 @@
 .app {
   min-height: 100vh;
   display: flex;
+  overflow-x: hidden;
 }
 
 .main-content {
@@ -8,6 +9,7 @@
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   transition: margin-left var(--transition);
+  overflow-x: hidden;
 }
 
 .main-content.collapsed {
@@ -17,6 +19,12 @@
 @media (max-width: 768px) {
   .main-content {
     margin-left: var(--sidebar-collapsed);
+  }
+}
+
+@media (max-width: 430px) {
+  .main-content {
+    margin-left: 0;
   }
 }
 
@@ -86,4 +94,63 @@
 
 .logout-link:hover {
   color: var(--text-primary);
+}
+
+.idle-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+}
+
+.idle-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.idle-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.idle-time {
+  font-family: var(--font-headline);
+  font-size: 6rem;
+  font-weight: 300;
+  color: var(--text-primary);
+  margin-top: 32px;
+  letter-spacing: -2px;
+}
+
+.idle-date {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+
+@media (max-width: 430px) {
+  .idle-btn {
+    display: none;
+  }
 }

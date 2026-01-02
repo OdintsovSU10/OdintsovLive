@@ -19,7 +19,7 @@ export default function Logo({ size = 80, showText = true }: LogoProps) {
         <circle cx="52" cy="56" r="4" fill="var(--primary)" />
       </svg>
       {showText && (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="logo-text" style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{
             fontFamily: 'var(--font-headline)',
             fontSize: size * 0.35,

@@ -113,7 +113,7 @@
 }
 
 .inline-input input {
-  width: 120px;
+  width: 110px;
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -385,7 +385,7 @@
 
 @media (max-width: 430px) {
   .salary-month-page {
-    padding: 16px;
+    padding: 72px 16px 16px;
   }
 
   .month-page-header {
@@ -400,11 +400,44 @@
     padding: 16px;
   }
 
-  .inline-input input {
-    width: 100px;
+  .settings-row {
+    padding: 10px 0;
+    font-size: 0.9rem;
   }
 
-  .inline-input.small input {
+  .settings-row .inline-input {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .settings-row .inline-input input {
+    width: 90px;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+  }
+
+  .settings-row .inline-input.small input {
     width: 50px;
+    padding: 6px 6px;
+  }
+
+  .settings-row .inline-input span {
+    font-size: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .calc-item {
+    font-size: 0.85rem;
+  }
+
+  .payment-item {
+    padding: 10px;
+  }
+
+  .payment-amount {
+    font-size: 0.9rem;
   }
 }

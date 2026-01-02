@@ -2,7 +2,6 @@
   width: var(--sidebar-width);
   min-height: 100vh;
   background: var(--sidebar-bg);
-  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -140,6 +139,7 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* Tablet */
 @media (max-width: 768px) {
   .sidebar {
     width: var(--sidebar-collapsed);
@@ -149,7 +149,7 @@
     padding: 16px 12px;
   }
 
-  .sidebar-header .logo > div {
+  .sidebar-header .logo-text {
     display: none;
   }
 
@@ -165,6 +165,115 @@
 
   .sidebar .nav-link span {
     display: none;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+}
+
+/* Mobile */
+@media (max-width: 430px) {
+  .sidebar {
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    background: rgba(26, 26, 26, 0.3) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .sidebar.mobile-hidden {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar .sidebar-header {
+    padding: 20px 16px;
+  }
+
+  .sidebar.mobile-open .sidebar-header .logo-text {
+    display: flex;
+  }
+
+  .sidebar .nav-link {
+    justify-content: flex-start;
+    padding: 12px 14px;
+  }
+
+  .sidebar .nav-link span {
+    display: inline;
+  }
+
+  .sidebar .nav-group-items {
+    padding-left: 12px;
+  }
+
+  .mobile-menu-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 200;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    transition: all var(--transition);
+  }
+
+  .mobile-menu-btn:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .mobile-menu-btn.menu-open {
+    background: var(--sidebar-bg);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--sidebar-text);
+  }
+
+  .mobile-logo {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+  }
+
+  .mobile-logo:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+
+  .sidebar-overlay.visible {
+    display: block;
+  }
+
+  .sidebar {
+    z-index: 100;
   }
 
   .sidebar-toggle {

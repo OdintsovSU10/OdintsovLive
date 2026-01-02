@@ -134,7 +134,7 @@
 
 @media (max-width: 430px) {
   .admin-page {
-    padding: 16px;
+    padding: 72px 16px 16px;
   }
 
   .user-card {

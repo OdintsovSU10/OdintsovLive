@@ -286,7 +286,7 @@
 
 @media (max-width: 430px) {
   .rent-month-page {
-    padding: 16px;
+    padding: 72px 16px 16px;
   }
 
   .input-row {
