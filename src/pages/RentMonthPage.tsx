@@ -83,14 +83,14 @@ export default function RentMonthPage() {
         .eq('user_id', uid)
         .eq('year', year)
         .eq('month', month)
-        .single(),
+        .maybeSingle(),
       supabase
         .from('rent_records')
         .select('cold_water, hot_water, electricity')
         .eq('user_id', uid)
         .eq('year', prevYear)
         .eq('month', prevMonth)
-        .single()
+        .maybeSingle()
     ])
 
     const prevElectricity: ElectricityMeter[] = prevResult.data?.electricity || []
@@ -296,7 +296,7 @@ export default function RentMonthPage() {
     return (
       <div className="rent-month-page">
         <div className="month-header">
-          <button className="back-btn" onClick={() => navigate('/rent')}>
+          <button className="back-btn" onClick={() => navigate(`/rent?year=${year}`)}>
             <ArrowLeft size={20} />
             <span>Назад</span>
           </button>
@@ -310,7 +310,7 @@ export default function RentMonthPage() {
   return (
     <div className="rent-month-page">
       <div className="month-header">
-        <button className="back-btn" onClick={() => navigate('/rent')}>
+        <button className="back-btn" onClick={() => navigate(`/rent?year=${year}`)}>
           <ArrowLeft size={20} />
           <span>Назад</span>
         </button>

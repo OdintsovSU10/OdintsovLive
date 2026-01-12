@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap');
-
 :root {
   --primary: #C4A77D;
   --primary-hover: #B8956A;
@@ -107,4 +105,65 @@ a {
 
 code, pre {
   font-family: var(--font-mono);
+}
+
+/* Global Recharts tooltip */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(26, 26, 26, 0.7) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: #fff !important;
+}
+
+.recharts-tooltip-wrapper .recharts-tooltip-item {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: #1A1A1A !important;
+}
+
+[data-theme="light"] .recharts-tooltip-wrapper .recharts-tooltip-item {
+  color: rgba(26, 26, 26, 0.8) !important;
+}
+
+/* Мобильная верхняя панель с размытием */
+@media (max-width: 430px) {
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 96px;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--bg-primary) 70%, transparent) 0%,
+      color-mix(in srgb, var(--bg-primary) 50%, transparent) 50%,
+      color-mix(in srgb, var(--bg-primary) 20%, transparent) 75%,
+      transparent 100%
+    );
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 90;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
+  }
 }

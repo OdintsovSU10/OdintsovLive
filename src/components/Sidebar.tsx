@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote, Car, ArrowLeft, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
 import './Sidebar.css'
@@ -11,6 +11,7 @@ interface SidebarProps {
 }
 
 const workLinks = [
+  { path: '/tender', icon: Users, label: 'Тендерный отдел' },
   { path: '/calendar', icon: Calendar, label: 'Календарь' },
   { path: '/salary', icon: Wallet, label: 'Зарплата' },
   { path: '/vacation-rate', icon: Umbrella, label: 'Отпускные' },
@@ -23,6 +24,7 @@ const bodyLinks = [
 
 const otherLinks = [
   { path: '/rent', icon: Home, label: 'Аренда' },
+  { path: '/car', icon: Car, label: 'Машина' },
 ]
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -33,6 +35,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [bodyExpanded, setBodyExpanded] = useState(isBodyActive)
   const [mobileHidden, setMobileHidden] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [isInNotesEditor, setIsInNotesEditor] = useState(false)
+  const swipeStartX = useRef(0)
+  const swipeStartY = useRef(0)
+  const isSwipeFromEdge = useRef(false)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 430)
@@ -40,6 +46,66 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Отслеживаем режим редактора заметок
+  useEffect(() => {
+    const checkEditorMode = () => {
+      setIsInNotesEditor(document.body.dataset.notesEditor === 'true')
+    }
+
+    // Проверяем при изменениях body
+    const observer = new MutationObserver(checkEditorMode)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-notes-editor'] })
+
+    checkEditorMode()
+    return () => observer.disconnect()
+  }, [])
+
+  // Swipe from left edge to open sidebar
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Не обрабатываем свайп если активен редактор заметок
+    if (document.body.dataset.editorSwipe === 'true') {
+      isSwipeFromEdge.current = false
+      return
+    }
+    const touch = e.touches[0]
+    swipeStartX.current = touch.clientX
+    swipeStartY.current = touch.clientY
+    isSwipeFromEdge.current = touch.clientX < 25
+  }, [])
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (!isSwipeFromEdge.current || !isMobile) return
+
+    // Не открываем сайдбар если активен свайп в редакторе заметок
+    if (document.body.dataset.editorSwipe === 'true') {
+      isSwipeFromEdge.current = false
+      return
+    }
+
+    const touch = e.changedTouches[0]
+    const diffX = touch.clientX - swipeStartX.current
+    const diffY = Math.abs(touch.clientY - swipeStartY.current)
+
+    // Swipe right from edge, mostly horizontal
+    if (diffX > 80 && diffY < 100 && mobileHidden) {
+      setMobileHidden(false)
+    }
+
+    isSwipeFromEdge.current = false
+  }, [isMobile, mobileHidden])
+
+  useEffect(() => {
+    if (!isMobile) return
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [isMobile, handleTouchStart, handleTouchEnd])
 
   useEffect(() => {
     if (isMobile) setMobileHidden(true)
@@ -51,25 +117,35 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const mobileMenuOpen = isMobile && !mobileHidden
 
+  const handleMobileBackClick = () => {
+    if (isInNotesEditor) {
+      window.dispatchEvent(new CustomEvent('notes-editor-back'))
+    } else {
+      setMobileHidden(!mobileHidden)
+    }
+  }
+
   return (
     <>
       {isMobile && (
         <>
           <button
-            className={`mobile-menu-btn ${!mobileHidden ? 'menu-open' : ''}`}
-            onClick={() => setMobileHidden(!mobileHidden)}
+            className={`mobile-menu-btn ${!mobileHidden ? 'menu-open' : ''} ${isInNotesEditor ? 'back-mode' : ''}`}
+            onClick={handleMobileBackClick}
           >
-            {mobileHidden ? <Menu size={20} /> : <X size={20} />}
+            {isInNotesEditor ? <ArrowLeft size={20} /> : (mobileHidden ? <Menu size={20} /> : <X size={20} />)}
           </button>
-          {mobileHidden && (
+          {mobileHidden && !isInNotesEditor && (
             <Link to="/" className="mobile-logo">
               <Logo size={24} showText={false} />
             </Link>
           )}
-          <div
-            className={`sidebar-overlay ${!mobileHidden ? 'visible' : ''}`}
-            onClick={() => setMobileHidden(true)}
-          />
+          {!isInNotesEditor && (
+            <div
+              className={`sidebar-overlay ${!mobileHidden ? 'visible' : ''}`}
+              onClick={() => setMobileHidden(true)}
+            />
+          )}
         </>
       )}
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${isMobile && mobileHidden ? 'mobile-hidden' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}>

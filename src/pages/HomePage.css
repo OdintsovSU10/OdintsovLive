@@ -107,6 +107,10 @@
     margin-bottom: 16px;
   }
 
+  .home-datetime {
+    margin-bottom: 12px;
+  }
+
   .home-date {
     font-size: 0.9rem;
   }

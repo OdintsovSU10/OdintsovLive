@@ -535,6 +535,10 @@
     font-size: 1.5rem;
   }
 
+  .year-btn {
+    display: none;
+  }
+
   .salary-content {
     display: flex;
     flex-direction: column;
@@ -595,19 +599,19 @@
 
   .month-earned {
     flex-shrink: 0;
-    min-width: 75px;
+    min-width: 65px;
     font-size: 0.8rem;
     font-weight: 600;
     white-space: nowrap;
-    margin-left: 6px;
+    margin-left: 4px;
     text-align: right;
   }
 
   .month-actions {
     flex-shrink: 0;
-    margin-left: 4px;
+    margin-left: 2px;
     min-width: auto;
-    gap: 4px;
+    gap: 2px;
   }
 
   .month-arrow {
@@ -663,7 +667,7 @@
 /* iPhone 12 Pro and smaller */
 @media (max-width: 390px) {
   .month-name {
-    min-width: 60px;
+    min-width: 55px;
     font-size: 0.8rem;
   }
 
@@ -672,7 +676,7 @@
   }
 
   .month-earned {
-    min-width: 70px;
+    min-width: 60px;
     font-size: 0.75rem;
   }
 

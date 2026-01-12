@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Social Gothic Soft';
+  src: url('/fonts/SocialGothicSoft.woff') format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
 .app {
   min-height: 100vh;
   display: flex;
@@ -28,7 +35,8 @@
   }
 }
 
-.loading-screen {
+.loading-screen,
+.page-loading {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -124,33 +132,146 @@
 .idle-screen {
   position: fixed;
   inset: 0;
-  background: var(--bg-primary);
+  background: #000;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   cursor: pointer;
+  animation: idleFadeIn 0.8s ease;
 }
 
-.idle-time {
-  font-family: var(--font-headline);
-  font-size: 6rem;
-  font-weight: 300;
-  color: var(--text-primary);
-  margin-top: 32px;
-  letter-spacing: -2px;
+@keyframes idleFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .idle-date {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  margin-top: 8px;
-  text-transform: capitalize;
+  position: absolute;
+  top: 32px;
+  right: 48px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  animation: idleFadeIn 1s ease 0.3s both;
+}
+
+.idle-weekday {
+  font-family: 'Social Gothic Soft', 'SF Pro Rounded', system-ui, sans-serif;
+  font-size: 3.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background 1.5s ease;
+}
+
+.idle-weekday[data-color="0"] { background-image: linear-gradient(135deg, #CC6B77 0%, #6B99CC 100%); }
+.idle-weekday[data-color="1"] { background-image: linear-gradient(135deg, #CC9E6B 0%, #6B8ACC 100%); }
+.idle-weekday[data-color="2"] { background-image: linear-gradient(135deg, #65CC88 0%, #CC65A9 100%); }
+.idle-weekday[data-color="3"] { background-image: linear-gradient(135deg, #629FCC 0%, #CCAA62 100%); }
+.idle-weekday[data-color="4"] { background-image: linear-gradient(135deg, #936BCC 0%, #8ACC6B 100%); }
+.idle-weekday[data-color="5"] { background-image: linear-gradient(135deg, #CC6BB9 0%, #6BCC7E 100%); }
+.idle-weekday[data-color="6"] { background-image: linear-gradient(135deg, #CC8A6B 0%, #6BAACC 100%); }
+
+.idle-day {
+  font-family: 'Social Gothic Soft', 'SF Pro Rounded', system-ui, sans-serif;
+  font-size: 3.5rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.idle-time-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 1vw;
+  animation: idleSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.idle-time {
+  font-family: 'Social Gothic Soft', 'SF Pro Rounded', system-ui, sans-serif;
+  font-size: 28vw;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background 1.5s ease;
+  padding: 0.05em 2vw;
+}
+
+.idle-time[data-color="0"] { background-image: linear-gradient(135deg, #CC6B77 0%, #6B99CC 100%); }
+.idle-time[data-color="1"] { background-image: linear-gradient(135deg, #CC9E6B 0%, #6B8ACC 100%); }
+.idle-time[data-color="2"] { background-image: linear-gradient(135deg, #65CC88 0%, #CC65A9 100%); }
+.idle-time[data-color="3"] { background-image: linear-gradient(135deg, #629FCC 0%, #CCAA62 100%); }
+.idle-time[data-color="4"] { background-image: linear-gradient(135deg, #936BCC 0%, #8ACC6B 100%); }
+.idle-time[data-color="5"] { background-image: linear-gradient(135deg, #CC6BB9 0%, #6BCC7E 100%); }
+.idle-time[data-color="6"] { background-image: linear-gradient(135deg, #CC8A6B 0%, #6BAACC 100%); }
+
+.idle-period {
+  font-family: 'Social Gothic Soft', 'SF Pro Rounded', system-ui, sans-serif;
+  font-size: 8vw;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@keyframes idleSlideUp {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.idle-logo {
+  position: absolute;
+  bottom: 12%;
+  opacity: 0.5;
+  animation: idleFadeIn 1s ease 0.5s both;
+}
+
+@media (max-width: 768px) {
+  .idle-date {
+    top: 24px;
+    right: 24px;
+    font-size: 2.5rem;
+  }
+
+  .idle-time {
+    font-size: 26vw;
+  }
+
+  .idle-period {
+    font-size: 7vw;
+  }
 }
 
 @media (max-width: 430px) {
   .idle-btn {
     display: none;
+  }
+
+  .idle-date {
+    top: 16px;
+    right: 16px;
+    font-size: 1.75rem;
+  }
+
+  .idle-time {
+    font-size: 22vw;
+  }
+
+  .idle-period {
+    font-size: 6vw;
+  }
+
+  .idle-logo {
+    bottom: 24px;
   }
 }

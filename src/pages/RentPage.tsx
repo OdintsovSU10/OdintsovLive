@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronRight as Arrow, Check } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, ChevronRight as Arrow, Check, Upload } from 'lucide-react'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import './RentPage.css'
 
@@ -19,8 +20,6 @@ const MONTHS = [
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
 ]
 
-const MONTHS_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
 
 function isCurrentMonth(year: number, month: number): boolean {
@@ -30,10 +29,13 @@ function isCurrentMonth(year: number, month: number): boolean {
 
 export default function RentPage() {
   const navigate = useNavigate()
-  const [year, setYear] = useState(new Date().getFullYear())
+  const [searchParams] = useSearchParams()
+  const initialYear = Number(searchParams.get('year')) || new Date().getFullYear()
+  const [year, setYear] = useState(initialYear)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [records, setRecords] = useState<RentRecord[]>([])
+  const [allTimeTotals, setAllTimeTotals] = useState({ total: 0, water: 0, electricity: 0 })
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -46,8 +48,30 @@ export default function RentPage() {
   useEffect(() => {
     if (userId) {
       loadData()
+      loadAllTimeTotals()
     }
   }, [year, userId])
+
+  const loadAllTimeTotals = async () => {
+    if (!userId) return
+    const { data } = await supabase
+      .from('rent_records')
+      .select('rent_amount, water_amount, electricity_amount')
+      .eq('user_id', userId)
+
+    if (data) {
+      const totals = data.reduce(
+        (acc, r) => {
+          acc.total += (r.rent_amount || 0) + (r.water_amount || 0) + (r.electricity_amount || 0)
+          acc.water += r.water_amount || 0
+          acc.electricity += r.electricity_amount || 0
+          return acc
+        },
+        { total: 0, water: 0, electricity: 0 }
+      )
+      setAllTimeTotals(totals)
+    }
+  }
 
   const loadData = async () => {
     if (records.length === 0) {
@@ -70,6 +94,71 @@ export default function RentPage() {
     return records.find(r => r.month === monthIndex) || null
   }
 
+  const parseNum = (val: string | number | undefined): number => {
+    if (val === undefined || val === null || val === '') return 0
+    if (typeof val === 'number') return val
+    const cleaned = String(val).replace(/\s/g, '').replace(',', '.')
+    return parseFloat(cleaned) || 0
+  }
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+
+    const reader = new FileReader()
+    reader.onload = async (evt) => {
+      const data = evt.target?.result
+      const workbook = XLSX.read(data, { type: 'binary' })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<(string | number)[]>(sheet, { header: 1 })
+
+      const recordsToUpsert = rows
+        .filter(row => row[8] !== undefined && row[9] !== undefined && !isNaN(parseNum(row[8])) && !isNaN(parseNum(row[9])))
+        .map(row => ({
+          user_id: userId,
+          rent_amount: parseNum(row[0]),
+          water_amount: parseNum(row[1]),
+          electricity_amount: parseNum(row[2]),
+          cold_water: parseNum(row[3]),
+          hot_water: parseNum(row[4]),
+          electricity: [
+            { name: 'T1', value: parseNum(row[5]) },
+            { name: 'T2', value: parseNum(row[6]) },
+            { name: 'T3', value: parseNum(row[7]) }
+          ],
+          year: parseNum(row[8]),
+          month: parseNum(row[9]) - 1
+        }))
+
+      for (const record of recordsToUpsert) {
+        if (isNaN(record.year) || isNaN(record.month)) continue
+
+        const { data: existing } = await supabase
+          .from('rent_records')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('year', record.year)
+          .eq('month', record.month)
+          .maybeSingle()
+
+        if (existing) {
+          await supabase
+            .from('rent_records')
+            .update(record)
+            .eq('id', existing.id)
+        } else {
+          await supabase
+            .from('rent_records')
+            .insert(record)
+        }
+      }
+
+      loadData()
+    }
+    reader.readAsBinaryString(file)
+    e.target.value = ''
+  }
+
   const yearTotals = records.reduce(
     (acc, r) => {
       acc.rent += r.rent_amount || 0
@@ -80,7 +169,7 @@ export default function RentPage() {
     { rent: 0, water: 0, electricity: 0 }
   )
 
-  const chartData = MONTHS_SHORT.map((name, i) => {
+  const chartData = MONTHS.map((name, i) => {
     const record = getRecord(i)
     return {
       name,
@@ -114,6 +203,11 @@ export default function RentPage() {
         >
           <ChevronRight size={20} />
         </button>
+        <label className="import-btn">
+          <Upload size={18} />
+          <span>Импорт</span>
+          <input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} hidden />
+        </label>
       </div>
 
       {loading ? (
@@ -178,27 +272,38 @@ export default function RentPage() {
               </div>
 
               <div className="rent-chart">
-              <div className="chart-title">Расходы по месяцам</div>
+              <div className="chart-title-large">Расходы по месяцам</div>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="colorRent" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    formatter={(value) => (value as number).toLocaleString('ru-RU') + ' ₽'}
-                    labelStyle={{ color: 'var(--text-primary)' }}
-                    contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}
-                  />
-                  <Line
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={45} />
+                  <Tooltip formatter={(value) => [(value as number).toLocaleString('ru-RU') + ' ₽', 'Итого']} />
+                  <Area
                     type="monotone"
                     dataKey="value"
-                    name="Итого"
                     stroke="var(--primary)"
                     strokeWidth={2}
-                    dot={{ fill: 'var(--primary)', strokeWidth: 2 }}
-                    activeDot={{ r: 6 }}
+                    fill="url(#colorRent)"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
+              </div>
+
+              <div className="chart-total">
+                <div className="chart-total-row">
+                  <span className="chart-total-label">Всего потрачено</span>
+                  <span className="chart-total-value">{Math.round(allTimeTotals.total).toLocaleString('ru-RU')} ₽</span>
+                </div>
+                <div className="chart-total-details">
+                  <span>Вода: {Math.round(allTimeTotals.water).toLocaleString('ru-RU')} ₽</span>
+                  <span>Электричество: {Math.round(allTimeTotals.electricity).toLocaleString('ru-RU')} ₽</span>
+                </div>
               </div>
             </div>
           </div>

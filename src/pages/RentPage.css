@@ -60,6 +60,26 @@
   cursor: not-allowed;
 }
 
+.rent-header .import-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-left: 16px;
+}
+
+.rent-header .import-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
 .rent-page .year-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -118,6 +138,80 @@
   gap: 12px;
 }
 
+.chart-summary .summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.chart-summary .summary-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.chart-summary .summary-value {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.chart-total {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 24px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+}
+
+.chart-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-total-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-total-value {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.chart-total-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 430px) {
+  .chart-total {
+    padding: 16px;
+  }
+
+  .chart-total-value {
+    font-size: 1.25rem;
+  }
+
+  .chart-total-details {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
 .rent-page .months-total {
   display: flex;
   justify-content: space-between;
@@ -154,12 +248,12 @@
   padding: 16px;
 }
 
-.rent-chart .chart-title {
+.rent-chart .chart-title-large {
   font-family: var(--font-headline);
-  font-size: 1rem;
+  font-size: 2rem;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   text-align: center;
 }
 
@@ -279,6 +373,15 @@
 @media (max-width: 430px) {
   .rent-page {
     padding: 72px 16px 16px;
+  }
+
+  .rent-header .import-btn span {
+    display: none;
+  }
+
+  .rent-header .import-btn {
+    padding: 10px;
+    margin-left: 8px;
   }
 
   .rent-content {

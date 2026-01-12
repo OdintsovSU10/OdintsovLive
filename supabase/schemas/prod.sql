@@ -1,5 +1,5 @@
 -- Database Schema SQL Export
--- Generated: 2025-12-31T00:51:21.515254
+-- Generated: 2026-01-11T15:48:43.237953
 -- Database: postgres
 -- Host: aws-1-eu-west-1.pooler.supabase.com
 
@@ -363,6 +363,41 @@ CREATE TABLE IF NOT EXISTS auth.users (
 COMMENT ON TABLE auth.users IS 'Auth: Stores user login data within a secure schema.';
 COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when the account comes from SSO. These accounts can have duplicate emails.';
 
+-- Table: public.body_params
+CREATE TABLE IF NOT EXISTS public.body_params (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    date date NOT NULL,
+    bicep_left numeric(5,1),
+    bicep_right numeric(5,1),
+    forearm_left numeric(5,1),
+    forearm_right numeric(5,1),
+    chest numeric(5,1),
+    shoulders numeric(5,1),
+    waist numeric(5,1),
+    glutes numeric(5,1),
+    calf_left numeric(5,1),
+    calf_right numeric(5,1),
+    thigh_left numeric(5,1),
+    thigh_right numeric(5,1),
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT body_params_pkey PRIMARY KEY (id),
+    CONSTRAINT body_params_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Table: public.body_weight
+CREATE TABLE IF NOT EXISTS public.body_weight (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    date date NOT NULL,
+    weight numeric(5,2) NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT body_weight_pkey PRIMARY KEY (id),
+    CONSTRAINT body_weight_user_id_date_key UNIQUE (date),
+    CONSTRAINT body_weight_user_id_date_key UNIQUE (user_id),
+    CONSTRAINT body_weight_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
 -- Table: public.calendar_days
 CREATE TABLE IF NOT EXISTS public.calendar_days (
     id integer NOT NULL DEFAULT nextval('calendar_days_id_seq'::regclass),
@@ -375,6 +410,106 @@ CREATE TABLE IF NOT EXISTS public.calendar_days (
     CONSTRAINT calendar_days_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
+-- Table: public.car_calendar_events
+CREATE TABLE IF NOT EXISTS public.car_calendar_events (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    car_id uuid NOT NULL,
+    date date NOT NULL,
+    event_type text NOT NULL,
+    reference_id uuid,
+    title text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT car_calendar_events_car_id_fkey FOREIGN KEY (car_id) REFERENCES public.cars(id),
+    CONSTRAINT car_calendar_events_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.car_expenses
+CREATE TABLE IF NOT EXISTS public.car_expenses (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    car_id uuid NOT NULL,
+    date date NOT NULL,
+    category text NOT NULL,
+    description text,
+    cost numeric(10,2) NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT car_expenses_car_id_fkey FOREIGN KEY (car_id) REFERENCES public.cars(id),
+    CONSTRAINT car_expenses_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.car_fuel
+CREATE TABLE IF NOT EXISTS public.car_fuel (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    car_id uuid NOT NULL,
+    date date NOT NULL,
+    mileage integer,
+    liters numeric(6,2),
+    price_per_liter numeric(6,2),
+    total_cost numeric(10,2),
+    fuel_type text DEFAULT 'АИ-95'::text,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT car_fuel_car_id_fkey FOREIGN KEY (car_id) REFERENCES public.cars(id),
+    CONSTRAINT car_fuel_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.car_maintenance
+CREATE TABLE IF NOT EXISTS public.car_maintenance (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    car_id uuid NOT NULL,
+    date date NOT NULL,
+    mileage integer,
+    type text NOT NULL,
+    description text,
+    cost numeric(10,2),
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT car_maintenance_car_id_fkey FOREIGN KEY (car_id) REFERENCES public.cars(id),
+    CONSTRAINT car_maintenance_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.car_parts
+CREATE TABLE IF NOT EXISTS public.car_parts (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    car_id uuid NOT NULL,
+    category text NOT NULL,
+    name text NOT NULL,
+    part_number text NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT car_parts_car_id_fkey FOREIGN KEY (car_id) REFERENCES public.cars(id),
+    CONSTRAINT car_parts_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.cars
+CREATE TABLE IF NOT EXISTS public.cars (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    brand text NOT NULL,
+    model text NOT NULL,
+    manufacture_month integer,
+    manufacture_year integer NOT NULL,
+    purchase_date date NOT NULL,
+    purchase_mileage integer DEFAULT 0,
+    current_mileage integer DEFAULT 0,
+    purchase_price numeric(12,2),
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    vin character varying(17),
+    CONSTRAINT cars_pkey PRIMARY KEY (id),
+    CONSTRAINT cars_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- Table: public.notes
+CREATE TABLE IF NOT EXISTS public.notes (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    title text NOT NULL,
+    content text,
+    is_pinned boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT notes_pkey PRIMARY KEY (id),
+    CONSTRAINT notes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
 -- Table: public.profiles
 CREATE TABLE IF NOT EXISTS public.profiles (
     id uuid NOT NULL,
@@ -384,6 +519,30 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at timestamp with time zone DEFAULT now(),
     CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
     CONSTRAINT profiles_pkey PRIMARY KEY (id)
+);
+
+-- Table: public.rent_records
+CREATE TABLE IF NOT EXISTS public.rent_records (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    year integer NOT NULL,
+    month integer NOT NULL,
+    rent_amount numeric(12,2) DEFAULT 0,
+    utilities_amount numeric(12,2) DEFAULT 0,
+    cold_water numeric(12,2) DEFAULT 0,
+    hot_water numeric(12,2) DEFAULT 0,
+    electricity jsonb DEFAULT '[]'::jsonb,
+    paid boolean DEFAULT false,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    water_amount numeric(12,2) DEFAULT 0,
+    electricity_amount numeric(12,2) DEFAULT 0,
+    CONSTRAINT rent_records_pkey PRIMARY KEY (id),
+    CONSTRAINT rent_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+    CONSTRAINT rent_records_user_id_year_month_key UNIQUE (month),
+    CONSTRAINT rent_records_user_id_year_month_key UNIQUE (user_id),
+    CONSTRAINT rent_records_user_id_year_month_key UNIQUE (year)
 );
 
 -- Table: public.salary_payments
@@ -418,6 +577,22 @@ CREATE TABLE IF NOT EXISTS public.salary_settings (
     CONSTRAINT salary_settings_user_id_year_month_key UNIQUE (month),
     CONSTRAINT salary_settings_user_id_year_month_key UNIQUE (user_id),
     CONSTRAINT salary_settings_user_id_year_month_key UNIQUE (year)
+);
+
+-- Table: public.user_settings
+CREATE TABLE IF NOT EXISTS public.user_settings (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    font_headline character varying(100) DEFAULT 'Cormorant Garamond'::character varying,
+    font_body character varying(100) DEFAULT 'DM Sans'::character varying,
+    font_mono character varying(100) DEFAULT 'DM Mono'::character varying,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    font_size_base integer DEFAULT 16,
+    custom_fonts jsonb DEFAULT '[]'::jsonb,
+    CONSTRAINT user_settings_pkey PRIMARY KEY (id),
+    CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+    CONSTRAINT user_settings_user_id_key UNIQUE (user_id)
 );
 
 -- Table: realtime.schema_migrations
@@ -701,37 +876,51 @@ CREATE OR REPLACE VIEW public.vacation_rate AS
          SELECT cd.user_id,
             (EXTRACT(year FROM cd.date))::integer AS year,
             ((EXTRACT(month FROM cd.date))::integer - 1) AS month,
-            count(*) FILTER (WHERE (cd.status = ANY (ARRAY['work'::text, 'worked'::text]))) AS worked_days,
+            count(*) FILTER (WHERE (cd.status = 'work'::text)) AS work_days,
+            count(*) FILTER (WHERE (cd.status = 'worked'::text)) AS worked_days,
             count(*) FILTER (WHERE (cd.status = 'vacation'::text)) AS vacation_days,
             (EXTRACT(day FROM (date_trunc('month'::text, (cd.date)::timestamp with time zone) + '1 mon -1 days'::interval)))::integer AS calendar_days
            FROM calendar_days cd
           GROUP BY cd.user_id, (EXTRACT(year FROM cd.date)), (EXTRACT(month FROM cd.date)), (date_trunc('month'::text, (cd.date)::timestamp with time zone))
         ), salary_data AS (
-         SELECT salary_settings.user_id,
-            salary_settings.year,
-            salary_settings.month,
-            ((COALESCE(salary_settings.base_salary, (0)::numeric) + COALESCE(salary_settings.bonus, (0)::numeric)) + COALESCE(salary_settings.transport_base_cost, (0)::numeric)) AS total_payment
-           FROM salary_settings
+         SELECT ss.user_id,
+            ss.year,
+            ss.month,
+            COALESCE(ss.base_salary, (0)::numeric) AS base_salary,
+            COALESCE(ss.bonus, (0)::numeric) AS bonus,
+            COALESCE(ss.transport_base_cost, (0)::numeric) AS transport_base_cost,
+            COALESCE(ss.work_days_norm, 22) AS work_days_norm
+           FROM salary_settings ss
+        ), combined AS (
+         SELECT md.user_id,
+            md.year,
+            md.month,
+            md.work_days,
+            md.worked_days,
+            md.vacation_days,
+            md.calendar_days,
+            COALESCE(((((sd.base_salary / (NULLIF(sd.work_days_norm, 0))::numeric) * ((md.work_days + md.worked_days))::numeric) + sd.bonus) + ((sd.transport_base_cost / (NULLIF(sd.work_days_norm, 0))::numeric) * (md.work_days)::numeric)), (0)::numeric) AS total_payment
+           FROM (month_data md
+             LEFT JOIN salary_data sd ON (((md.user_id = sd.user_id) AND (md.year = sd.year) AND (md.month = sd.month))))
         )
- SELECT md.user_id,
-    md.year,
-    md.month,
-    COALESCE(sd.total_payment, (0)::numeric) AS base_salary,
-    md.worked_days,
-    md.vacation_days,
-    md.calendar_days,
+ SELECT user_id,
+    year,
+    month,
+    total_payment AS base_salary,
+    (work_days + worked_days) AS worked_days,
+    vacation_days,
+    calendar_days,
         CASE
-            WHEN (md.vacation_days > 0) THEN (29.3 * ((md.worked_days)::numeric / (NULLIF(md.calendar_days, 0))::numeric))
+            WHEN (vacation_days > 0) THEN (29.3 * (((work_days + worked_days))::numeric / (NULLIF(calendar_days, 0))::numeric))
             ELSE 29.3
         END AS adjusted_days,
-    COALESCE((sum(COALESCE(sd.total_payment, (0)::numeric)) OVER w / NULLIF(sum(
+    COALESCE((sum(total_payment) OVER w / NULLIF(sum(
         CASE
-            WHEN (md.vacation_days > 0) THEN (29.3 * ((md.worked_days)::numeric / (NULLIF(md.calendar_days, 0))::numeric))
+            WHEN (vacation_days > 0) THEN (29.3 * (((work_days + worked_days))::numeric / (NULLIF(calendar_days, 0))::numeric))
             ELSE 29.3
         END) OVER w, (0)::numeric)), (0)::numeric) AS daily_vacation_rate
-   FROM (month_data md
-     LEFT JOIN salary_data sd ON (((md.user_id = sd.user_id) AND (md.year = sd.year) AND (md.month = sd.month))))
-  WINDOW w AS (PARTITION BY md.user_id ORDER BY md.year, md.month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW);
+   FROM combined c
+  WINDOW w AS (PARTITION BY user_id ORDER BY year, month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW);
 
 -- View: vault.decrypted_secrets
 CREATE OR REPLACE VIEW vault.decrypted_secrets AS
@@ -3473,8 +3662,41 @@ CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
 -- Index on auth.users
 CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone);
 
+-- Index on public.body_weight
+CREATE UNIQUE INDEX body_weight_user_id_date_key ON public.body_weight USING btree (user_id, date);
+
 -- Index on public.calendar_days
 CREATE UNIQUE INDEX calendar_days_user_date_key ON public.calendar_days USING btree (user_id, date);
+
+-- Index on public.car_calendar_events
+CREATE INDEX car_calendar_events_car_id_idx ON public.car_calendar_events USING btree (car_id);
+
+-- Index on public.car_calendar_events
+CREATE INDEX car_calendar_events_date_idx ON public.car_calendar_events USING btree (date);
+
+-- Index on public.car_expenses
+CREATE INDEX car_expenses_car_id_idx ON public.car_expenses USING btree (car_id);
+
+-- Index on public.car_fuel
+CREATE INDEX car_fuel_car_id_idx ON public.car_fuel USING btree (car_id);
+
+-- Index on public.car_maintenance
+CREATE INDEX car_maintenance_car_id_idx ON public.car_maintenance USING btree (car_id);
+
+-- Index on public.car_parts
+CREATE INDEX idx_car_parts_car_id ON public.car_parts USING btree (car_id);
+
+-- Index on public.cars
+CREATE INDEX cars_user_id_idx ON public.cars USING btree (user_id);
+
+-- Index on public.notes
+CREATE INDEX notes_created_at_idx ON public.notes USING btree (created_at DESC);
+
+-- Index on public.notes
+CREATE INDEX notes_user_id_idx ON public.notes USING btree (user_id);
+
+-- Index on public.rent_records
+CREATE UNIQUE INDEX rent_records_user_id_year_month_key ON public.rent_records USING btree (user_id, year, month);
 
 -- Index on public.salary_payments
 CREATE INDEX idx_salary_payments_user_year ON public.salary_payments USING btree (user_id, year);
@@ -3487,6 +3709,12 @@ CREATE INDEX idx_salary_settings_user_year ON public.salary_settings USING btree
 
 -- Index on public.salary_settings
 CREATE UNIQUE INDEX salary_settings_user_id_year_month_key ON public.salary_settings USING btree (user_id, year, month);
+
+-- Index on public.user_settings
+CREATE INDEX idx_user_settings_user_id ON public.user_settings USING btree (user_id);
+
+-- Index on public.user_settings
+CREATE UNIQUE INDEX user_settings_user_id_key ON public.user_settings USING btree (user_id);
 
 -- Index on realtime.messages
 CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));

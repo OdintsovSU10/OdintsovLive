@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
 import './VacationRatePage.css'
 
@@ -148,6 +149,11 @@ export default function VacationRatePage() {
     return sum + (d.vacation_days || 0) * rate
   }, 0)
 
+  const chartData = MONTHS.map((name, i) => ({
+    name,
+    value: getEffectiveRate(i)
+  }))
+
   const isLoading = loading || dataYear !== year
 
   if (initialLoading) {
@@ -204,6 +210,31 @@ export default function VacationRatePage() {
       <div className="formula-info">
         <p>СДЗ = Сумма зарплат за 12 мес. / (29,3 × полные мес. + дни неполных)</p>
       </div>
+
+      {!isLoading && chartData.some(d => d.value > 0) && (
+        <div className="vacation-chart">
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+              <defs>
+                <linearGradient id="colorVacation" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
+              <Tooltip formatter={(value) => [(value as number).toLocaleString('ru-RU') + ' ₽/день', 'Ставка']} />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="var(--primary)"
+                strokeWidth={2}
+                fill="url(#colorVacation)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="loading">Загрузка...</div>

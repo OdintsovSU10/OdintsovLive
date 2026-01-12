@@ -26,7 +26,15 @@
       "Bash(npx tsc:*)",
       "Bash(find:*)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm run build:*)",
+      "Bash(lsof:*)",
+      "Bash(chmod:*)",
+      "Bash(./deploy.sh:*)",
+      "Bash(ls:*)",
+      "Bash(pkill:*)",
+      "Bash(wc:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

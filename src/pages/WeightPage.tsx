@@ -8,6 +8,7 @@ interface WeightRecord {
   id: string
   date: string
   weight: number
+  created_at: string
 }
 
 type Tab = 'chart' | 'history'
@@ -29,9 +30,9 @@ export default function WeightPage() {
 
     const { data } = await supabase
       .from('body_weight')
-      .select('id, date, weight')
+      .select('id, date, weight, created_at')
       .eq('user_id', user.id)
-      .order('date', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (data) {
       setRecords(data.map(r => ({ ...r, weight: Number(r.weight) })))
@@ -49,10 +50,11 @@ export default function WeightPage() {
     setSaving(true)
     const today = new Date().toISOString().split('T')[0]
 
-    await supabase.from('body_weight').upsert(
-      { user_id: user.id, date: today, weight },
-      { onConflict: 'user_id,date' }
-    )
+    await supabase.from('body_weight').insert({
+      user_id: user.id,
+      date: today,
+      weight
+    })
 
     setInputValue('')
     await loadWeights()
@@ -68,18 +70,20 @@ export default function WeightPage() {
     await loadWeights()
   }
 
-  const today = new Date().toLocaleDateString('ru-RU', {
+  const todayFormatted = new Date().toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   })
 
-  const todayRecord = records.find(r => r.date === new Date().toISOString().split('T')[0])
+  const todayDate = new Date().toISOString().split('T')[0]
+  const todayRecords = records.filter(r => r.date === todayDate)
+  const lastTodayRecord = todayRecords.length ? todayRecords[todayRecords.length - 1] : null
 
   const chartData = records.map(r => ({
-    date: new Date(r.date).getTime(),
+    date: new Date(r.created_at).getTime(),
     weight: r.weight,
-    label: new Date(r.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+    label: new Date(r.created_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   }))
 
   const weights = records.map(r => r.weight)
@@ -90,11 +94,12 @@ export default function WeightPage() {
   return (
     <div className="weight-page">
       <div className="weight-add-section">
-        <div className="today-date">{today}</div>
+        <div className="today-date">{todayFormatted}</div>
 
-        {todayRecord ? (
+        {lastTodayRecord ? (
           <div className="today-weight">
-            Сегодня: <strong>{todayRecord.weight} кг</strong>
+            Сегодня: <strong>{lastTodayRecord.weight} кг</strong>
+            {todayRecords.length > 1 && <span> ({todayRecords.length} записей)</span>}
           </div>
         ) : null}
 
@@ -183,6 +188,8 @@ export default function WeightPage() {
                   stroke="var(--primary)"
                   strokeWidth={2}
                   fill="url(#weightGradient)"
+                  dot={{ r: 4, fill: 'var(--primary)' }}
+                  activeDot={{ r: 6, fill: 'var(--primary)' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -202,13 +209,21 @@ export default function WeightPage() {
             <div className="history-list">
               {[...records].reverse().map(r => (
                 <div key={r.id} className="history-item">
-                  <span className="history-date">
-                    {new Date(r.date).toLocaleDateString('ru-RU', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </span>
+                  <div className="history-date-time">
+                    <span className="history-date">
+                      {new Date(r.date).toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </span>
+                    <span className="history-time">
+                      {new Date(r.created_at).toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
                   <span className="history-weight">{r.weight} кг</span>
                   <button
                     className="history-delete"

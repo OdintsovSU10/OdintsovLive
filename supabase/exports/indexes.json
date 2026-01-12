@@ -439,6 +439,14 @@
     "is_primary": false,
     "sql": "CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone)"
   },
+  "public.body_weight.body_weight_user_id_date_key": {
+    "schema": "public",
+    "name": "body_weight_user_id_date_key",
+    "table_name": "body_weight",
+    "is_unique": true,
+    "is_primary": false,
+    "sql": "CREATE UNIQUE INDEX body_weight_user_id_date_key ON public.body_weight USING btree (user_id, date)"
+  },
   "public.calendar_days.calendar_days_user_date_key": {
     "schema": "public",
     "name": "calendar_days_user_date_key",
@@ -446,6 +454,86 @@
     "is_unique": true,
     "is_primary": false,
     "sql": "CREATE UNIQUE INDEX calendar_days_user_date_key ON public.calendar_days USING btree (user_id, date)"
+  },
+  "public.car_calendar_events.car_calendar_events_car_id_idx": {
+    "schema": "public",
+    "name": "car_calendar_events_car_id_idx",
+    "table_name": "car_calendar_events",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX car_calendar_events_car_id_idx ON public.car_calendar_events USING btree (car_id)"
+  },
+  "public.car_calendar_events.car_calendar_events_date_idx": {
+    "schema": "public",
+    "name": "car_calendar_events_date_idx",
+    "table_name": "car_calendar_events",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX car_calendar_events_date_idx ON public.car_calendar_events USING btree (date)"
+  },
+  "public.car_expenses.car_expenses_car_id_idx": {
+    "schema": "public",
+    "name": "car_expenses_car_id_idx",
+    "table_name": "car_expenses",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX car_expenses_car_id_idx ON public.car_expenses USING btree (car_id)"
+  },
+  "public.car_fuel.car_fuel_car_id_idx": {
+    "schema": "public",
+    "name": "car_fuel_car_id_idx",
+    "table_name": "car_fuel",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX car_fuel_car_id_idx ON public.car_fuel USING btree (car_id)"
+  },
+  "public.car_maintenance.car_maintenance_car_id_idx": {
+    "schema": "public",
+    "name": "car_maintenance_car_id_idx",
+    "table_name": "car_maintenance",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX car_maintenance_car_id_idx ON public.car_maintenance USING btree (car_id)"
+  },
+  "public.car_parts.idx_car_parts_car_id": {
+    "schema": "public",
+    "name": "idx_car_parts_car_id",
+    "table_name": "car_parts",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX idx_car_parts_car_id ON public.car_parts USING btree (car_id)"
+  },
+  "public.cars.cars_user_id_idx": {
+    "schema": "public",
+    "name": "cars_user_id_idx",
+    "table_name": "cars",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX cars_user_id_idx ON public.cars USING btree (user_id)"
+  },
+  "public.notes.notes_created_at_idx": {
+    "schema": "public",
+    "name": "notes_created_at_idx",
+    "table_name": "notes",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX notes_created_at_idx ON public.notes USING btree (created_at DESC)"
+  },
+  "public.notes.notes_user_id_idx": {
+    "schema": "public",
+    "name": "notes_user_id_idx",
+    "table_name": "notes",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX notes_user_id_idx ON public.notes USING btree (user_id)"
+  },
+  "public.rent_records.rent_records_user_id_year_month_key": {
+    "schema": "public",
+    "name": "rent_records_user_id_year_month_key",
+    "table_name": "rent_records",
+    "is_unique": true,
+    "is_primary": false,
+    "sql": "CREATE UNIQUE INDEX rent_records_user_id_year_month_key ON public.rent_records USING btree (user_id, year, month)"
   },
   "public.salary_payments.idx_salary_payments_user_year": {
     "schema": "public",
@@ -478,6 +566,22 @@
     "is_unique": true,
     "is_primary": false,
     "sql": "CREATE UNIQUE INDEX salary_settings_user_id_year_month_key ON public.salary_settings USING btree (user_id, year, month)"
+  },
+  "public.user_settings.idx_user_settings_user_id": {
+    "schema": "public",
+    "name": "idx_user_settings_user_id",
+    "table_name": "user_settings",
+    "is_unique": false,
+    "is_primary": false,
+    "sql": "CREATE INDEX idx_user_settings_user_id ON public.user_settings USING btree (user_id)"
+  },
+  "public.user_settings.user_settings_user_id_key": {
+    "schema": "public",
+    "name": "user_settings_user_id_key",
+    "table_name": "user_settings",
+    "is_unique": true,
+    "is_primary": false,
+    "sql": "CREATE UNIQUE INDEX user_settings_user_id_key ON public.user_settings USING btree (user_id)"
   },
   "realtime.messages.messages_inserted_at_topic_index": {
     "schema": "realtime",

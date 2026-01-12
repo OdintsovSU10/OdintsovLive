@@ -108,6 +108,14 @@
   font-family: monospace;
 }
 
+.vacation-chart {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
 .loading {
   text-align: center;
   padding: 48px;

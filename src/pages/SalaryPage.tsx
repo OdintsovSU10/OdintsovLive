@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronRight as Arrow, Plus, Receipt } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { getWorkDaysNorm as getDefaultWorkDaysNorm } from '../lib/workNorms'
 import './SalaryPage.css'
@@ -17,8 +17,6 @@ const MONTHS = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
 ]
-
-const MONTHS_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
 
@@ -304,7 +302,7 @@ export default function SalaryPage() {
     { work: 0, worked: 0, vacation: 0, earned: 0, paid: 0 }
   )
 
-  const chartData = MONTHS_SHORT.map((name, i) => ({
+  const chartData = MONTHS.map((name, i) => ({
     name,
     value: chartMode === 'earned' ? Math.round(calcEarned(i)) : Math.round(getSalary(i))
   }))
@@ -490,24 +488,24 @@ export default function SalaryPage() {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="colorSalary" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    formatter={(value) => (value as number).toLocaleString('ru-RU') + ' ₽'}
-                    labelStyle={{ color: 'var(--text-primary)' }}
-                    contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}
-                  />
-                  <Line
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={45} />
+                  <Tooltip formatter={(value) => [(value as number).toLocaleString('ru-RU') + ' ₽', chartMode === 'earned' ? 'Начислено' : 'Оклад']} />
+                  <Area
                     type="monotone"
                     dataKey="value"
-                    name={chartMode === 'earned' ? 'Начислено' : 'Оклад'}
                     stroke="var(--primary)"
                     strokeWidth={2}
-                    dot={{ fill: 'var(--primary)', strokeWidth: 2 }}
-                    activeDot={{ r: 6 }}
+                    fill="url(#colorSalary)"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
               </div>
             </div>
