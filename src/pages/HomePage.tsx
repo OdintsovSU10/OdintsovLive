@@ -46,7 +46,6 @@ export default function HomePage() {
     <div className="home-page">
       <div className="home-content">
         <Logo size={80} />
-        <p className="subtitle">Персональный портал</p>
         <div className="home-datetime">
           <span className="home-date">{dateTime.date}</span>
           <span className="home-time">{dateTime.time}</span>

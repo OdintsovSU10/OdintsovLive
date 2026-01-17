@@ -7,6 +7,7 @@
   --bg-secondary: #FFFFFF;
   --bg-tertiary: #F0EDE8;
   --surface: #FFFFFF;
+  --surface-rgb: 255, 255, 255;
   --surface-solid: #FFFFFF;
   --surface-hover: #F8F6F3;
 
@@ -39,6 +40,9 @@
   --sidebar-width: 240px;
   --sidebar-collapsed: 72px;
 
+  /* Верхняя панель (часы, настройки, тема) — контент страниц НЕ должен использовать z-index >= 1000 */
+  --z-topbar: 1000;
+
   --font-headline: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
@@ -51,6 +55,7 @@
   --bg-secondary: #1A1A1A;
   --bg-tertiary: #252525;
   --surface: #1A1A1A;
+  --surface-rgb: 26, 26, 26;
   --surface-solid: #1A1A1A;
   --surface-hover: #252525;
 

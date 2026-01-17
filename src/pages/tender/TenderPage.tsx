@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, Plus, Upload, Archive, Cake, Search, Pencil, Check } from 'lucide-react'
+import { Users, Plus, Upload, Archive, Cake, Search, Pencil, Check, BarChart3 } from 'lucide-react'
 import { useTenderData } from './hooks/useTenderData'
 import { Employee, ImportPreview, EditedEmployee } from './types'
 import { filterEmployees } from './utils'
@@ -9,7 +9,8 @@ import {
   AddEmployeeModal,
   ImportPreviewModal,
   EmployeeSidebar,
-  EmployeeTable
+  EmployeeTable,
+  AnalyticsTab
 } from './components'
 import '../TenderPage.css'
 
@@ -31,13 +32,14 @@ export default function TenderPage() {
   } = useTenderData()
 
   const [showArchived, setShowArchived] = useState(false)
+  const [archivedEmployees, setArchivedEmployees] = useState<Employee[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [showAddRaise, setShowAddRaise] = useState(false)
   const [importPreview, setImportPreview] = useState<ImportPreview[]>([])
   const [showImportPreview, setShowImportPreview] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [activeTab, setActiveTab] = useState<'list' | 'birthdays'>('list')
+  const [activeTab, setActiveTab] = useState<'list' | 'birthdays' | 'analytics'>('list')
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [filterGroups, setFilterGroups] = useState<string[]>([])
   const [filterPositions, setFilterPositions] = useState<string[]>([])
@@ -59,6 +61,21 @@ export default function TenderPage() {
   useEffect(() => {
     loadEmployees(showArchived)
   }, [showArchived, loadEmployees])
+
+  // Загрузка архивных сотрудников для аналитики
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      import('../../lib/supabase').then(({ supabase }) => {
+        supabase
+          .from('tender_employees')
+          .select('*')
+          .eq('is_archived', true)
+          .then(({ data }: { data: Employee[] | null }) => {
+            if (data) setArchivedEmployees(data)
+          })
+      })
+    }
+  }, [activeTab])
 
   const uniqueGroups = [...new Set(employees.map(e => e.group_name).filter(Boolean))] as string[]
   const uniquePositions = [...new Set(employees.map(e => e.position).filter(Boolean))]
@@ -222,6 +239,10 @@ export default function TenderPage() {
           <Cake size={16} />
           <span>Дни рождения</span>
         </button>
+        <button className={`tab ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>
+          <BarChart3 size={16} />
+          <span>Анализ</span>
+        </button>
       </div>
 
       {activeTab === 'list' && (
@@ -235,7 +256,13 @@ export default function TenderPage() {
         />
       )}
 
-      {activeTab === 'birthdays' ? (
+      {activeTab === 'analytics' ? (
+        <AnalyticsTab
+          employees={employees}
+          archivedEmployees={archivedEmployees}
+          salaryHistory={salaryHistory}
+        />
+      ) : activeTab === 'birthdays' ? (
         <BirthdayCalendar
           calendarMonth={calendarMonth}
           setCalendarMonth={setCalendarMonth}

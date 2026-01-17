@@ -15,6 +15,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+  padding-right: 280px;
 }
 
 .car-header h1 {
@@ -930,6 +931,10 @@
 @media (max-width: 430px) {
   .car-page {
     padding: 72px 16px 16px;
+  }
+
+  .car-header {
+    padding-right: 0;
   }
 
   .car-header h1 {

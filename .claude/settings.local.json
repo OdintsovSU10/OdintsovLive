@@ -40,7 +40,10 @@
       "Bash(tar czf:*)",
       "Bash(ssh -p 24 odintsov.live@95.165.99.67 \"cd /volume1/docker/frontend/dist && tar xzf -\")",
       "Bash(ssh -p 24 odintsov.live@95.165.99.67 \"cat /volume1/docker/frontend/nginx.conf\")",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(dir:*)",
+      "Bash(net use)",
+      "Bash(tar:*)"
     ]
   }
 }
