@@ -34,7 +34,13 @@
       "Bash(ls:*)",
       "Bash(pkill:*)",
       "Bash(wc:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(bash:*)",
+      "Bash(scp:*)",
+      "Bash(tar czf:*)",
+      "Bash(ssh -p 24 odintsov.live@95.165.99.67 \"cd /volume1/docker/frontend/dist && tar xzf -\")",
+      "Bash(ssh -p 24 odintsov.live@95.165.99.67 \"cat /volume1/docker/frontend/nginx.conf\")",
+      "Bash(ssh:*)"
     ]
   }
 }

@@ -3,59 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getWorkDaysNorm } from '../lib/workNorms'
+import { MONTHS, WEEKDAYS, YEARS } from '../lib/constants'
+import { getDaysInMonth, getFirstDayOfMonth, isWeekend, isHoliday, isToday, isCurrentMonth } from '../lib/dateUtils'
 import './Calendar.css'
 
 type DayStatus = 'none' | 'work' | 'worked' | 'vacation'
 
 interface DayData {
   [key: string]: DayStatus
-}
-
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-]
-
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-
-const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
-
-const HOLIDAYS: { [key: string]: number[] } = {
-  '0': [1, 2, 3, 4, 5, 6, 7, 8],
-  '1': [23],
-  '2': [8],
-  '4': [1, 9],
-  '5': [12],
-  '10': [4],
-}
-
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate()
-}
-
-function getFirstDayOfMonth(year: number, month: number): number {
-  const day = new Date(year, month, 1).getDay()
-  return day === 0 ? 6 : day - 1
-}
-
-function isWeekend(year: number, month: number, day: number): boolean {
-  const date = new Date(year, month, day)
-  const dayOfWeek = date.getDay()
-  return dayOfWeek === 0 || dayOfWeek === 6
-}
-
-function isHoliday(month: number, day: number): boolean {
-  return HOLIDAYS[month]?.includes(day) ?? false
-}
-
-function isToday(year: number, month: number, day: number): boolean {
-  const today = new Date()
-  return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
-}
-
-function isCurrentMonth(year: number, month: number): boolean {
-  const today = new Date()
-  return today.getFullYear() === year && today.getMonth() === month
 }
 
 export default function Calendar() {

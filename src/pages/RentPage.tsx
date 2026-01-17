@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronRight as Arrow, Check, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Upload } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
+import { MONTHS, YEARS } from '../lib/constants'
+import { isCurrentMonth } from '../lib/dateUtils'
+import { parseNumber } from '../lib/formatUtils'
 import './RentPage.css'
 
 interface RentRecord {
@@ -13,18 +16,6 @@ interface RentRecord {
   water_amount: number
   electricity_amount: number
   paid: boolean
-}
-
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-]
-
-const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
-
-function isCurrentMonth(year: number, month: number): boolean {
-  const now = new Date()
-  return now.getFullYear() === year && now.getMonth() === month
 }
 
 export default function RentPage() {
@@ -94,13 +85,6 @@ export default function RentPage() {
     return records.find(r => r.month === monthIndex) || null
   }
 
-  const parseNum = (val: string | number | undefined): number => {
-    if (val === undefined || val === null || val === '') return 0
-    if (typeof val === 'number') return val
-    const cleaned = String(val).replace(/\s/g, '').replace(',', '.')
-    return parseFloat(cleaned) || 0
-  }
-
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !userId) return
@@ -113,21 +97,21 @@ export default function RentPage() {
       const rows = XLSX.utils.sheet_to_json<(string | number)[]>(sheet, { header: 1 })
 
       const recordsToUpsert = rows
-        .filter(row => row[8] !== undefined && row[9] !== undefined && !isNaN(parseNum(row[8])) && !isNaN(parseNum(row[9])))
-        .map(row => ({
+        .filter((row: any[]) => row[8] !== undefined && row[9] !== undefined && !isNaN(parseNumber(row[8])) && !isNaN(parseNumber(row[9])))
+        .map((row: any[]) => ({
           user_id: userId,
-          rent_amount: parseNum(row[0]),
-          water_amount: parseNum(row[1]),
-          electricity_amount: parseNum(row[2]),
-          cold_water: parseNum(row[3]),
-          hot_water: parseNum(row[4]),
+          rent_amount: parseNumber(row[0]),
+          water_amount: parseNumber(row[1]),
+          electricity_amount: parseNumber(row[2]),
+          cold_water: parseNumber(row[3]),
+          hot_water: parseNumber(row[4]),
           electricity: [
-            { name: 'T1', value: parseNum(row[5]) },
-            { name: 'T2', value: parseNum(row[6]) },
-            { name: 'T3', value: parseNum(row[7]) }
+            { name: 'T1', value: parseNumber(row[5]) },
+            { name: 'T2', value: parseNumber(row[6]) },
+            { name: 'T3', value: parseNumber(row[7]) }
           ],
-          year: parseNum(row[8]),
-          month: parseNum(row[9]) - 1
+          year: parseNumber(row[8]),
+          month: parseNumber(row[9]) - 1
         }))
 
       for (const record of recordsToUpsert) {
@@ -244,7 +228,7 @@ export default function RentPage() {
                     <div className="month-status">
                       {paid && <Check size={16} className="paid-icon" />}
                     </div>
-                    <Arrow size={16} className="month-arrow" />
+                    <ChevronRight size={16} className="month-arrow" />
                   </div>
                 )
               })}

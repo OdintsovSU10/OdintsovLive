@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
+import { MONTHS, YEARS } from '../lib/constants'
 import './VacationRatePage.css'
 
 interface MonthData {
@@ -13,13 +14,6 @@ interface MonthData {
   adjusted_days: number
   daily_vacation_rate: number
 }
-
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-]
-
-const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
 
 function isManualMonth(year: number, month: number): boolean {
   return year < 2025 || (year === 2025 && month <= 2)

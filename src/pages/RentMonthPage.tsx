@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { MONTHS } from '../lib/constants'
 import './RentMonthPage.css'
 
 interface ElectricityMeter {
@@ -25,11 +26,6 @@ interface PrevRecord {
   hot_water: number
   electricity: ElectricityMeter[]
 }
-
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-]
 
 export default function RentMonthPage() {
   const { year: yearParam, month: monthParam } = useParams()

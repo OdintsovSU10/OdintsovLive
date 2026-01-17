@@ -11,7 +11,7 @@ import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
-const SalaryPage = lazy(() => import('./pages/SalaryPage'))
+const SalaryPage = lazy(() => import('./pages/salary'))
 const SalaryMonthPage = lazy(() => import('./pages/SalaryMonthPage'))
 const VacationRatePage = lazy(() => import('./pages/VacationRatePage'))
 const RentPage = lazy(() => import('./pages/RentPage'))
@@ -19,8 +19,8 @@ const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
 const WeightPage = lazy(() => import('./pages/WeightPage'))
 const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
 const NotesPage = lazy(() => import('./pages/NotesPage'))
-const CarPage = lazy(() => import('./pages/CarPage'))
-const TenderPage = lazy(() => import('./pages/TenderPage'))
+const CarPage = lazy(() => import('./pages/car'))
+const TenderPage = lazy(() => import('./pages/tender'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 type Theme = 'light' | 'dark'
