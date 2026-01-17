@@ -4,7 +4,8 @@
 
 | Параметр        | Значение                  |
 |-----------------|---------------------------|
-| NAS IP          | 192.168.1.11              |
+| NAS IP (лок.)   | 192.168.1.11              |
+| NAS IP (внеш.)  | 95.165.99.67              |
 | SSH порт        | 24                        |
 | Пользователь    | odintsov.live             |
 | Домен           | odintsovlive.duckdns.org  |
@@ -41,8 +42,14 @@ ssh -p 24 odintsov.live@192.168.1.11 "sudo docker restart odintsov-frontend"
 
 ## Подключение к NAS
 
+**Локальная сеть (дома):**
 ```bash
 ssh -p 24 odintsov.live@192.168.1.11
+```
+
+**Внешний IP (не дома):**
+```bash
+ssh -p 24 odintsov.live@95.165.99.67
 ```
 
 ---
