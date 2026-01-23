@@ -368,22 +368,6 @@ export default function RentMonthPage() {
             )}
           </div>
           <div className="input-row">
-            <span>ХВС (холодная)</span>
-            <div className="meter-input">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={inputs.coldWater}
-                placeholder="0"
-                onChange={e => setInputs(prev => ({ ...prev, coldWater: e.target.value }))}
-                onBlur={handleColdWaterBlur}
-              />
-              {getColdWaterUsage() !== null && (
-                <span className="usage">расход: {getColdWaterUsage()?.toFixed(2)} м³</span>
-              )}
-            </div>
-          </div>
-          <div className="input-row">
             <span>ГВС (горячая)</span>
             <div className="meter-input">
               <input
@@ -396,6 +380,22 @@ export default function RentMonthPage() {
               />
               {getHotWaterUsage() !== null && (
                 <span className="usage">расход: {getHotWaterUsage()?.toFixed(2)} м³</span>
+              )}
+            </div>
+          </div>
+          <div className="input-row">
+            <span>ХВС (холодная)</span>
+            <div className="meter-input">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={inputs.coldWater}
+                placeholder="0"
+                onChange={e => setInputs(prev => ({ ...prev, coldWater: e.target.value }))}
+                onBlur={handleColdWaterBlur}
+              />
+              {getColdWaterUsage() !== null && (
+                <span className="usage">расход: {getColdWaterUsage()?.toFixed(2)} м³</span>
               )}
             </div>
           </div>
