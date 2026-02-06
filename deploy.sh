@@ -80,8 +80,21 @@ tar -C dist -czf - . | ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
 
 # 3. Обновление nginx.conf
 echo -e "${GREEN}[3/4] Обновление nginx.conf...${NC}"
-ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
-  "cat > '${NAS_PATH}/nginx.conf'" < docker/frontend/nginx.conf
+if ! ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
+  "cat > '${NAS_PATH}/nginx.conf'" < docker/frontend/nginx.conf; then
+  echo -e "${YELLOW}Нет прав на прямую запись. Пробуем через /tmp и sudo cp...${NC}"
+
+  ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
+    "cat > '/tmp/odintsovlive_nginx.conf'" < docker/frontend/nginx.conf
+
+  if ! ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
+    "sudo -n cp '/tmp/odintsovlive_nginx.conf' '${NAS_PATH}/nginx.conf' 2>/dev/null || cp '/tmp/odintsovlive_nginx.conf' '${NAS_PATH}/nginx.conf'"; then
+    echo -e "${RED}Ошибка: не удалось обновить nginx.conf (нужны права на ${NAS_PATH})${NC}"
+    exit 1
+  fi
+
+  ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" "rm -f '/tmp/odintsovlive_nginx.conf'" >/dev/null 2>&1 || true
+fi
 
 # 4. Перезапуск контейнера
 echo -e "${GREEN}[4/4] Перезапуск контейнера...${NC}"
