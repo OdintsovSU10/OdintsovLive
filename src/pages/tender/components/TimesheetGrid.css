@@ -1,0 +1,381 @@
+.timesheet-grid {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.timesheet-header {
+  margin-bottom: 16px;
+}
+
+.timesheet-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.timesheet-table-wrapper {
+  overflow-x: auto;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
+.timesheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.timesheet-table th,
+.timesheet-table td {
+  border: 1px solid var(--color-border);
+  padding: 4px;
+  text-align: center;
+}
+
+.ts-name-col {
+  min-width: 140px;
+  text-align: left !important;
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+  z-index: 1;
+}
+
+.ts-name-cell {
+  text-align: left !important;
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+  z-index: 1;
+}
+
+.ts-emp-name {
+  display: block;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.ts-emp-pos {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.ts-day-col {
+  min-width: 28px;
+  max-width: 32px;
+}
+
+.ts-day-col.ts-weekend-header {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.ts-day-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ts-day-num {
+  font-weight: 600;
+}
+
+.ts-day-name {
+  font-size: 9px;
+  color: var(--color-text-secondary);
+}
+
+.ts-total-col {
+  min-width: 40px;
+  font-weight: 600;
+  background: var(--color-surface-secondary);
+}
+
+.ts-total-cell {
+  font-weight: 500;
+  background: var(--color-surface-secondary);
+}
+
+.ts-under-norm {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Статусы ячеек */
+.ts-cell {
+  cursor: pointer;
+  transition: background-color 0.15s;
+  font-weight: 500;
+}
+
+.ts-cell:hover {
+  filter: brightness(0.95);
+}
+
+.ts-empty {
+  background: var(--color-surface);
+}
+
+.ts-work {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ts-remote {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ts-vacation {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.ts-dayoff {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.ts-absent {
+  background: #fecaca;
+  color: #b91c1c;
+}
+
+.ts-unpaid {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.ts-weekend {
+  background-color: #fef2f2;
+}
+
+.ts-weekend.ts-empty {
+  background: #fef2f2;
+}
+
+.ts-weekend.ts-work {
+  background: #dcfce7;
+}
+
+.ts-weekend.ts-remote {
+  background: #dbeafe;
+}
+
+/* Отклонение от нормы */
+.ts-deviation {
+  box-shadow: inset 0 0 0 2px #ff5722;
+}
+
+/* Коррекция */
+.ts-correction {
+  position: relative;
+}
+
+.ts-correction::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: #ffc107;
+  border-radius: 50%;
+}
+
+.ts-hours {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ts-dayoff-label,
+.ts-status-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Заголовки групп */
+.ts-group-header {
+  background: var(--color-surface-secondary);
+}
+
+.ts-group-cell {
+  text-align: left !important;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 12px !important;
+  color: var(--color-text);
+  border-left: 3px solid var(--color-primary);
+}
+
+/* Строки руководителей */
+.ts-manager-row {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.ts-manager-row .ts-name-cell {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.ts-manager-badge {
+  display: block;
+  font-size: 9px;
+  color: var(--color-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+[data-theme="dark"] .ts-manager-row {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .ts-manager-row .ts-name-cell {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Легенда */
+.timesheet-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.ts-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.ts-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.ts-dot.ts-work { background: #dcfce7; border: 1px solid #166534; }
+.ts-dot.ts-remote { background: #dbeafe; border: 1px solid #1e40af; }
+.ts-dot.ts-vacation { background: #f3e8ff; border: 1px solid #7e22ce; }
+.ts-dot.ts-dayoff { background: #fee2e2; border: 1px solid #991b1b; }
+.ts-dot.ts-absent { background: #fecaca; border: 1px solid #b91c1c; }
+
+.ts-deviation-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px #ea580c;
+}
+
+/* Тёмная тема - улучшенная контрастность */
+[data-theme="dark"] .ts-day-col.ts-weekend-header {
+  background: #3f1d1d;
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .ts-work {
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+[data-theme="dark"] .ts-remote {
+  background: #1e3a5f;
+  color: #bfdbfe;
+}
+
+[data-theme="dark"] .ts-vacation {
+  background: #4a1d6b;
+  color: #e9d5ff;
+}
+
+[data-theme="dark"] .ts-dayoff {
+  background: #3f1d1d;
+  color: #fecaca;
+}
+
+[data-theme="dark"] .ts-absent {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+[data-theme="dark"] .ts-unpaid {
+  background: #713f12;
+  color: #fde68a;
+}
+
+[data-theme="dark"] .ts-weekend {
+  background-color: #2a1515;
+}
+
+[data-theme="dark"] .ts-weekend.ts-empty {
+  background: #2a1515;
+}
+
+[data-theme="dark"] .ts-weekend.ts-work {
+  background: #14532d;
+}
+
+[data-theme="dark"] .ts-weekend.ts-remote {
+  background: #1e3a5f;
+}
+
+[data-theme="dark"] .ts-hours {
+  color: #bbf7d0;
+}
+
+[data-theme="dark"] .ts-status-label {
+  color: #bfdbfe;
+}
+
+[data-theme="dark"] .ts-dot.ts-work { background: #14532d; border-color: #86efac; }
+[data-theme="dark"] .ts-dot.ts-remote { background: #1e3a5f; border-color: #93c5fd; }
+[data-theme="dark"] .ts-dot.ts-vacation { background: #4a1d6b; border-color: #d8b4fe; }
+[data-theme="dark"] .ts-dot.ts-dayoff { background: #3f1d1d; border-color: #fca5a5; }
+[data-theme="dark"] .ts-dot.ts-absent { background: #7f1d1d; border-color: #fca5a5; }
+
+[data-theme="dark"] .ts-under-norm {
+  color: #f87171;
+}
+
+[data-theme="dark"] .ts-group-cell {
+  border-left-color: var(--color-primary);
+}
+
+/* Адаптив */
+@media (max-width: 768px) {
+  .timesheet-grid {
+    padding: 12px;
+  }
+
+  .timesheet-table-wrapper {
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  .ts-name-col,
+  .ts-name-cell {
+    min-width: 100px;
+  }
+
+  .ts-emp-name,
+  .ts-emp-pos {
+    max-width: 80px;
+  }
+
+  .ts-day-col {
+    min-width: 24px;
+  }
+}

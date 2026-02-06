@@ -18,13 +18,13 @@ Personal portal built with React + TypeScript + Vite + Supabase.
 src/
   App.tsx              # Root: auth state, theme, routing
   lib/supabase.ts      # Supabase client
-  components/          # Reusable UI (Logo, Sidebar, Calendar, ThemeToggle)
-  pages/               # Route pages (Home, Calendar, Salary, Admin, Auth)
+  components/          # Reusable UI (Logo, Sidebar, Calendar)
+  pages/               # Route pages (Home, Work, Notes, Body, Admin)
 ```
 
 **Auth flow**: App.tsx checks session → unapproved users see pending screen → approved users get full app.
 
-**Routes**: `/`, `/calendar`, `/salary`, `/salary/:year/:month`, `/admin` (admin only)
+**Routes**: `/`, `/notes`, `/calendar`, `/salary`, `/salary/:year/:month`, `/vacation-rate`, `/rent`, `/rent/:year/:month`, `/body/weight`, `/body/params`, `/car`, `/tender`, `/tender/admin` (admin only), `/skud`, `/admin` (admin only)
 
 ## Database (Supabase)
 

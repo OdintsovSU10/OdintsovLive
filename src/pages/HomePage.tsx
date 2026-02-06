@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Calendar, Wallet, Umbrella, Home, Scale, Ruler, StickyNote, Car, Users } from 'lucide-react'
 import Logo from '../components/Logo'
 import WeatherWidget from '../components/WeatherWidget'
+import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import './HomePage.css'
 
 const pages = [
-  { path: '/tender', Icon: Users, title: 'Тендерный отдел', desc: 'Сотрудники отдела' },
+  { path: '/tender', Icon: Users, title: 'Тендерное управление', desc: 'Персонал и зарплаты' },
   { path: '/notes', Icon: StickyNote, title: 'Заметки', desc: 'Личные записи' },
   { path: '/calendar', Icon: Calendar, title: 'Календарь', desc: 'Учёт рабочих дней' },
   { path: '/salary', Icon: Wallet, title: 'Зарплата', desc: 'Расчёт заработка' },
@@ -18,29 +18,7 @@ const pages = [
 ]
 
 export default function HomePage() {
-  const [dateTime, setDateTime] = useState({ date: '', time: '' })
-
-  useEffect(() => {
-    const updateDateTime = () => {
-      const now = new Date()
-      const date = now.toLocaleDateString('ru-RU', {
-        timeZone: 'Europe/Moscow',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      }).replace(' г.', '')
-      const time = now.toLocaleTimeString('ru-RU', {
-        timeZone: 'Europe/Moscow',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      })
-      setDateTime({ date, time })
-    }
-    updateDateTime()
-    const interval = setInterval(updateDateTime, 1000)
-    return () => clearInterval(interval)
-  }, [])
+  const dateTime = useMoscowDateTime({ dateFormat: 'long', includeSeconds: true })
 
   return (
     <div className="home-page">

@@ -35,15 +35,26 @@
       "Bash(pkill:*)",
       "Bash(wc:*)",
       "Bash(git reset:*)",
-      "Bash(bash:*)",
+      "Bash(docker ps:*)",
+      "Bash(git stash:*)",
       "Bash(scp:*)",
-      "Bash(tar czf:*)",
-      "Bash(ssh -p 24 odintsov.live@95.165.99.67 \"cd /volume1/docker/frontend/dist && tar xzf -\")",
-      "Bash(ssh -p 24 odintsov.live@95.165.99.67 \"cat /volume1/docker/frontend/nginx.conf\")",
+      "Bash(ping:*)",
+      "Bash(nc:*)",
       "Bash(ssh:*)",
-      "Bash(dir:*)",
-      "Bash(net use)",
-      "Bash(tar:*)"
+      "Bash(./scripts/apply-timesheet-migration.sh:*)",
+      "Bash(/Users/odintsovlive/Desktop/Project/OdintsovLive/scripts/update-timesheet-constraint.sh:*)",
+      "Bash(tar:*)",
+      "Bash(grep:*)",
+      "Bash(zip:*)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive log --oneline --all -- \"*/tender*\")",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive log --all --format=\"%H %s\" -- \"*tender*\")",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show 8d047d8:src/pages/tender/hooks/useTenderData.ts)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show 8d047d8:src/pages/tender/types.ts)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive log --all --oneline)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show 10ae7f1:supabase/schemas/prod.sql)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show b78d26c:supabase/schemas/prod.sql)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show e9b69c4:supabase/schemas/prod.sql)",
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show:*)"
     ]
   }
 }

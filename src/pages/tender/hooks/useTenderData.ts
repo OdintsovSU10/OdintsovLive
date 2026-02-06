@@ -1,277 +1,242 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase'
-import * as XLSX from 'xlsx'
-import { Employee, ImportPreview, SalaryHistory } from '../types'
+import { isWeekendOrHoliday } from '../utils/salaryCalculator'
+import type { Employee, SalaryHistory, TimesheetEntry, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
+
+const getAvatar = (fullName: string): string => {
+  const parts = fullName.trim().split(' ')
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return fullName.slice(0, 2).toUpperCase()
+}
+
+const mapTimesheetToUiStatus = (status: string | null): 'active' | 'vacation' | 'sick' | 'remote' => {
+  if (!status) return 'active'
+  const map: Record<string, 'active' | 'vacation' | 'sick' | 'remote'> = {
+    work: 'active',
+    vacation: 'vacation',
+    dayoff: 'vacation',
+    remote: 'remote',
+    absent: 'sick',
+    unpaid: 'sick'
+  }
+  return map[status] || 'active'
+}
 
 export function useTenderData() {
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [salaryHistory, setSalaryHistory] = useState<{ [key: number]: SalaryHistory[] }>({})
+  const [employees, setEmployees] = useState<EmployeeWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
 
-  const loadEmployees = useCallback(async (showArchived: boolean) => {
+  const loadEmployees = useCallback(async (year?: number, month?: number, showArchived = false) => {
     setLoading(true)
-    const { data } = await supabase
-      .from('tender_employees')
-      .select('*')
-      .eq('is_archived', showArchived)
-      .order('full_name')
+    setError(null)
 
-    if (data) {
-      setEmployees(data)
-      const ids = data.map(e => e.id)
-      if (ids.length > 0) {
-        const { data: history } = await supabase
-          .from('tender_salary_history')
-          .select('*')
-          .in('employee_id', ids)
-          .order('effective_date', { ascending: false })
+    const targetYear = year ?? selectedYear
+    const targetMonth = month ?? selectedMonth
 
-        if (history) {
-          const grouped: { [key: number]: SalaryHistory[] } = {}
-          history.forEach(h => {
-            if (!grouped[h.employee_id]) grouped[h.employee_id] = []
-            grouped[h.employee_id].push(h)
-          })
-          setSalaryHistory(grouped)
-        }
+    try {
+      const { data: employeesData, error: empError } = await supabase
+        .from('tender_employees')
+        .select('*')
+        .eq('is_archived', showArchived)
+        .order('full_name')
+
+      if (empError) throw empError
+      if (!employeesData) {
+        setEmployees([])
+        return
       }
+
+      const employeeIds = employeesData.map(e => e.id)
+
+      const { data: salaryData } = await supabase
+        .from('tender_salary_history')
+        .select('*')
+        .in('employee_id', employeeIds)
+        .order('effective_date', { ascending: false })
+
+      const startOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`
+      const daysInMonth = new Date(targetYear, targetMonth, 0).getDate()
+      const endOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${daysInMonth}`
+
+      const { data: timesheetData } = await supabase
+        .from('tender_timesheet')
+        .select('*')
+        .in('employee_id', employeeIds)
+        .gte('work_date', startOfMonth)
+        .lte('work_date', endOfMonth)
+
+      const latestStatusMap = new Map<number, string>()
+      timesheetData?.forEach(t => {
+        const existing = latestStatusMap.get(t.employee_id)
+        if (!existing || t.work_date > existing) {
+          latestStatusMap.set(t.employee_id, t.status)
+        }
+      })
+
+      const salaryByEmployee = new Map<number, SalaryHistory[]>()
+      salaryData?.forEach(s => {
+        const list = salaryByEmployee.get(s.employee_id) || []
+        list.push(s)
+        salaryByEmployee.set(s.employee_id, list)
+      })
+
+      const timesheetByEmployee = new Map<number, TimesheetEntry[]>()
+      timesheetData?.forEach(t => {
+        const list = timesheetByEmployee.get(t.employee_id) || []
+        list.push(t)
+        timesheetByEmployee.set(t.employee_id, list)
+      })
+
+      const enriched: EmployeeWithStats[] = employeesData.map((emp: Employee) => {
+        const timesheet = timesheetByEmployee.get(emp.id) || []
+        const salaries = salaryByEmployee.get(emp.id) || []
+
+        // Проверка выходного/праздничного дня
+        const isHoliday = (dateStr: string) => {
+          const date = new Date(dateStr + 'T12:00:00')
+          return isWeekendOrHoliday(date)
+        }
+
+        // Подсчёт по категориям напрямую из табеля
+        const workWeekday = timesheet.filter(t => t.status === 'work' && !isHoliday(t.work_date)).length
+        const remoteWeekday = timesheet.filter(t => t.status === 'remote' && !isHoliday(t.work_date)).length
+        const weekendWork = timesheet.filter(t =>
+          (t.status === 'work' || t.status === 'remote') && isHoliday(t.work_date)
+        ).length
+
+        const attendance: AttendanceStats = {
+          work: timesheet.filter(t => t.status === 'work').length,
+          remote: timesheet.filter(t => t.status === 'remote').length,
+          vacation: timesheet.filter(t => t.status === 'vacation').length,
+          dayoff: timesheet.filter(t => t.status === 'dayoff').length,
+          absent: timesheet.filter(t => t.status === 'absent' || t.status === 'unpaid').length,
+          work_weekday: workWeekday,
+          remote_weekday: remoteWeekday,
+          weekend_work: weekendWork,
+          total_hours: timesheet.reduce((sum, t) => sum + (t.hours_worked || 0), 0)
+        }
+
+        // Формируем историю изменений оклада с разницей и сроком
+        const salaryHistory: HistoryItem[] = salaries.slice(1).map((s, i) => {
+          const prevSalary = salaries[i] // предыдущий (более новый) оклад
+          const diff = prevSalary.salary - s.salary
+          const diffStr = diff > 0 ? `+${diff.toLocaleString('ru-RU')}` : diff.toLocaleString('ru-RU')
+
+          // Вычисляем срок между изменениями
+          const prevDate = new Date(prevSalary.effective_date)
+          const currDate = new Date(s.effective_date)
+          const months = (prevDate.getFullYear() - currDate.getFullYear()) * 12 + (prevDate.getMonth() - currDate.getMonth())
+          const periodStr = months >= 12
+            ? `${Math.floor(months / 12)} г. ${months % 12 ? (months % 12) + ' мес.' : ''}`.trim()
+            : `${months} мес.`
+
+          return {
+            date: prevSalary.effective_date,
+            type: 'salary_change' as const,
+            desc: `${prevSalary.salary.toLocaleString('ru-RU')} ₽ (${diffStr} ₽, через ${periodStr})`
+          }
+        })
+
+        const history: HistoryItem[] = [
+          {
+            date: emp.hire_date,
+            type: 'hire' as const,
+            desc: `Принят на должность ${emp.position}`
+          },
+          ...salaryHistory
+        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+        return {
+          ...emp,
+          avatar: getAvatar(emp.full_name),
+          uiStatus: mapTimesheetToUiStatus(latestStatusMap.get(emp.id) || null),
+          attendance,
+          history,
+          timesheet,
+          salaryHistory: salaries
+        }
+      })
+
+      setEmployees(enriched)
+    } catch (err) {
+      console.error('Error loading employees:', err)
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
+  }, [selectedYear, selectedMonth])
+
+  const getMonthlyAttendance = useCallback(async (months = 6) => {
+    const result: { month: string; present: number; absent: number; late: number; remote: number }[] = []
+
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date()
+      date.setMonth(date.getMonth() - i)
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0]
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0]
+
+      const { data } = await supabase
+        .from('tender_timesheet')
+        .select('status')
+        .gte('work_date', startOfMonth)
+        .lte('work_date', endOfMonth)
+
+      const monthName = date.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '')
+
+      result.push({
+        month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+        present: data?.filter(d => d.status === 'work').length || 0,
+        remote: data?.filter(d => d.status === 'remote').length || 0,
+        late: 0,
+        absent: data?.filter(d => d.status === 'absent' || d.status === 'unpaid').length || 0
+      })
+    }
+
+    return result
   }, [])
 
-  const addEmployee = async (
-    formName: string,
-    formPosition: string,
-    formHireDate: string,
-    formSalary: string
-  ) => {
-    const salary = parseFloat(formSalary.replace(/\s/g, '')) || 0
-    const today = new Date().toISOString().split('T')[0]
-    const { data, error } = await supabase
-      .from('tender_employees')
-      .insert({
-        full_name: formName,
-        position: formPosition,
-        hire_date: formHireDate,
-        current_salary: salary
-      })
-      .select()
-      .single()
+  const setMonth = useCallback((year: number, month: number) => {
+    setSelectedYear(year)
+    setSelectedMonth(month)
+  }, [])
 
-    if (!error && data) {
-      await supabase.from('tender_salary_history').insert({
-        employee_id: data.id,
-        salary: salary,
-        effective_date: today,
-        note: 'Текущий оклад'
-      })
-      return true
-    }
-    return false
-  }
-
-  const archiveEmployee = async (employeeId: number) => {
-    await supabase
-      .from('tender_employees')
-      .update({
-        is_archived: true,
-        archived_at: new Date().toISOString()
-      })
-      .eq('id', employeeId)
-  }
-
-  const restoreEmployee = async (employeeId: number) => {
-    await supabase
-      .from('tender_employees')
-      .update({
-        is_archived: false,
-        archived_at: null
-      })
-      .eq('id', employeeId)
-  }
-
-  const massArchive = async (ids: number[]) => {
-    await supabase
-      .from('tender_employees')
-      .update({ is_archived: true, archived_at: new Date().toISOString() })
-      .in('id', ids)
-  }
-
-  const saveEditedEmployees = async (editedEmployees: { [id: number]: { full_name?: string; position?: string } }) => {
-    const entries = Object.entries(editedEmployees)
-    for (const [idStr, changes] of entries) {
-      const id = parseInt(idStr)
-      if (Object.keys(changes).length > 0) {
-        await supabase
-          .from('tender_employees')
-          .update({ ...changes, updated_at: new Date().toISOString() })
-          .eq('id', id)
-      }
-    }
-  }
-
-  const addRaise = async (
-    employee: Employee,
-    raiseAmount: string,
-    raiseDate: string,
-    raiseNote: string
-  ) => {
-    const raiseSum = parseFloat(raiseAmount.replace(/\s/g, '')) || 0
-    const today = new Date().toISOString().split('T')[0]
-    const isHistory = raiseDate < today
-
-    let newSalary: number
-    const history = salaryHistory[employee.id] || []
-
-    if (isHistory) {
-      const entriesAfter = history.filter(h => h.effective_date > raiseDate)
-      if (entriesAfter.length > 0) {
-        const nextEntry = entriesAfter[entriesAfter.length - 1]
-        newSalary = nextEntry.salary - raiseSum
-      } else {
-        newSalary = employee.current_salary - raiseSum
-      }
-
-      const olderEntries = history.filter(h => h.effective_date < raiseDate)
-      for (const entry of olderEntries) {
-        await supabase
-          .from('tender_salary_history')
-          .update({ salary: entry.salary - raiseSum })
-          .eq('id', entry.id)
-      }
-    } else {
-      newSalary = employee.current_salary + raiseSum
-    }
-
-    await supabase.from('tender_salary_history').insert({
-      employee_id: employee.id,
-      salary: newSalary,
-      effective_date: raiseDate,
-      note: raiseNote || null
-    })
-
-    if (!isHistory) {
-      await supabase
-        .from('tender_employees')
-        .update({
-          current_salary: newSalary,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', employee.id)
-    }
-  }
-
-  const deleteRaise = async (historyId: number, employeeId: number) => {
-    await supabase.from('tender_salary_history').delete().eq('id', historyId)
-
-    const { data: remaining } = await supabase
-      .from('tender_salary_history')
-      .select('salary')
-      .eq('employee_id', employeeId)
-      .order('effective_date', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (remaining) {
-      await supabase
-        .from('tender_employees')
-        .update({ current_salary: remaining.salary })
-        .eq('id', employeeId)
-    }
-  }
-
-  const parseExcelDate = (raw: unknown): string | null => {
-    if (!raw) return null
-    if (typeof raw === 'number') {
-      const date = XLSX.SSF.parse_date_code(raw)
-      return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`
-    }
-    return String(raw)
-  }
-
-  const parseImportFile = (file: File): Promise<ImportPreview[]> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (evt) => {
-        const data = evt.target?.result
-        const workbook = XLSX.read(data, { type: 'binary' })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })
-
-        const dataRows = rows.filter((row: any[], i: number) => i > 0 && row.length >= 4)
-        const preview: ImportPreview[] = []
-
-        for (const row of dataRows) {
-          const [name, position, hireDateRaw, salaryRaw, birthDateRaw, groupRaw] = row as unknown[]
-          if (!name) continue
-
-          const hireDate = parseExcelDate(hireDateRaw)
-          const birthDate = parseExcelDate(birthDateRaw)
-          const salary = typeof salaryRaw === 'number' ? salaryRaw : parseFloat(String(salaryRaw).replace(/\s/g, '')) || 0
-          const groupName = groupRaw ? String(groupRaw).trim() : null
-
-          preview.push({
-            full_name: String(name).trim(),
-            position: String(position).trim(),
-            hire_date: hireDate || '',
-            birth_date: birthDate,
-            salary,
-            group_name: groupName
-          })
-        }
-
-        resolve(preview)
-      }
-      reader.readAsBinaryString(file)
-    })
-  }
-
-  const confirmImport = async (importPreview: ImportPreview[], replaceOnImport: boolean) => {
-    const today = new Date().toISOString().split('T')[0]
-
-    if (replaceOnImport) {
+  const clearAllEmployees = useCallback(async () => {
+    setLoading(true)
+    try {
+      // Удаляем табель (cascade должен сработать, но на всякий случай)
+      await supabase.from('tender_timesheet').delete().neq('id', 0)
+      // Удаляем историю зарплат
       await supabase.from('tender_salary_history').delete().neq('id', 0)
-      await supabase.from('tender_employees').delete().neq('id', 0)
+      // Удаляем сотрудников
+      const { error } = await supabase.from('tender_employees').delete().neq('id', 0)
+      if (error) throw error
+      setEmployees([])
+    } catch (err) {
+      console.error('Error clearing employees:', err)
+      throw err
+    } finally {
+      setLoading(false)
     }
+  }, [])
 
-    for (const item of importPreview) {
-      const { data: emp } = await supabase
-        .from('tender_employees')
-        .insert({
-          full_name: item.full_name,
-          position: item.position,
-          hire_date: item.hire_date,
-          birth_date: item.birth_date,
-          group_name: item.group_name,
-          current_salary: item.salary
-        })
-        .select()
-        .single()
-
-      if (emp) {
-        await supabase.from('tender_salary_history').insert({
-          employee_id: emp.id,
-          salary: item.salary,
-          effective_date: today,
-          note: 'Текущий оклад (импорт)'
-        })
-      }
-    }
-  }
+  useEffect(() => {
+    loadEmployees()
+  }, [loadEmployees])
 
   return {
     employees,
-    salaryHistory,
     loading,
+    error,
+    selectedYear,
+    selectedMonth,
+    setMonth,
     loadEmployees,
-    addEmployee,
-    archiveEmployee,
-    restoreEmployee,
-    massArchive,
-    saveEditedEmployees,
-    addRaise,
-    deleteRaise,
-    parseImportFile,
-    confirmImport
+    getMonthlyAttendance,
+    clearAllEmployees
   }
 }

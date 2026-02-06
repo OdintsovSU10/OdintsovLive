@@ -1,0 +1,338 @@
+.import-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
+}
+
+.import-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 24px;
+  width: 440px;
+  max-width: 90vw;
+  max-height: 85vh;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="light"] .import-modal {
+  background: #ffffff;
+}
+
+[data-theme="dark"] .import-modal {
+  background: #1e1e1e;
+}
+
+.import-modal-wide {
+  width: 640px;
+}
+
+.import-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.import-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.import-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-close:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.import-desc {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.import-period {
+  background: var(--color-surface-secondary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.import-period strong {
+  color: var(--color-text);
+}
+
+.import-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+  background: var(--color-surface-secondary);
+}
+
+[data-theme="light"] .import-dropzone {
+  background: #f5f5f5;
+}
+
+[data-theme="dark"] .import-dropzone {
+  background: #2a2a2a;
+}
+
+.import-dropzone:hover,
+.import-dropzone-active {
+  border-color: var(--color-primary);
+  background: rgba(196, 167, 125, 0.15);
+}
+
+.import-dropzone input {
+  display: none;
+}
+
+.import-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.import-text {
+  color: var(--color-text);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.import-subtext {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.import-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.import-preview-table {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.import-preview-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.import-preview-table th,
+.import-preview-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.import-preview-table th {
+  background: var(--color-surface-secondary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  position: sticky;
+  top: 0;
+}
+
+.import-preview-table tbody tr:hover {
+  background: var(--color-surface-hover);
+}
+
+.import-row-unmatched {
+  background: rgba(239, 83, 80, 0.08);
+}
+
+.import-more {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.import-matched {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.import-unmatched {
+  color: #ef5350;
+  font-weight: 500;
+}
+
+.import-match-ok {
+  color: #4caf50;
+}
+
+.import-match-fail {
+  color: #ef5350;
+  font-size: 11px;
+}
+
+.import-error {
+  background: rgba(239, 83, 80, 0.1);
+  border: 1px solid rgba(239, 83, 80, 0.3);
+  color: #ef5350;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.import-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 16px;
+}
+
+.import-btn-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.import-btn-secondary:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.import-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.import-btn-primary {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #c4a77d;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.import-btn-primary:hover {
+  background: #d4b78d;
+}
+
+.import-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.import-example-table {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+
+.import-example-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.import-example-table th {
+  background: var(--color-surface-secondary);
+  padding: 6px 8px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+[data-theme="light"] .import-example-table th {
+  background: #e8e8e8;
+}
+
+[data-theme="dark"] .import-example-table th {
+  background: #333;
+}
+
+.import-example-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.import-example-table tr:last-child td {
+  border-bottom: none;
+}
+
+.import-example-header td {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+[data-theme="light"] .import-example-header {
+  background: #faf8f5;
+}
+
+[data-theme="dark"] .import-example-header {
+  background: #2a2520;
+}
+
+.import-hint {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  background: var(--color-surface-secondary);
+  border-radius: 6px;
+}
+
+[data-theme="light"] .import-hint {
+  background: #f0f0f0;
+}
+
+[data-theme="dark"] .import-hint {
+  background: #262626;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

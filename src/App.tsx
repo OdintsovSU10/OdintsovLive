@@ -1,11 +1,10 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import { Coffee } from 'lucide-react'
 import './App.css'
 import Sidebar from './components/Sidebar'
-import ThemeToggle from './components/ThemeToggle'
 import Logo from './components/Logo'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
@@ -21,6 +20,8 @@ const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
 const NotesPage = lazy(() => import('./pages/NotesPage'))
 const CarPage = lazy(() => import('./pages/car'))
 const TenderPage = lazy(() => import('./pages/tender'))
+const AdminTenderPage = lazy(() => import('./pages/tender/AdminTenderPage'))
+const SKUDPage = lazy(() => import('./pages/skud'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 type Theme = 'light' | 'dark'
@@ -185,19 +186,12 @@ function App() {
   }
 
   if (!user) {
-    return (
-      <>
-        <ThemeToggle theme={theme} onToggle={setTheme} />
-        <AuthPage onAuth={() => {}} />
-      </>
-    )
+    return <AuthPage onAuth={() => {}} />
   }
 
   if (!profile?.approved) {
     return (
-      <>
-        <ThemeToggle theme={theme} onToggle={setTheme} />
-        <div className="pending-screen">
+      <div className="pending-screen">
           <div className="pending-card">
             <h2>Ожидание одобрения</h2>
             <p>Ваша заявка на регистрацию находится на рассмотрении.</p>
@@ -207,7 +201,6 @@ function App() {
             </button>
           </div>
         </div>
-      </>
     )
   }
 
@@ -217,8 +210,10 @@ function App() {
         <Sidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed(!collapsed)}
+          theme={theme}
+          onThemeToggle={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          isAdmin={profile?.is_admin}
         />
-        <ThemeToggle theme={theme} onToggle={setTheme} isAdmin={profile?.is_admin} />
         <main className={`main-content ${collapsed ? 'collapsed' : ''}`}>
           <Suspense fallback={<div className="page-loading"><div className="loading-spinner" /></div>}>
             <Routes>
@@ -234,6 +229,8 @@ function App() {
               <Route path="/body/params" element={<BodyParamsPage />} />
               <Route path="/car" element={<CarPage />} />
               <Route path="/tender" element={<TenderPage />} />
+              <Route path="/tender/admin" element={profile?.is_admin ? <AdminTenderPage /> : <Navigate to="/tender" replace />} />
+              <Route path="/skud" element={<SKUDPage />} />
               {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
             </Routes>
           </Suspense>

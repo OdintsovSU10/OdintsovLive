@@ -1,0 +1,332 @@
+.fot-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Верхняя панель: месяц + статистика */
+.fot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Навигация по месяцам */
+.fot-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fot-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.fot-nav-btn:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+.fot-month-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  min-width: 140px;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+/* Статистика в строку */
+.fot-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.fot-stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.fot-stat-num {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fot-stat-accent {
+  color: var(--primary);
+}
+
+.fot-stat-positive {
+  color: #16a34a;
+}
+
+.fot-stat-negative {
+  color: #dc2626;
+}
+
+.fot-stat-lbl {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.fot-stat-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+
+/* Поле ввода проезда */
+.fot-transport-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fot-transport-input input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.fot-transport-input input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.fot-transport-input span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Карточка таблицы */
+.fot-table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Таблица */
+.fot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.fot-table th,
+.fot-table td {
+  padding: 12px 16px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.fot-table th:first-child,
+.fot-table td:first-child {
+  text-align: left;
+}
+
+.fot-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+/* Строка отдела */
+.fot-dept-row {
+  background: var(--bg-tertiary);
+}
+
+.fot-dept-row td {
+  font-weight: 500;
+}
+
+.fot-dept-name {
+  font-weight: 600 !important;
+  color: var(--text-primary);
+}
+
+.fot-dept-count {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.fot-dept-total {
+  font-weight: 700 !important;
+  color: var(--primary);
+}
+
+/* Строка сотрудника */
+.fot-emp-row td {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.fot-emp-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.fot-emp-name {
+  padding-left: 28px !important;
+  color: var(--text-primary) !important;
+}
+
+.fot-emp-days {
+  font-variant-numeric: tabular-nums;
+}
+
+.fot-days-sep {
+  opacity: 0.4;
+  margin: 0 1px;
+}
+
+.fot-emp-final {
+  font-weight: 500;
+  color: var(--text-primary) !important;
+}
+
+.fot-diff {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+.fot-diff-positive {
+  color: #16a34a;
+}
+
+.fot-diff-negative {
+  color: #dc2626;
+}
+
+.fot-emp-transport {
+  font-variant-numeric: tabular-nums;
+}
+
+.fot-emp-bonus {
+  padding: 6px 8px !important;
+}
+
+.fot-bonus-input {
+  width: 70px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.fot-bonus-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.fot-bonus-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.fot-monthly-bonus {
+  font-size: 0.75rem;
+  color: var(--primary);
+  margin-right: 4px;
+}
+
+/* Итоговая строка */
+.fot-total-row td {
+  font-weight: 700;
+  background: var(--bg-tertiary);
+  border-bottom: none;
+  padding: 14px 16px;
+  color: var(--text-primary);
+}
+
+.fot-total-row td:last-child {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+/* Адаптив */
+@media (max-width: 768px) {
+  .fot-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .fot-month-nav {
+    justify-content: center;
+  }
+
+  .fot-stats-row {
+    justify-content: center;
+  }
+
+  .fot-table th,
+  .fot-table td {
+    padding: 10px 12px;
+  }
+
+  .fot-emp-name {
+    padding-left: 20px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .fot-top {
+    padding: 12px;
+  }
+
+  .fot-stats-row {
+    gap: 12px;
+  }
+
+  .fot-stat-num {
+    font-size: 1rem;
+  }
+
+  .fot-stat-divider {
+    height: 20px;
+  }
+
+  .fot-table {
+    font-size: 0.8rem;
+  }
+
+  .fot-table th,
+  .fot-table td {
+    padding: 8px 6px;
+  }
+
+  .fot-emp-name {
+    padding-left: 12px !important;
+  }
+}

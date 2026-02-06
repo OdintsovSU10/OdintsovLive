@@ -1,17 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote, Car, ArrowLeft, Users } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote, Car, ArrowLeft, Users, Shield, Settings, Sun, Moon, Clock, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
 import './Sidebar.css'
 
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+  theme: 'light' | 'dark'
+  onThemeToggle: () => void
+  isAdmin?: boolean
 }
 
-const workLinks = [
-  { path: '/tender', icon: Users, label: 'Тендерный отдел' },
+interface WorkLink {
+  path: string
+  icon: LucideIcon
+  label: string
+  adminOnly?: boolean
+}
+
+const workLinks: WorkLink[] = [
+  { path: '/tender', icon: Users, label: 'Тендерное управление' },
+  { path: '/tender/admin', icon: Settings, label: 'Администрирование ТУ', adminOnly: true },
+  { path: '/skud', icon: Shield, label: 'СКУД' },
   { path: '/calendar', icon: Calendar, label: 'Календарь' },
   { path: '/salary', icon: Wallet, label: 'Зарплата' },
   { path: '/vacation-rate', icon: Umbrella, label: 'Отпускные' },
@@ -27,9 +40,11 @@ const otherLinks = [
   { path: '/car', icon: Car, label: 'Машина' },
 ]
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isAdmin }: SidebarProps) {
   const location = useLocation()
-  const isWorkActive = workLinks.some(l => location.pathname.startsWith(l.path))
+  const moscowDateTime = useMoscowDateTime()
+  const visibleWorkLinks = workLinks.filter(link => !link.adminOnly || isAdmin)
+  const isWorkActive = visibleWorkLinks.some(l => location.pathname.startsWith(l.path))
   const isBodyActive = bodyLinks.some(l => location.pathname.startsWith(l.path))
   const [workExpanded, setWorkExpanded] = useState(isWorkActive)
   const [bodyExpanded, setBodyExpanded] = useState(isBodyActive)
@@ -149,9 +164,14 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </>
       )}
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${isMobile && mobileHidden ? 'mobile-hidden' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-        <Link to="/" className="sidebar-header">
-          <Logo size={collapsed ? 36 : 44} showText={!collapsed || mobileMenuOpen} />
-        </Link>
+        <div className="sidebar-header">
+          <Link to="/" className="sidebar-header-logo">
+            <Logo size={collapsed ? 36 : 44} showText={!collapsed || mobileMenuOpen} />
+          </Link>
+          <button className="sidebar-toggle" onClick={onToggle}>
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
+        </div>
 
       <nav className="sidebar-nav">
         <NavLink to="/notes" className="nav-link">
@@ -174,8 +194,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </button>
           {(workExpanded || (collapsed && !mobileMenuOpen)) && (
             <div className="nav-group-items">
-              {workLinks.map(l => (
-                <NavLink key={l.path} to={l.path} className="nav-link nav-sublink">
+              {visibleWorkLinks.map(l => (
+                <NavLink key={l.path} to={l.path} className="nav-link nav-sublink" end={l.path === '/tender'}>
                   <l.icon size={18} strokeWidth={1.5} />
                   {(!collapsed || mobileMenuOpen) && <span>{l.label}</span>}
                 </NavLink>
@@ -215,18 +235,31 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             {(!collapsed || mobileMenuOpen) && <span>{l.label}</span>}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <NavLink to="/admin" className="nav-link">
+            <Settings size={20} strokeWidth={1.5} />
+            {(!collapsed || mobileMenuOpen) && <span>Настройки</span>}
+          </NavLink>
+        )}
       </nav>
 
       <div className="sidebar-footer">
+        <div className="sidebar-clock">
+          <Clock size={16} strokeWidth={1.5} />
+          {(!collapsed || mobileMenuOpen) && <span className="clock-text">{moscowDateTime.dateTime}</span>}
+        </div>
+
+        <button className="sidebar-theme-toggle" onClick={onThemeToggle} title="Изменить тему">
+          {theme === 'light' ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
+          {(!collapsed || mobileMenuOpen) && <span>{theme === 'light' ? 'Светлая' : 'Тёмная'}</span>}
+        </button>
+
         <button className="nav-link logout-btn" onClick={handleLogout}>
           <LogOut size={20} strokeWidth={1.5} />
           {(!collapsed || mobileMenuOpen) && <span>Выйти</span>}
         </button>
       </div>
-
-      <button className="sidebar-toggle" onClick={onToggle}>
-        {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-      </button>
     </aside>
     </>
   )

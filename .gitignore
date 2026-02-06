@@ -25,3 +25,9 @@ npm-debug.log*
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Root temporary files
+/dist.tar.gz
+/*.xlsx
+/*.xls
+/*.png
