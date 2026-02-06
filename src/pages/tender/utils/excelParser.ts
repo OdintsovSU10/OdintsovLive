@@ -41,16 +41,82 @@ export function parseExcelDate(value: unknown): string {
 // Парсинг периода MM/YYYY
 export function parsePeriod(value: unknown): { year: number; month: number } | null {
   if (!value) return null
-  const str = String(value).trim()
 
-  // MM/YYYY
-  const match = str.match(/^(\d{1,2})\/(\d{4})$/)
-  if (match) {
-    return {
-      month: parseInt(match[1], 10),
-      year: parseInt(match[2], 10)
+  // Excel serial date
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const date = new Date((value - 25569) * 86400 * 1000)
+    const month = date.getUTCMonth() + 1
+    const year = date.getUTCFullYear()
+    if (month >= 1 && month <= 12 && year >= 2000 && year <= 2100) {
+      return { year, month }
     }
   }
+
+  // JS Date
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return { year: value.getFullYear(), month: value.getMonth() + 1 }
+  }
+
+  const str = String(value).trim().toLowerCase()
+  if (!str) return null
+
+  // MM/YYYY | MM.YYYY | MM-YYYY | MM YYYY
+  const monthYear = str.match(/^(\d{1,2})[\/.\-\s](\d{4})$/)
+  if (monthYear) {
+    const month = parseInt(monthYear[1], 10)
+    const year = parseInt(monthYear[2], 10)
+    if (month >= 1 && month <= 12) return { month, year }
+  }
+
+  // YYYY/MM | YYYY.MM | YYYY-MM | YYYY MM
+  const yearMonth = str.match(/^(\d{4})[\/.\-\s](\d{1,2})$/)
+  if (yearMonth) {
+    const year = parseInt(yearMonth[1], 10)
+    const month = parseInt(yearMonth[2], 10)
+    if (month >= 1 && month <= 12) return { month, year }
+  }
+
+  // DD/MM/YYYY or DD.MM.YYYY
+  const dayMonthYear = str.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/)
+  if (dayMonthYear) {
+    const month = parseInt(dayMonthYear[2], 10)
+    const year = parseInt(dayMonthYear[3], 10)
+    if (month >= 1 && month <= 12) return { month, year }
+  }
+
+  // YYYY-MM-DD
+  const iso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (iso) {
+    const year = parseInt(iso[1], 10)
+    const month = parseInt(iso[2], 10)
+    if (month >= 1 && month <= 12) return { month, year }
+  }
+
+  // Русские месяцы: "январь 2026", "янв 2026", "февр. 2026"
+  const monthWordMap: Record<string, number> = {
+    'январь': 1, 'янв': 1,
+    'февраль': 2, 'фев': 2, 'февр': 2,
+    'март': 3, 'мар': 3,
+    'апрель': 4, 'апр': 4,
+    'май': 5,
+    'июнь': 6, 'июн': 6,
+    'июль': 7, 'июл': 7,
+    'август': 8, 'авг': 8,
+    'сентябрь': 9, 'сен': 9, 'сент': 9,
+    'октябрь': 10, 'окт': 10,
+    'ноябрь': 11, 'ноя': 11,
+    'декабрь': 12, 'дек': 12
+  }
+
+  const cleaned = str.replace('.', ' ').replace(',', ' ').replace(/\s+/g, ' ').trim()
+  const wordYear = cleaned.match(/^([а-яё]+)\s+(\d{4})$/i)
+  if (wordYear) {
+    const word = wordYear[1].toLowerCase()
+    const year = parseInt(wordYear[2], 10)
+    const month = monthWordMap[word]
+    if (month) return { month, year }
+  }
+
   return null
 }
 
@@ -210,6 +276,13 @@ export async function parseTimesheetExcel(file: File): Promise<ParsedTimesheetRo
             month,
             days
           })
+        }
+
+        if (result.length === 0) {
+          reject(new Error(
+            'Не удалось распознать строки табеля. Проверьте: данные начинаются с 4-й строки, в колонке B указан период (например, 01/2026), а ФИО заполнено в колонке A.'
+          ))
+          return
         }
 
         resolve(result)

@@ -31,6 +31,11 @@ export function ImportTimesheetModal({ employees, onClose, onSuccess }: Props) {
   }
 
   const handleImport = async () => {
+    if (preview.length === 0) {
+      setError('Сначала выберите файл табеля для предпросмотра')
+      return
+    }
+
     const result = await importTimesheet(preview)
     if (result.success) {
       onSuccess()
@@ -103,12 +108,29 @@ export function ImportTimesheetModal({ employees, onClose, onSuccess }: Props) {
                 onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
-                onClick={() => fileRef.current?.click()}
+                onClick={() => {
+                  if (fileRef.current) {
+                    fileRef.current.value = ''
+                    fileRef.current.click()
+                  }
+                }}
               >
-                <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e => handleFile(e.target.files?.[0])} />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onClick={e => {
+                    e.currentTarget.value = ''
+                  }}
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    handleFile(file)
+                    e.currentTarget.value = ''
+                  }}
+                />
                 <div className="import-icon">📅</div>
-                <div className="import-text">Перетащите файл сюда</div>
-                <div className="import-subtext">или нажмите для выбора</div>
+                <div className="import-text">{loading ? 'Обрабатываем файл…' : 'Перетащите файл сюда'}</div>
+                <div className="import-subtext">{loading ? 'Это может занять пару секунд' : 'или нажмите для выбора'}</div>
               </div>
             </>
           ) : (

@@ -6,6 +6,7 @@ import { ImportTimesheetModal } from './components/ImportTimesheetModal'
 import { ImportSalaryHistoryModal } from './components/ImportSalaryHistoryModal'
 import type { Employee, SalaryHistory } from './types'
 import './TenderPage.css'
+import './AdminTenderPage.css'
 
 type AdminTab = 'employees' | 'timesheet'
 

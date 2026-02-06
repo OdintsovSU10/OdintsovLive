@@ -159,11 +159,42 @@ export interface ParsedTimesheetRow {
   days: ParsedTimesheetDay[]
 }
 
-export type TenderTab = 'employees' | 'timesheet' | 'analytics' | 'fot'
+export type TenderTab = 'dashboard' | 'employees' | 'timesheet' | 'fot'
 
 export interface ParsedSalaryEntry {
   employee_name: string
   salary: number
   effective_date: string
   note: string
+}
+
+export interface TenderEmployeeVM {
+  id: number
+  fullName: string
+  shortName: string
+  initials: string
+  role: string
+  department: string
+  group: string
+  salary: number
+  noRaiseMonths: number
+  avatar: string
+}
+
+export interface DepartmentSummaryVM {
+  department: string
+  employeesCount: number
+  totalHours: number
+  totalOvertime: number
+  totalSalary: number
+  payrollShare: number
+}
+
+export interface TimesheetCellVM {
+  employeeId: number
+  isoDate: string
+  day: number
+  isWeekend: boolean
+  status: TimesheetStatus | null
+  hours: number | null
 }
