@@ -14,6 +14,8 @@ NAS_HOST="${NAS_HOST:-}"
 NAS_PATH="${NAS_PATH:-/volume1/docker/frontend}"
 CONTAINER_NAME="${CONTAINER_NAME:-odintsov-frontend}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519_nas_deploy}"
+UPDATE_NGINX_CONF="${UPDATE_NGINX_CONF:-1}"
+STRICT_NGINX_UPDATE="${STRICT_NGINX_UPDATE:-0}"
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -79,21 +81,35 @@ tar -C dist -czf - . | ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
   "tar -xzf - -C '${NAS_PATH}/dist'"
 
 # 3. Обновление nginx.conf
-echo -e "${GREEN}[3/4] Обновление nginx.conf...${NC}"
-if ! ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
-  "cat > '${NAS_PATH}/nginx.conf'" < docker/frontend/nginx.conf; then
-  echo -e "${YELLOW}Нет прав на прямую запись. Пробуем через /tmp и sudo cp...${NC}"
-
-  ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
-    "cat > '/tmp/odintsovlive_nginx.conf'" < docker/frontend/nginx.conf
+if [[ "$UPDATE_NGINX_CONF" == "1" ]]; then
+  echo -e "${GREEN}[3/4] Обновление nginx.conf...${NC}"
+  nginx_updated=1
 
   if ! ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
-    "sudo -n cp '/tmp/odintsovlive_nginx.conf' '${NAS_PATH}/nginx.conf' 2>/dev/null || cp '/tmp/odintsovlive_nginx.conf' '${NAS_PATH}/nginx.conf'"; then
-    echo -e "${RED}Ошибка: не удалось обновить nginx.conf (нужны права на ${NAS_PATH})${NC}"
-    exit 1
+    "cat > '${NAS_PATH}/nginx.conf'" < docker/frontend/nginx.conf; then
+    echo -e "${YELLOW}Нет прав на прямую запись. Пробуем через /tmp и sudo cp...${NC}"
+
+    ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
+      "cat > '/tmp/odintsovlive_nginx.conf'" < docker/frontend/nginx.conf
+
+    if ! ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" \
+      "sudo -n cp '/tmp/odintsovlive_nginx.conf' '${NAS_PATH}/nginx.conf' 2>/dev/null || cp '/tmp/odintsovlive_nginx.conf' '${NAS_PATH}/nginx.conf'"; then
+      nginx_updated=0
+      echo -e "${YELLOW}Предупреждение: не удалось обновить nginx.conf (нужны права на ${NAS_PATH}). Продолжаем деплой без этого шага.${NC}"
+      if [[ "$STRICT_NGINX_UPDATE" == "1" ]]; then
+        echo -e "${RED}STRICT_NGINX_UPDATE=1: прерываем деплой.${NC}"
+        exit 1
+      fi
+    fi
+
+    ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" "rm -f '/tmp/odintsovlive_nginx.conf'" >/dev/null 2>&1 || true
   fi
 
-  ssh "${SSH_OPTS[@]}" "${NAS_USER}@${NAS_HOST}" "rm -f '/tmp/odintsovlive_nginx.conf'" >/dev/null 2>&1 || true
+  if [[ "${nginx_updated:-0}" == "1" ]]; then
+    echo -e "${GREEN}nginx.conf обновлён.${NC}"
+  fi
+else
+  echo -e "${YELLOW}[3/4] Обновление nginx.conf пропущено (UPDATE_NGINX_CONF=0).${NC}"
 fi
 
 # 4. Перезапуск контейнера
