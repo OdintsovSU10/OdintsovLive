@@ -21,4 +21,4 @@ DROP CONSTRAINT IF EXISTS tender_imports_import_type_check;
 
 ALTER TABLE tender_imports
 ADD CONSTRAINT tender_imports_import_type_check
-CHECK (import_type IN ('employees', 'timesheet', 'fot_timesheet_sync'));
+CHECK (import_type IN ('employees', 'timesheet', 'salary_history', 'fot_timesheet_sync'));
