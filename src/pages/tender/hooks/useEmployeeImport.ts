@@ -57,8 +57,19 @@ function addSalaryUpdate(
   }
 }
 
+function addBooleanUpdate(
+  updates: Record<string, unknown>,
+  key: string,
+  nextValue: boolean,
+  currentValue: unknown
+) {
+  if (nextValue !== Boolean(currentValue)) {
+    updates[key] = nextValue
+  }
+}
+
 function createInsertPayload(emp: ParsedEmployee, options: EmployeeImportOptions): Record<string, unknown> {
-  return {
+  const payload: Record<string, unknown> = {
     full_name: emp.full_name,
     last_name: emp.last_name,
     first_name: emp.first_name,
@@ -76,6 +87,21 @@ function createInsertPayload(emp: ParsedEmployee, options: EmployeeImportOptions
     phone: options.contacts && hasValue(emp.phone) ? emp.phone : null,
     is_archived: false
   }
+
+  if (emp.fot_employee_id !== undefined) {
+    payload.fot_employee_id = hasValue(emp.fot_employee_id) ? emp.fot_employee_id : null
+  }
+  if (emp.sigur_employee_id !== undefined) {
+    payload.sigur_employee_id = hasValue(emp.sigur_employee_id) ? emp.sigur_employee_id : null
+  }
+  if (emp.tab_number !== undefined) {
+    payload.tab_number = hasValue(emp.tab_number) ? emp.tab_number : null
+  }
+  if (emp.excluded_from_timesheet !== undefined) {
+    payload.excluded_from_timesheet = emp.excluded_from_timesheet
+  }
+
+  return payload
 }
 
 function createUpdatePayload(
@@ -90,6 +116,18 @@ function createUpdatePayload(
     addStringUpdate(updates, 'last_name', emp.last_name, existing.last_name)
     addStringUpdate(updates, 'first_name', emp.first_name, existing.first_name)
     addStringUpdate(updates, 'middle_name', emp.middle_name, existing.middle_name)
+    if (emp.fot_employee_id !== undefined) {
+      addStringUpdate(updates, 'fot_employee_id', emp.fot_employee_id, existing.fot_employee_id)
+    }
+    if (emp.sigur_employee_id !== undefined) {
+      addStringUpdate(updates, 'sigur_employee_id', emp.sigur_employee_id, existing.sigur_employee_id)
+    }
+    if (emp.tab_number !== undefined) {
+      addStringUpdate(updates, 'tab_number', emp.tab_number, existing.tab_number)
+    }
+    if (emp.excluded_from_timesheet !== undefined) {
+      addBooleanUpdate(updates, 'excluded_from_timesheet', emp.excluded_from_timesheet, existing.excluded_from_timesheet)
+    }
   }
 
   if (options.work) {

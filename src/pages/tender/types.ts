@@ -17,6 +17,10 @@ export interface Employee {
   company: string | null
   email: string | null
   phone: string | null
+  fot_employee_id: string | null
+  sigur_employee_id: string | null
+  tab_number: string | null
+  excluded_from_timesheet: boolean
   is_archived: boolean
   archived_at: string | null
   created_at: string
@@ -185,6 +189,10 @@ export interface ParsedEmployee {
   company: string
   email: string
   phone: string
+  fot_employee_id?: string
+  sigur_employee_id?: string
+  tab_number?: string
+  excluded_from_timesheet?: boolean
 }
 
 export interface ParsedTimesheetDay {

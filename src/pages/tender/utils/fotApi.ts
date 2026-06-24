@@ -33,6 +33,10 @@ const FIELD_ALIASES = {
   company: ['company', 'organization', 'Компания', 'Организация'],
   email: ['email', 'mail', 'e-mail', 'Почта'],
   phone: ['phone', 'mobile', 'Телефон'],
+  fotEmployeeId: ['id', 'employee_id', 'fot_employee_id'],
+  sigurEmployeeId: ['sigur_employee_id', 'sigurEmployeeId', 'sigur_id'],
+  tabNumber: ['tab_number', 'tabNumber', 'personnel_number', 'personnelNumber', 'Табельный номер'],
+  excludedFromTimesheet: ['excluded_from_timesheet', 'excludedFromTimesheet'],
   employmentStatus: ['employment_status', 'current_status', 'status'],
   isArchived: ['is_archived', 'archived'],
   dismissalDate: ['dismissal_date', 'fired_at', 'termination_date', 'Дата увольнения'],
@@ -295,7 +299,11 @@ function normalizeEmployee(raw: unknown): ParsedEmployee | null {
     snils: pickString(record, FIELD_ALIASES.snils),
     company: pickString(record, FIELD_ALIASES.company),
     email: pickString(record, FIELD_ALIASES.email),
-    phone: pickString(record, FIELD_ALIASES.phone)
+    phone: pickString(record, FIELD_ALIASES.phone),
+    fot_employee_id: pickString(record, FIELD_ALIASES.fotEmployeeId),
+    sigur_employee_id: pickString(record, FIELD_ALIASES.sigurEmployeeId),
+    tab_number: pickString(record, FIELD_ALIASES.tabNumber),
+    excluded_from_timesheet: isTruthyArchiveFlag(pickValue(record, FIELD_ALIASES.excludedFromTimesheet))
   }
 }
 
