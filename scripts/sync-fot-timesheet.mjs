@@ -9,6 +9,7 @@ const WORK_DAYS_NORM = {
 const DEFAULT_PAGE_SIZE = 1000
 const DEFAULT_MAX_RECORDS = 10000
 const DEFAULT_DATE_FIELD = 'work_date'
+const DEFAULT_PUBLIC_TIMESHEET_API = 'https://fot.su10.ru/api/public/v1/timesheet'
 
 const FIELD_ALIASES = {
   employeeId: [
@@ -74,7 +75,9 @@ const FIELD_ALIASES = {
     'is_correction',
     'correction',
     'is_adjustment',
-    'adjustment'
+    'adjustment',
+    'corrected',
+    'hours_overridden'
   ]
 }
 
@@ -88,13 +91,17 @@ Options:
   --lookback-days N          Sync today and N-1 previous days
   --api URL                  FOT timesheet endpoint
   --table NAME               FOT table name under /external/v1/tables
+  --department-id UUID       FOT department_id for public timesheet
+  --department-ids LIST      Comma-separated FOT department_id list
   --date-field NAME          FOT date field for gte/lte filters
   --limit N                  Maximum records to read
   --dry-run                  Read and match only, do not write
   --help                     Show this help
 
 Env:
-  FOT_TIMESHEET_API or FOT_TIMESHEET_TABLE is required for real sync.
+  Public timesheet endpoint is used by default.
+  FOT_TIMESHEET_API or FOT_TIMESHEET_TABLE can override it.
+  FOT_TIMESHEET_DEPARTMENT_IDS can narrow public timesheet sync.
   FOT_API and FOT_API_TOKEN are used for FOT access.
   VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY are used for writes.`)
 }
@@ -107,6 +114,7 @@ function parseArgs(argv) {
     to: '',
     api: '',
     table: '',
+    departmentIds: [],
     dateField: '',
     limit: 0,
     lookbackDays: 0
@@ -142,6 +150,12 @@ function parseArgs(argv) {
         break
       case '--table':
         args.table = next()
+        break
+      case '--department-id':
+        args.departmentIds.push(next())
+        break
+      case '--department-ids':
+        args.departmentIds.push(...next().split(','))
         break
       case '--date-field':
         args.dateField = next()
@@ -210,6 +224,28 @@ function getDateRange(args, env) {
   return { from: shiftDate(to, -Math.max(lookbackDays - 1, 0)), to }
 }
 
+function getMonthKeys(dateRange) {
+  const months = []
+  const cursor = new Date(`${dateRange.from.slice(0, 7)}-01T12:00:00Z`)
+  const endMonth = dateRange.to.slice(0, 7)
+
+  while (true) {
+    const monthKey = cursor.toISOString().slice(0, 7)
+    months.push(monthKey)
+    if (monthKey === endMonth) break
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1)
+  }
+
+  return months
+}
+
+function splitList(value) {
+  return String(value || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
 function buildTableUrl(fotApi, tableName) {
   const url = new URL(fotApi)
   const parts = url.pathname.split('/')
@@ -222,6 +258,21 @@ function buildTableUrl(fotApi, tableName) {
   url.pathname = [...parts.slice(0, tablesIndex + 1), tableName].join('/')
   url.search = ''
   return url.toString()
+}
+
+function isPublicTimesheetEndpoint(url) {
+  try {
+    return new URL(url).pathname.includes('/api/public/v1/timesheet')
+  } catch {
+    return false
+  }
+}
+
+function getFotHeaders(config) {
+  return {
+    Authorization: `Bearer ${config.fotToken}`,
+    Accept: 'application/json'
+  }
 }
 
 function buildTablesRootUrl(fotApi) {
@@ -329,9 +380,9 @@ function normalizeStatus(value, hours) {
     .toLowerCase()
     .replace(/ё/g, 'е')
 
-  if (['work', 'worked', 'present', 'я', 'работа', 'рабочий', 'явка'].includes(normalized)) return 'work'
+  if (['work', 'worked', 'present', 'manual', 'я', 'работа', 'рабочий', 'явка'].includes(normalized)) return 'work'
   if (['remote', 'удаленка', 'удаленная работа', 'удаленно', 'у'].includes(normalized)) return 'remote'
-  if (['vacation', 'отпуск', 'о'].includes(normalized)) return 'vacation'
+  if (['vacation', 'educational_leave', 'отпуск', 'учебный отпуск', 'о'].includes(normalized)) return 'vacation'
   if (['dayoff', 'weekend', 'holiday', 'выходной', 'праздник', 'в'].includes(normalized)) return 'dayoff'
   if (['unpaid', 'без содержания', 'за свой счет', 'н'].includes(normalized)) return 'unpaid'
   if (['absent', 'sick', 'ill', 'больничный', 'болезнь', 'неявка', 'прогул', 'б'].includes(normalized)) return 'absent'
@@ -350,6 +401,45 @@ function extractRows(payload) {
   }
 
   return []
+}
+
+function extractPublicTimesheetRows(payload, dateRange) {
+  const rows = []
+  const departments = Array.isArray(payload?.departments) ? payload.departments : []
+
+  for (const department of departments) {
+    const employees = Array.isArray(department?.employees) ? department.employees : []
+
+    for (const employee of employees) {
+      const days = employee?.days && typeof employee.days === 'object' && !Array.isArray(employee.days)
+        ? employee.days
+        : {}
+
+      for (const [workDate, day] of Object.entries(days)) {
+        if (workDate < dateRange.from || workDate > dateRange.to) continue
+        if (!day || typeof day !== 'object' || Array.isArray(day)) continue
+
+        const hasStatus = String(day.status ?? '').trim() !== ''
+        const hasHours = day.hours !== undefined && day.hours !== null && String(day.hours).trim() !== ''
+        if (!hasStatus && !hasHours) continue
+
+        rows.push({
+          fot_employee_id: employee.id,
+          employee_id: employee.id,
+          full_name: employee.full_name,
+          tab_number: employee.tab_number,
+          sigur_employee_id: employee.sigur_employee_id,
+          work_date: workDate,
+          status: day.status,
+          hours: day.hours,
+          corrected: day.corrected,
+          hours_overridden: day.hours_overridden
+        })
+      }
+    }
+  }
+
+  return rows
 }
 
 async function fetchJson(url, options = {}) {
@@ -397,7 +487,79 @@ async function fetchAvailableTables(fotApi, fotToken) {
   })).filter(row => row.table)
 }
 
-async function fetchFotTimesheetRows(config, dateRange) {
+async function fetchFotEmployees(config) {
+  const rows = []
+  let offset = 0
+
+  while (offset < config.maxRecords) {
+    const pageLimit = Math.min(config.pageSize, config.maxRecords - rows.length)
+    const url = new URL(config.fotApi)
+    url.searchParams.set('limit', String(pageLimit))
+    url.searchParams.set('offset', String(offset))
+
+    if (!url.searchParams.has('eq.employment_status')) {
+      url.searchParams.set('eq.employment_status', 'active')
+    }
+
+    const payload = await fetchJson(url, {
+      headers: getFotHeaders(config)
+    })
+    const pageRows = extractRows(payload)
+    rows.push(...pageRows)
+
+    if (pageRows.length < pageLimit) break
+    offset += pageLimit
+  }
+
+  return rows
+}
+
+async function discoverDepartmentIds(config, localEmployees) {
+  if (config.departmentIds.length > 0) return config.departmentIds
+
+  const localFotIds = new Set(localEmployees.map(employee => String(employee.fot_employee_id || '').trim()).filter(Boolean))
+  const localSigurIds = new Set(localEmployees.map(employee => String(employee.sigur_employee_id || '').trim()).filter(Boolean))
+  const localTabNumbers = new Set(localEmployees.map(employee => String(employee.tab_number || '').trim()).filter(Boolean))
+  const departmentIds = new Set()
+  const fotEmployees = await fetchFotEmployees(config)
+
+  for (const employee of fotEmployees) {
+    const matchesLocalEmployee = localFotIds.has(String(employee.id || '').trim())
+      || localSigurIds.has(String(employee.sigur_employee_id || '').trim())
+      || localTabNumbers.has(String(employee.tab_number || '').trim())
+
+    if (matchesLocalEmployee && employee.org_department_id) {
+      departmentIds.add(String(employee.org_department_id))
+    }
+  }
+
+  return Array.from(departmentIds)
+}
+
+async function fetchPublicTimesheetRows(config, dateRange, localEmployees) {
+  const departmentIds = await discoverDepartmentIds(config, localEmployees)
+  if (departmentIds.length === 0) {
+    throw new Error('Не удалось определить FOT department_id для импортированных сотрудников')
+  }
+
+  const rows = []
+
+  for (const month of getMonthKeys(dateRange)) {
+    const url = new URL(config.timesheetApi)
+    url.searchParams.set('department_id', departmentIds.join(','))
+    url.searchParams.set('month', month)
+    url.searchParams.set('half', config.timesheetHalf)
+
+    const payload = await fetchJson(url, {
+      headers: getFotHeaders(config)
+    })
+    rows.push(...extractPublicTimesheetRows(payload, dateRange))
+  }
+
+  return rows
+}
+
+async function fetchTableTimesheetRows(config, dateRange) {
   const rows = []
   let offset = 0
 
@@ -416,10 +578,7 @@ async function fetchFotTimesheetRows(config, dateRange) {
     }
 
     const payload = await fetchJson(url, {
-      headers: {
-        Authorization: `Bearer ${config.fotToken}`,
-        Accept: 'application/json'
-      }
+      headers: getFotHeaders(config)
     })
     const pageRows = extractRows(payload)
     rows.push(...pageRows)
@@ -429,6 +588,14 @@ async function fetchFotTimesheetRows(config, dateRange) {
   }
 
   return rows
+}
+
+async function fetchFotTimesheetRows(config, dateRange, localEmployees) {
+  if (isPublicTimesheetEndpoint(config.timesheetApi)) {
+    return fetchPublicTimesheetRows(config, dateRange, localEmployees)
+  }
+
+  return fetchTableTimesheetRows(config, dateRange)
 }
 
 async function supabaseRequest(config, path, options = {}) {
@@ -638,11 +805,17 @@ function createConfig(args, env) {
   const timesheetApi = args.api
     || env.FOT_TIMESHEET_API
     || (tableName && fotApi ? buildTableUrl(fotApi, tableName) : '')
+    || DEFAULT_PUBLIC_TIMESHEET_API
 
   return {
     fotApi,
     fotToken,
     timesheetApi,
+    departmentIds: [
+      ...splitList(env.FOT_TIMESHEET_DEPARTMENT_IDS),
+      ...args.departmentIds
+    ],
+    timesheetHalf: env.FOT_TIMESHEET_HALF || 'FULL',
     supabaseUrl: env.SUPABASE_URL || env.VITE_SUPABASE_URL || '',
     supabaseKey: env.SUPABASE_SERVICE_ROLE_KEY
       || env.SERVICE_ROLE_KEY
@@ -687,13 +860,12 @@ async function main() {
     return
   }
 
-  const [localEmployees, rawRows] = await Promise.all([
-    loadLocalEmployees(config),
-    fetchFotTimesheetRows(config, dateRange)
-  ])
+  const localEmployees = await loadLocalEmployees(config)
+  const rawRows = await fetchFotTimesheetRows(config, dateRange, localEmployees)
   const indexes = createEmployeeIndexes(localEmployees)
   const upsertPayload = []
   const errors = []
+  let ignoredUnmatched = 0
 
   for (const rawRow of rawRows) {
     const normalized = normalizeTimesheetRow(rawRow, config.dateField)
@@ -704,8 +876,7 @@ async function main() {
 
     const employee = resolveEmployee(normalized, indexes)
     if (!employee) {
-      const hint = normalized.employeeId || normalized.sigurEmployeeId || normalized.tabNumber || normalized.employeeName || normalized.workDate
-      errors.push(`Employee not found: ${hint}`)
+      ignoredUnmatched += 1
       continue
     }
 
@@ -723,6 +894,7 @@ async function main() {
     total: rawRows.length,
     matched: upsertPayload.length,
     failed: errors.length,
+    ignored_unmatched: ignoredUnmatched,
     localEmployees: localEmployees.length,
     dryRun: config.dryRun
   }
