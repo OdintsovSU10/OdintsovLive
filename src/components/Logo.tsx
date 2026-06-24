@@ -5,7 +5,16 @@ interface LogoProps {
 
 export default function Logo({ size = 80, showText = true }: LogoProps) {
   return (
-    <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
+    <div
+      className="logo"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: showText ? 'flex-start' : 'center',
+        gap: showText ? 16 : 0,
+        width: showText ? '100%' : 'auto'
+      }}
+    >
       <svg width={size} height={size} viewBox="0 0 80 80" fill="none" style={{ flexShrink: 0 }}>
         <circle cx="40" cy="40" r="38" stroke="var(--primary)" strokeWidth="2" fill="none" />
         <path

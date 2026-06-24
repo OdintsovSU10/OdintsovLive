@@ -15,13 +15,13 @@ const SalaryMonthPage = lazy(() => import('./pages/SalaryMonthPage'))
 const VacationRatePage = lazy(() => import('./pages/VacationRatePage'))
 const RentPage = lazy(() => import('./pages/RentPage'))
 const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
+const ExpensesPage = lazy(() => import('./pages/expenses'))
 const WeightPage = lazy(() => import('./pages/WeightPage'))
 const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
 const NotesPage = lazy(() => import('./pages/NotesPage'))
 const CarPage = lazy(() => import('./pages/car'))
 const TenderPage = lazy(() => import('./pages/tender'))
 const AdminTenderPage = lazy(() => import('./pages/tender/AdminTenderPage'))
-const SKUDPage = lazy(() => import('./pages/skud'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 type Theme = 'light' | 'dark'
@@ -31,10 +31,56 @@ interface Profile {
   is_admin: boolean
 }
 
+const SESSION_TIMEOUT_MS = 8000
+const PROFILE_TIMEOUT_MS = 20000
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error(`${label} timed out`))
+    }, timeoutMs)
+
+    promise.then(
+      value => {
+        window.clearTimeout(timeoutId)
+        resolve(value)
+      },
+      error => {
+        window.clearTimeout(timeoutId)
+        reject(error)
+      }
+    )
+  })
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = String((error as { message?: unknown }).message || '').trim()
+    if (message) return message
+  }
+  return fallback
+}
+
+function clearStoredAuthSession() {
+  ;[localStorage, sessionStorage].forEach(storage => {
+    Object.keys(storage).forEach(key => {
+      if (
+        key.startsWith('sb-')
+        || key.includes('supabase.auth.token')
+        || key.includes('supabase.auth.refreshToken')
+      ) {
+        storage.removeItem(key)
+      }
+    })
+  })
+}
+
 function App() {
   const [collapsed, setCollapsed] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileError, setProfileError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [idleMode, setIdleMode] = useState(false)
   const [idleDateTime, setIdleDateTime] = useState({ weekday: '', day: '', time: '', period: '', colorIndex: 0 })
@@ -81,46 +127,129 @@ function App() {
   }, [idleMode])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
+    let active = true
+
+    withTimeout(supabase.auth.getSession(), SESSION_TIMEOUT_MS, 'Auth session')
+      .then(({ data: { session } }) => {
+        if (!active) return
+
+        setUser(session?.user ?? null)
+        setProfileError(null)
+        if (session?.user) {
+          void loadProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch(error => {
+        console.error('Error loading auth session:', error)
+        if (!active) return
+
+        setUser(null)
+        setProfile(null)
+        setProfileError(null)
         setLoading(false)
-      }
-    })
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      setProfileError(null)
       if (session?.user) {
-        loadProfile(session.user.id)
+        void loadProfile(session.user.id)
       } else {
         setProfile(null)
+        setProfileError(null)
         setLoading(false)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('approved, is_admin')
-      .eq('id', userId)
-      .single()
+  const resetLocalAuth = async () => {
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch (error) {
+      console.warn('Could not sign out locally:', error)
+    }
 
-    setProfile(data)
-    loadFontSettings(userId)
-    setLoading(false)
+    clearStoredAuthSession()
+    window.location.assign('/')
+  }
+
+  const loadProfile = async (userId: string, allowSessionRefresh = true): Promise<void> => {
+    setProfileError(null)
+
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('approved, is_admin')
+          .eq('id', userId)
+          .single(),
+        PROFILE_TIMEOUT_MS,
+        'Profile'
+      )
+
+      if (error) {
+        console.error('Error loading profile:', error)
+        throw error
+      }
+
+      if (!data) {
+        setProfile(null)
+        setProfileError('Профиль пользователя не найден')
+        return
+      }
+
+      setProfile(data)
+      void loadFontSettings(userId)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+
+      if (allowSessionRefresh) {
+        try {
+          const { data: { session }, error: refreshError } = await withTimeout(
+            supabase.auth.refreshSession(),
+            SESSION_TIMEOUT_MS,
+            'Refresh session'
+          )
+
+          if (!refreshError && session?.user) {
+            setUser(session.user)
+            await loadProfile(session.user.id, false)
+            return
+          }
+
+          if (refreshError) {
+            console.error('Error refreshing session:', refreshError)
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing session:', refreshError)
+        }
+      }
+
+      setProfile(null)
+      setProfileError(getErrorMessage(error, 'Не удалось загрузить профиль'))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const loadFontSettings = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
       .single()
+
+    if (error) {
+      console.warn('Could not load font settings:', error)
+      return
+    }
 
     if (data) {
       const settings = {
@@ -189,7 +318,31 @@ function App() {
     return <AuthPage onAuth={() => {}} />
   }
 
-  if (!profile?.approved) {
+  if (profileError || !profile) {
+    return (
+      <div className="pending-screen">
+        <div className="pending-card">
+          <h2>Профиль не загрузился</h2>
+          <p>Авторизация есть, но данные профиля не удалось получить.</p>
+          <p>{profileError || 'Повторите загрузку профиля.'}</p>
+          <button
+            onClick={() => {
+              setLoading(true)
+              void loadProfile(user.id)
+            }}
+            className="logout-link"
+          >
+            Повторить
+          </button>
+          <button onClick={() => void resetLocalAuth()} className="logout-link">
+            Войти заново
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (profile.approved !== true) {
     return (
       <div className="pending-screen">
           <div className="pending-card">
@@ -225,12 +378,12 @@ function App() {
               <Route path="/vacation-rate" element={<VacationRatePage />} />
               <Route path="/rent" element={<RentPage />} />
               <Route path="/rent/:year/:month" element={<RentMonthPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/body/weight" element={<WeightPage />} />
               <Route path="/body/params" element={<BodyParamsPage />} />
               <Route path="/car" element={<CarPage />} />
               <Route path="/tender" element={<TenderPage />} />
               <Route path="/tender/admin" element={profile?.is_admin ? <AdminTenderPage /> : <Navigate to="/tender" replace />} />
-              <Route path="/skud" element={<SKUDPage />} />
               {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
             </Routes>
           </Suspense>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, Scale, Ruler, StickyNote, Car, Users } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, Scale, Ruler, StickyNote, Car, Users, ReceiptText } from 'lucide-react'
 import Logo from '../components/Logo'
 import WeatherWidget from '../components/WeatherWidget'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
@@ -12,6 +12,7 @@ const pages = [
   { path: '/salary', Icon: Wallet, title: 'Зарплата', desc: 'Расчёт заработка' },
   { path: '/vacation-rate', Icon: Umbrella, title: 'Отпускные', desc: 'Расчёт ставки' },
   { path: '/rent', Icon: Home, title: 'Аренда', desc: 'Платежи за квартиру' },
+  { path: '/expenses', Icon: ReceiptText, title: 'Траты', desc: 'Импорт выписки и аналитика' },
   { path: '/body/weight', Icon: Scale, title: 'Мой вес', desc: 'Трекер веса' },
   { path: '/body/params', Icon: Ruler, title: 'Параметры', desc: 'Замеры тела' },
   { path: '/car', Icon: Car, title: 'Машина', desc: 'Учёт авто' },

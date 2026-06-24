@@ -15,6 +15,10 @@ export function splitFullName(fullName: string): { last_name: string; first_name
 export function parseExcelDate(value: unknown): string {
   if (!value) return new Date().toISOString().split('T')[0]
 
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().split('T')[0]
+  }
+
   // Excel serial number
   if (typeof value === 'number') {
     const date = new Date((value - 25569) * 86400 * 1000)
@@ -22,6 +26,12 @@ export function parseExcelDate(value: unknown): string {
   }
 
   const str = String(value)
+
+  // YYYY-MM-DD / ISO date
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`
+  }
 
   // DD.MM.YYYY
   const dotMatch = str.match(/(\d{2})\.(\d{2})\.(\d{4})/)
@@ -231,56 +241,65 @@ export async function parseTimesheetExcel(file: File): Promise<ParsedTimesheetRo
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
         const workbook = XLSX.read(data, { type: 'array' })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })
-
-        // Данные начинаются с 4-й строки (индекс 3)
-        const dataRows = rows.slice(3).filter(row => Array.isArray(row) && row.length > 0 && row[0])
 
         const result: ParsedTimesheetRow[] = []
+        const seen = new Set<string>()
 
-        for (const row of dataRows) {
-          const r = row as unknown[]
-          const employeeName = String(r[0] || '').trim()
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName]
+          if (!sheet) continue
 
-          if (!employeeName) continue
+          const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })
+          if (!Array.isArray(rows) || rows.length === 0) continue
 
-          // Период из столбца B (индекс 1)
-          const period = parsePeriod(r[1])
-          if (!period) continue
+          // Данные начинаются с 4-й строки (индекс 3)
+          const dataRows = rows.slice(3).filter(row => Array.isArray(row) && row.length > 0 && row[0])
 
-          const { year, month } = period
-          const daysInMonth = new Date(year, month, 0).getDate()
+          for (const row of dataRows) {
+            const r = row as unknown[]
+            const employeeName = String(r[0] || '').trim()
+            if (!employeeName) continue
 
-          const days: ParsedTimesheetDay[] = []
+            // Период из столбца B (индекс 1)
+            const period = parsePeriod(r[1])
+            if (!period) continue
 
-          // Столбцы дней начинаются с N (индекс 13)
-          const startCol = 13
+            const { year, month } = period
+            const daysInMonth = new Date(year, month, 0).getDate()
+            const key = `${normalizeNameForComparison(employeeName)}|${year}|${month}`
+            if (seen.has(key)) {
+              continue
+            }
 
-          for (let day = 1; day <= daysInMonth; day++) {
-            const cellIndex = startCol + day - 1
-            const cellValue = String(r[cellIndex] || '').trim()
+            const days: ParsedTimesheetDay[] = []
+            // Столбцы дней начинаются с N (индекс 13)
+            const startCol = 13
 
-            const parsed = parseTimesheetCell(cellValue)
-            days.push({
-              day,
-              status: parsed.status,
-              hours: parsed.hours,
-              is_correction: parsed.is_correction
+            for (let day = 1; day <= daysInMonth; day++) {
+              const cellIndex = startCol + day - 1
+              const cellValue = String(r[cellIndex] || '').trim()
+              const parsed = parseTimesheetCell(cellValue)
+              days.push({
+                day,
+                status: parsed.status,
+                hours: parsed.hours,
+                is_correction: parsed.is_correction
+              })
+            }
+
+            result.push({
+              employee_name: employeeName,
+              year,
+              month,
+              days
             })
+            seen.add(key)
           }
-
-          result.push({
-            employee_name: employeeName,
-            year,
-            month,
-            days
-          })
         }
 
         if (result.length === 0) {
           reject(new Error(
-            'Не удалось распознать строки табеля. Проверьте: данные начинаются с 4-й строки, в колонке B указан период (например, 01/2026), а ФИО заполнено в колонке A.'
+            'Не удалось распознать строки табеля. Проверьте: на рабочих листах данные начинаются с 4-й строки, в колонке B указан период (например, 01/2026), а ФИО заполнено в колонке A.'
           ))
           return
         }

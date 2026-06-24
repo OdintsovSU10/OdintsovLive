@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote, Car, ArrowLeft, Users, Shield, Settings, Sun, Moon, Clock, type LucideIcon } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote, Car, ArrowLeft, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
@@ -24,7 +24,6 @@ interface WorkLink {
 const workLinks: WorkLink[] = [
   { path: '/tender', icon: Users, label: 'Тендерное управление' },
   { path: '/tender/admin', icon: Settings, label: 'Администрирование ТУ', adminOnly: true },
-  { path: '/skud', icon: Shield, label: 'СКУД' },
   { path: '/calendar', icon: Calendar, label: 'Календарь' },
   { path: '/salary', icon: Wallet, label: 'Зарплата' },
   { path: '/vacation-rate', icon: Umbrella, label: 'Отпускные' },
@@ -36,6 +35,7 @@ const bodyLinks = [
 ]
 
 const otherLinks = [
+  { path: '/expenses', icon: ReceiptText, label: 'Траты' },
   { path: '/rent', icon: Home, label: 'Аренда' },
   { path: '/car', icon: Car, label: 'Машина' },
 ]
@@ -54,6 +54,23 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
   const swipeStartX = useRef(0)
   const swipeStartY = useRef(0)
   const isSwipeFromEdge = useRef(false)
+
+  useEffect(() => {
+    const isTenderRoute = location.pathname === '/tender' || location.pathname.startsWith('/tender/')
+
+    if (isTenderRoute) {
+      document.documentElement.dataset.routeTheme = 'tender'
+      return
+    }
+
+    delete document.documentElement.dataset.routeTheme
+  }, [location.pathname])
+
+  useEffect(() => {
+    return () => {
+      delete document.documentElement.dataset.routeTheme
+    }
+  }, [])
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 430)

@@ -57,8 +57,7 @@ export default function SalaryPage() {
 
   useEffect(() => {
     if (userId) {
-      const isInitialLoad = Object.keys(monthStats).length === 0
-      if (isInitialLoad) setLoading(true)
+      setLoading(true)
 
       Promise.all([
         loadSalarySettings(userId),
@@ -67,7 +66,7 @@ export default function SalaryPage() {
         loadVacationRatesForYear(userId, year)
       ]).then(() => setLoading(false))
     }
-  }, [year, userId, loadSalarySettings, loadPaymentsForYear, loadStatsForYear, loadVacationRatesForYear, monthStats])
+  }, [year, userId, loadSalarySettings, loadPaymentsForYear, loadStatsForYear, loadVacationRatesForYear])
 
   const getSalaryInput = (monthIndex: number) => {
     const key = `${year}-${monthIndex}`

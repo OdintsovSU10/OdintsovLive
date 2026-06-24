@@ -30,6 +30,23 @@ export interface SalaryHistory {
   note: string | null
 }
 
+export interface TenderSubdivision {
+  id: number
+  name: string
+  created_at: string
+}
+
+export type TenderEmployeeEventType = 'archive' | 'unarchive'
+
+export interface TenderEmployeeEvent {
+  id: number
+  employee_id: number
+  event_type: TenderEmployeeEventType
+  event_date: string
+  note: string | null
+  created_at: string
+}
+
 export interface PositionHistory {
   id: number
   employee_id: number
@@ -77,7 +94,7 @@ export interface EmployeeWithStats extends Employee {
 
 export interface HistoryItem {
   date: string
-  type: 'hire' | 'promotion' | 'salary_change' | 'transfer' | 'bonus'
+  type: 'hire' | 'promotion' | 'salary_change' | 'transfer' | 'bonus' | 'archive' | 'unarchive'
   desc: string
 }
 
@@ -125,6 +142,31 @@ export interface ImportResult {
   records_success: number
   records_failed: number
   errors: string[]
+}
+
+export interface EmployeeImportOptions {
+  identity: boolean
+  work: boolean
+  employment: boolean
+  salary: boolean
+  contacts: boolean
+  documents: boolean
+  updateExisting: boolean
+  createMissing: boolean
+}
+
+export interface FotApiLoadOptions {
+  activeOnly: boolean
+  departmentId: string
+  maxRecords: number
+}
+
+export interface FotApiDepartment {
+  id: string
+  name: string
+  description: string
+  kind: string
+  parent_id: string | null
 }
 
 export interface ParsedEmployee {

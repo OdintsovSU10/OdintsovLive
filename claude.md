@@ -24,7 +24,7 @@ src/
 
 **Auth flow**: App.tsx checks session → unapproved users see pending screen → approved users get full app.
 
-**Routes**: `/`, `/notes`, `/calendar`, `/salary`, `/salary/:year/:month`, `/vacation-rate`, `/rent`, `/rent/:year/:month`, `/body/weight`, `/body/params`, `/car`, `/tender`, `/tender/admin` (admin only), `/skud`, `/admin` (admin only)
+**Routes**: `/`, `/notes`, `/calendar`, `/salary`, `/salary/:year/:month`, `/vacation-rate`, `/rent`, `/rent/:year/:month`, `/body/weight`, `/body/params`, `/car`, `/tender`, `/tender/admin` (admin only), `/admin` (admin only)
 
 ## Database (Supabase)
 

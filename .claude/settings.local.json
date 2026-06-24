@@ -54,7 +54,9 @@
       "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show 10ae7f1:supabase/schemas/prod.sql)",
       "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show b78d26c:supabase/schemas/prod.sql)",
       "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show e9b69c4:supabase/schemas/prod.sql)",
-      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show:*)"
+      "Bash(git -C /Users/odintsovlive/Desktop/Project/OdintsovLive show:*)",
+      "Bash(dig:*)",
+      "Bash(nslookup:*)"
     ]
   }
 }

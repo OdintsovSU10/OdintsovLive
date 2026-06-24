@@ -73,6 +73,45 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+:root[data-route-theme="tender"] {
+  --primary: #818CF8;
+  --primary-hover: #A5B4FC;
+  --primary-light: rgba(129, 140, 248, 0.18);
+
+  --bg-primary: #080E1A;
+  --bg-secondary: #0C1425;
+  --bg-tertiary: #111C31;
+  --surface: #0F172A;
+  --surface-rgb: 15, 23, 42;
+  --surface-solid: #0F172A;
+  --surface-hover: #17223A;
+
+  --sidebar-bg: #0A1220;
+  --sidebar-text: rgba(203, 213, 225, 0.72);
+  --sidebar-text-hover: #E2E8F0;
+  --sidebar-text-active: #F8FAFC;
+
+  --text-primary: #E2E8F0;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  --border: #243247;
+  --border-light: rgba(148, 163, 184, 0.14);
+
+  --shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.35);
+  --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.42);
+  --shadow-lg: 0 16px 36px rgba(2, 6, 23, 0.52);
+
+  --color-bg: #0F172A;
+  --color-surface: #0F172A;
+  --color-surface-secondary: rgba(30, 41, 59, 0.62);
+  --color-surface-hover: rgba(51, 65, 85, 0.48);
+  --color-border: rgba(100, 116, 139, 0.35);
+  --color-text: #E2E8F0;
+  --color-text-secondary: #94A3B8;
+  --color-primary: #818CF8;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

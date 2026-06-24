@@ -287,6 +287,11 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
+  :root[data-route-theme="tender"] .sidebar {
+    background: rgba(12, 20, 37, 0.52) !important;
+    border-right: 1px solid rgba(100, 116, 139, 0.24);
+  }
+
   .sidebar.mobile-hidden {
     transform: translateX(-100%);
   }
@@ -336,7 +341,7 @@
 
   .mobile-menu-btn {
     position: fixed;
-    top: 12px;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
     left: 12px;
     z-index: 200;
     width: 40px;
@@ -363,7 +368,7 @@
 
   .mobile-logo {
     position: fixed;
-    top: 12px;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
     left: 50%;
     transform: translateX(-50%);
     z-index: 200;
@@ -388,6 +393,10 @@
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 99;
+  }
+
+  :root[data-route-theme="tender"] .sidebar-overlay {
+    background: rgba(8, 14, 26, 0.66);
   }
 
   .sidebar-overlay.visible {

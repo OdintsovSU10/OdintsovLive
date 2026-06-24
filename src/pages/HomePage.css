@@ -103,6 +103,16 @@
     padding: 72px 16px 24px;
   }
 
+  .home-content .logo {
+    width: auto !important;
+    justify-content: center !important;
+    margin-inline: auto;
+  }
+
+  .home-content .logo .logo-text {
+    flex: 0 0 auto !important;
+  }
+
   .subtitle {
     margin-bottom: 16px;
   }

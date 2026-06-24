@@ -3,7 +3,7 @@
 ## Подключение
 
 ```bash
-sudo docker exec -it supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres
+sudo /usr/local/bin/docker exec -it supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres
 ```
 
 ---
@@ -12,17 +12,17 @@ sudo docker exec -it supabase-db psql -h /var/run/postgresql -p 5433 -U postgres
 
 **Список таблиц:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "\dt"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "\dt"
 ```
 
 **Структура таблицы:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "\d tender_employees"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "\d tender_employees"
 ```
 
 **Все колонки всех таблиц:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position;"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position;"
 ```
 
 ---
@@ -31,12 +31,12 @@ sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d 
 
 **Одна команда:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "SELECT * FROM tender_employees LIMIT 5;"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "SELECT * FROM tender_employees LIMIT 5;"
 ```
 
 **Несколько команд:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "
 ALTER TABLE tender_employees ADD COLUMN group_name TEXT;
 "
 ```
@@ -47,17 +47,45 @@ ALTER TABLE tender_employees ADD COLUMN group_name TEXT;
 
 **Добавить колонку:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "ALTER TABLE имя_таблицы ADD COLUMN имя_колонки ТИП;"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "ALTER TABLE имя_таблицы ADD COLUMN имя_колонки ТИП;"
 ```
 
 **Удалить колонку:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "ALTER TABLE имя_таблицы DROP COLUMN имя_колонки;"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "ALTER TABLE имя_таблицы DROP COLUMN имя_колонки;"
 ```
 
 **Выдать права:**
 ```bash
-sudo docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "GRANT ALL ON имя_таблицы TO anon, authenticated, service_role;"
+sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "GRANT ALL ON имя_таблицы TO anon, authenticated, service_role;"
+```
+
+---
+
+## Применение миграции через SSH (рекомендуемый способ)
+
+На этой NAS не работает `scp/sftp subsystem`, поэтому SQL-файл передаём через `ssh ... 'cat > файл'`.
+
+**1) Передать миграцию:**
+```bash
+ssh -F /dev/null -p 24 -i ~/.ssh/id_ed25519_nas_deploy -o IdentitiesOnly=yes -o PasswordAuthentication=no \
+odintsov.live@95.165.99.67 \
+'cat > /tmp/010_expense_tracking.sql' \
+< /Users/odintsovlive/Desktop/Project/OdintsovLive/supabase/migrations/010_expense_tracking.sql
+```
+
+**2) Применить миграцию (`ssh -tt` обязателен для `sudo`):**
+```bash
+ssh -tt -F /dev/null -p 24 -i ~/.ssh/id_ed25519_nas_deploy -o IdentitiesOnly=yes \
+odintsov.live@95.165.99.67 \
+'sudo /usr/local/bin/docker exec -i supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/010_expense_tracking.sql'
+```
+
+**3) Проверить результат:**
+```bash
+ssh -tt -F /dev/null -p 24 -i ~/.ssh/id_ed25519_nas_deploy -o IdentitiesOnly=yes \
+odintsov.live@95.165.99.67 \
+'sudo /usr/local/bin/docker exec supabase-db psql -h /var/run/postgresql -p 5433 -U postgres -d postgres -c "\\dt public.expense_*"'
 ```
 
 ---

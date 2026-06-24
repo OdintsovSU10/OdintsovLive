@@ -32,7 +32,8 @@
 }
 
 .import-modal-wide {
-  width: 640px;
+  width: 760px;
+  max-width: 95vw;
 }
 
 .import-header {
@@ -131,6 +132,39 @@
   font-size: 12px;
 }
 
+.import-source-separator-line {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 18px 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.import-source-separator-line::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.import-source-separator-line span {
+  position: relative;
+  z-index: 1;
+  padding: 0 12px;
+  background: var(--color-surface);
+}
+
+[data-theme="light"] .import-source-separator-line span {
+  background: #ffffff;
+}
+
+[data-theme="dark"] .import-source-separator-line span {
+  background: #1e1e1e;
+}
+
 .import-content {
   flex: 1;
   overflow-y: auto;
@@ -148,6 +182,7 @@
 
 .import-preview-table table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   font-size: 12px;
 }
@@ -261,16 +296,158 @@
   cursor: default;
 }
 
+.fot-import-panel {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: var(--color-surface-secondary);
+}
+
+[data-theme="light"] .fot-import-panel {
+  background: #f7f7f7;
+}
+
+[data-theme="dark"] .fot-import-panel {
+  background: #262626;
+}
+
+.fot-import-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fot-import-title-row h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fot-import-title-row span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.fot-import-controls {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.6fr) minmax(220px, 1.4fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.fot-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fot-control span,
+.fot-import-options-title {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.fot-control input,
+.fot-control select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  padding: 0 10px;
+  min-width: 0;
+}
+
+.fot-control select:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.fot-department-meta {
+  margin-bottom: 12px;
+}
+
+.fot-inline-note {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.fot-inline-note.error {
+  color: #ef5350;
+}
+
+.fot-import-options {
+  margin-bottom: 14px;
+}
+
+.fot-import-options-title {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.fot-import-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.fot-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.fot-check input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  accent-color: #c4a77d;
+}
+
+.fot-check span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fot-selected-summary {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: -8px 0 14px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.fot-selected-summary strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
 .import-example-table {
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 16px;
   font-size: 11px;
 }
 
 .import-example-table table {
   width: 100%;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
@@ -330,6 +507,17 @@
 
 [data-theme="dark"] .import-hint {
   background: #262626;
+}
+
+@media (max-width: 720px) {
+  .fot-import-controls,
+  .fot-import-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .import-modal {
+    padding: 18px;
+  }
 }
 
 @keyframes fadeIn {

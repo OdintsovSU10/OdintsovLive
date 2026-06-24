@@ -1,7 +1,125 @@
 import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { parseEmployeesExcel } from '../utils/excelParser'
-import type { ParsedEmployee, ImportResult } from '../types'
+import { fetchFotApiEmployees } from '../utils/fotApi'
+import type { EmployeeImportOptions, FotApiLoadOptions, ImportResult, ParsedEmployee } from '../types'
+
+export const DEFAULT_EMPLOYEE_IMPORT_OPTIONS: EmployeeImportOptions = {
+  identity: true,
+  work: true,
+  employment: true,
+  salary: true,
+  contacts: true,
+  documents: true,
+  updateExisting: true,
+  createMissing: true
+}
+
+function hasValue(value: unknown): boolean {
+  return value !== undefined && value !== null && String(value).trim() !== ''
+}
+
+function addStringUpdate(
+  updates: Record<string, unknown>,
+  key: string,
+  nextValue: string | null | undefined,
+  currentValue: unknown
+) {
+  if (!hasValue(nextValue)) return
+
+  if (String(nextValue) !== String(currentValue ?? '')) {
+    updates[key] = nextValue
+  }
+}
+
+function addDateUpdate(
+  updates: Record<string, unknown>,
+  key: string,
+  nextValue: string | null | undefined,
+  currentValue: unknown
+) {
+  if (!nextValue) return
+
+  if (nextValue !== currentValue) {
+    updates[key] = nextValue
+  }
+}
+
+function addSalaryUpdate(
+  updates: Record<string, unknown>,
+  nextValue: number,
+  currentValue: unknown
+) {
+  if (!Number.isFinite(nextValue) || nextValue <= 0) return
+
+  if (nextValue !== Number(currentValue || 0)) {
+    updates.current_salary = nextValue
+  }
+}
+
+function createInsertPayload(emp: ParsedEmployee, options: EmployeeImportOptions): Record<string, unknown> {
+  return {
+    full_name: emp.full_name,
+    last_name: emp.last_name,
+    first_name: emp.first_name,
+    middle_name: emp.middle_name,
+    position: options.work && hasValue(emp.position) ? emp.position : 'Не указана',
+    department: options.work && hasValue(emp.department) ? emp.department : null,
+    subdivision: options.work && hasValue(emp.subdivision) ? emp.subdivision : null,
+    hire_date: options.employment && emp.hire_date ? emp.hire_date : new Date().toISOString().split('T')[0],
+    birth_date: options.employment ? emp.birth_date : null,
+    current_salary: options.salary && Number.isFinite(emp.salary) ? emp.salary : 0,
+    country: options.documents && hasValue(emp.country) ? emp.country : null,
+    snils: options.documents && hasValue(emp.snils) ? emp.snils : null,
+    company: options.documents && hasValue(emp.company) ? emp.company : null,
+    email: options.contacts && hasValue(emp.email) ? emp.email : null,
+    phone: options.contacts && hasValue(emp.phone) ? emp.phone : null,
+    is_archived: false
+  }
+}
+
+function createUpdatePayload(
+  emp: ParsedEmployee,
+  existing: Record<string, unknown>,
+  options: EmployeeImportOptions
+): Record<string, unknown> {
+  const updates: Record<string, unknown> = {}
+
+  if (options.identity) {
+    addStringUpdate(updates, 'full_name', emp.full_name, existing.full_name)
+    addStringUpdate(updates, 'last_name', emp.last_name, existing.last_name)
+    addStringUpdate(updates, 'first_name', emp.first_name, existing.first_name)
+    addStringUpdate(updates, 'middle_name', emp.middle_name, existing.middle_name)
+  }
+
+  if (options.work) {
+    addStringUpdate(updates, 'position', emp.position, existing.position)
+    addStringUpdate(updates, 'department', emp.department, existing.department)
+    addStringUpdate(updates, 'subdivision', emp.subdivision, existing.subdivision)
+  }
+
+  if (options.employment) {
+    addDateUpdate(updates, 'hire_date', emp.hire_date, existing.hire_date)
+    addDateUpdate(updates, 'birth_date', emp.birth_date, existing.birth_date)
+  }
+
+  if (options.salary) {
+    addSalaryUpdate(updates, emp.salary, existing.current_salary)
+  }
+
+  if (options.documents) {
+    addStringUpdate(updates, 'country', emp.country, existing.country)
+    addStringUpdate(updates, 'snils', emp.snils, existing.snils)
+    addStringUpdate(updates, 'company', emp.company, existing.company)
+  }
+
+  if (options.contacts) {
+    addStringUpdate(updates, 'email', emp.email, existing.email)
+    addStringUpdate(updates, 'phone', emp.phone, existing.phone)
+  }
+
+  return updates
+}
 
 export function useEmployeeImport() {
   const [loading, setLoading] = useState(false)
@@ -18,7 +136,21 @@ export function useEmployeeImport() {
     }
   }
 
-  const importEmployees = async (employees: ParsedEmployee[]): Promise<ImportResult> => {
+  const loadFromFotApi = async (options?: Partial<FotApiLoadOptions>): Promise<ParsedEmployee[]> => {
+    setLoading(true)
+    try {
+      const parsed = await fetchFotApiEmployees(options)
+      setPreview(parsed)
+      return parsed
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const importEmployees = async (
+    employees: ParsedEmployee[],
+    options: EmployeeImportOptions = DEFAULT_EMPLOYEE_IMPORT_OPTIONS
+  ): Promise<ImportResult> => {
     setLoading(true)
     const errors: string[] = []
     let success = 0
@@ -37,24 +169,12 @@ export function useEmployeeImport() {
           const existing = existingList?.[0]
 
           if (existing) {
-            // Собираем только изменённые поля
-            const updates: Record<string, unknown> = {}
+            if (!options.updateExisting) {
+              success++
+              continue
+            }
 
-            if (emp.full_name !== existing.full_name) updates.full_name = emp.full_name
-            if (emp.last_name !== existing.last_name) updates.last_name = emp.last_name
-            if (emp.first_name !== existing.first_name) updates.first_name = emp.first_name
-            if (emp.middle_name !== existing.middle_name) updates.middle_name = emp.middle_name
-            if (emp.position !== existing.position) updates.position = emp.position
-            if (emp.department !== existing.department) updates.department = emp.department
-            if (emp.subdivision !== existing.subdivision) updates.subdivision = emp.subdivision
-            if (emp.hire_date !== existing.hire_date) updates.hire_date = emp.hire_date
-            if (emp.birth_date !== existing.birth_date) updates.birth_date = emp.birth_date
-            if (emp.salary !== Number(existing.current_salary)) updates.current_salary = emp.salary
-            if (emp.country !== existing.country) updates.country = emp.country
-            if (emp.snils !== existing.snils) updates.snils = emp.snils
-            if (emp.company !== existing.company) updates.company = emp.company
-            if (emp.email !== existing.email) updates.email = emp.email
-            if (emp.phone !== existing.phone) updates.phone = emp.phone
+            const updates = createUpdatePayload(emp, existing, options)
 
             // Обновляем только если есть изменения
             if (Object.keys(updates).length > 0) {
@@ -66,27 +186,15 @@ export function useEmployeeImport() {
               if (error) throw error
             }
           } else {
+            if (!options.createMissing) {
+              success++
+              continue
+            }
+
             // Создаём нового
             const { error } = await supabase
               .from('tender_employees')
-              .insert({
-                full_name: emp.full_name,
-                last_name: emp.last_name,
-                first_name: emp.first_name,
-                middle_name: emp.middle_name,
-                position: emp.position,
-                department: emp.department,
-                subdivision: emp.subdivision,
-                hire_date: emp.hire_date,
-                birth_date: emp.birth_date,
-                current_salary: emp.salary,
-                country: emp.country,
-                snils: emp.snils,
-                company: emp.company,
-                email: emp.email,
-                phone: emp.phone,
-                is_archived: false
-              })
+              .insert(createInsertPayload(emp, options))
 
             if (error) throw error
           }
@@ -130,6 +238,7 @@ export function useEmployeeImport() {
     loading,
     preview,
     parseFile,
+    loadFromFotApi,
     importEmployees,
     clearPreview
   }
