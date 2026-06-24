@@ -6,6 +6,7 @@ import { Coffee } from 'lucide-react'
 import './App.css'
 import Sidebar from './components/Sidebar'
 import Logo from './components/Logo'
+import AppUpdatePrompt from './components/AppUpdatePrompt'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 
@@ -392,6 +393,8 @@ function App() {
         <button className="idle-btn" onClick={() => setIdleMode(true)} title="Ожидание">
           <Coffee size={20} />
         </button>
+
+        <AppUpdatePrompt />
 
         {idleMode && (
           <div className="idle-screen" onClick={() => setIdleMode(false)}>

@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv, type ProxyOptions } from 'vite'
+import { defineConfig, loadEnv, type Plugin, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 
 function escapeRegExp(value: string): string {
@@ -62,8 +62,32 @@ function createFotApiProxy(fotApi: string, fotApiToken?: string, proxyPath = '/f
   }
 }
 
+function createAppVersionPlugin(buildVersion: string, builtAt: string): Plugin {
+  const versionPayload = JSON.stringify({ version: buildVersion, builtAt }, null, 2)
+
+  return {
+    name: 'odintsov-app-version',
+    configureServer(server) {
+      server.middlewares.use('/app-version.json', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+        res.end(versionPayload)
+      })
+    },
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'app-version.json',
+        source: versionPayload
+      })
+    }
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const builtAt = new Date().toISOString()
+  const buildVersion = `${mode}-${builtAt}`
   const fotApiProxy = createFotApiProxy(env.FOT_API || '', env.FOT_API_TOKEN)
   const fotDepartmentsApi = env.FOT_API ? createFotApiTableUrl(env.FOT_API, 'org_departments') : ''
   const fotDepartmentsProxy = createFotApiProxy(fotDepartmentsApi, env.FOT_API_TOKEN, '/fot-api-departments')
@@ -71,7 +95,10 @@ export default defineConfig(({ mode }) => {
   const fotTimesheetProxy = createFotApiProxy(fotTimesheetApi, env.FOT_API_TOKEN, '/fot-api-timesheet')
 
   return {
-    plugins: [react()],
+    plugins: [react(), createAppVersionPlugin(buildVersion, builtAt)],
+    define: {
+      __APP_BUILD_VERSION__: JSON.stringify(buildVersion)
+    },
     server: {
       proxy: {
         '/auth/v1': {
