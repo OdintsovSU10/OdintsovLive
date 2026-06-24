@@ -3,10 +3,10 @@ import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { useTenderData } from './hooks/useTenderData'
 import { ImportEmployeesModal } from './components/ImportEmployeesModal'
-import { ImportTimesheetModal } from './components/ImportTimesheetModal'
 import { ImportSalaryHistoryModal } from './components/ImportSalaryHistoryModal'
 import { EmployeeDetail } from './TenderPage'
 import type { Employee, EmployeeWithStats, SalaryHistory, TenderEmployeeEvent, TenderSubdivision } from './types'
+import { syncFotTimesheetMonth } from './utils/fotTimesheetSync'
 import {
   formatAgeYears,
   formatMonthsSinceRaise,
@@ -860,7 +860,6 @@ export default function AdminTenderPage() {
   const [detailSourceTab, setDetailSourceTab] = useState<AdminTab>('employees')
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
   const [showImportEmployees, setShowImportEmployees] = useState(false)
-  const [showImportTimesheet, setShowImportTimesheet] = useState(false)
   const [showImportSalaryHistory, setShowImportSalaryHistory] = useState(false)
   const [showConfirmClearSalaryHistory, setShowConfirmClearSalaryHistory] = useState(false)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
@@ -872,6 +871,8 @@ export default function AdminTenderPage() {
   const [timesheetSummary, setTimesheetSummary] = useState<TimesheetSummary[]>([])
   const [loadingTimesheet, setLoadingTimesheet] = useState(false)
   const [timesheetYear, setTimesheetYear] = useState<number | null>(null)
+  const [timesheetSyncMonth, setTimesheetSyncMonth] = useState(new Date().getMonth() + 1)
+  const [syncingTimesheet, setSyncingTimesheet] = useState(false)
   const [subdivisions, setSubdivisions] = useState<TenderSubdivision[]>([])
   const [newSubdivisionName, setNewSubdivisionName] = useState('')
   const [savingSubdivision, setSavingSubdivision] = useState(false)
@@ -1080,6 +1081,20 @@ export default function AdminTenderPage() {
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleSyncTimesheetPeriod = async (year: number, month: number) => {
+    setSyncingTimesheet(true)
+    try {
+      const result = await syncFotTimesheetMonth(year, month, employees)
+      await Promise.all([loadEmployees(year, month), loadTimesheetSummary()])
+      showToast(`FOT табель: ${result.matched} строк, ${result.failed} ошибок`)
+    } catch (err) {
+      console.error('Error syncing FOT timesheet:', err)
+      showToast(err instanceof Error ? err.message : 'Ошибка синхронизации FOT')
+    } finally {
+      setSyncingTimesheet(false)
+    }
   }
 
   const handleAddSubdivision = async (e: React.FormEvent) => {
@@ -1458,19 +1473,13 @@ export default function AdminTenderPage() {
       </header>
 
       <div className="tender-content">
-        {/* Единый блок импорта */}
         <div className="admin-section">
-          <h3>Импорт данных</h3>
+          <h3>Синхронизация данных</h3>
           <div className="admin-actions">
             <div className="admin-card">
               <h4>Сотрудники</h4>
-              <p>Excel или FOT API</p>
-              <button className="btn-primary" onClick={() => setShowImportEmployees(true)}>Импорт / FOT API</button>
-            </div>
-            <div className="admin-card">
-              <h4>Табель</h4>
-              <p>Учёт рабочего времени</p>
-              <button className="btn-primary" onClick={() => setShowImportTimesheet(true)}>Импорт</button>
+              <p>Синхронизация из FOT API</p>
+              <button className="btn-primary" onClick={() => setShowImportEmployees(true)}>Синхронизировать</button>
             </div>
             <div className="admin-card">
               <h4>История ЗП</h4>
@@ -1596,6 +1605,29 @@ export default function AdminTenderPage() {
               <button className="month-btn" onClick={() => setTimesheetYear(displayYear + 1)}>→</button>
             </div>
 
+            <div className="timesheet-sync-panel">
+              <label className="timesheet-sync-control">
+                <span>Период</span>
+                <select
+                  value={timesheetSyncMonth}
+                  onChange={event => setTimesheetSyncMonth(Number(event.target.value))}
+                  disabled={syncingTimesheet}
+                >
+                  {monthNames.map((name, idx) => (
+                    <option key={name} value={idx + 1}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="btn-primary"
+                onClick={() => handleSyncTimesheetPeriod(displayYear, timesheetSyncMonth)}
+                disabled={syncingTimesheet || employees.length === 0}
+              >
+                {syncingTimesheet ? 'Синхронизация...' : 'Синхронизировать за выбранный период'}
+              </button>
+              <span className="timesheet-sync-note">Источник: FOT API</span>
+            </div>
+
             {loadingTimesheet ? (
               <div className="tender-loading" style={{ minHeight: 200 }}><div className="tender-spinner" /></div>
             ) : (
@@ -1611,12 +1643,11 @@ export default function AdminTenderPage() {
                         <div className="timesheet-month-status">
                           <span className="timesheet-check">✓</span>
                           <span className="timesheet-count">{status.employees_count} сотр.</span>
-                          <button className="btn-link" onClick={() => setShowImportTimesheet(true)}>Обновить</button>
                         </div>
                       ) : (
                         <div className="timesheet-month-status">
                           <span className="timesheet-cross">✗</span>
-                          <button className="btn-link" onClick={() => setShowImportTimesheet(true)}>Подгрузить</button>
+                          <span className="timesheet-count">нет данных</span>
                         </div>
                       )}
                     </div>
@@ -1722,12 +1753,7 @@ export default function AdminTenderPage() {
         loadSubdivisions()
         loadArchivedEmployees()
         loadTimesheetSummary()
-        showToast('Сотрудники импортированы')
-      }} />}
-      {showImportTimesheet && <ImportTimesheetModal employees={employees} onClose={() => setShowImportTimesheet(false)} onSuccess={() => {
-        loadEmployees()
-        loadTimesheetSummary()
-        showToast('Табель импортирован')
+        showToast('Сотрудники синхронизированы')
       }} />}
       {showImportSalaryHistory && <ImportSalaryHistoryModal onClose={() => setShowImportSalaryHistory(false)} onSuccess={() => {
         loadEmployees()

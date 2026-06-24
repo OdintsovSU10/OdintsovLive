@@ -720,6 +720,13 @@ function getWorkDaysNorm(year, month) {
   return norms?.[month - 1] || 22
 }
 
+function getMonthDateRange(year, month) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const end = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`
+  return { start, end }
+}
+
 function calculateStats(rows) {
   const stats = new Map()
 
@@ -756,6 +763,41 @@ function calculateStats(rows) {
   }
 
   return Array.from(stats.values())
+}
+
+async function buildStatsFromDatabase(config, changedRows) {
+  const groups = new Map()
+
+  for (const row of changedRows) {
+    const [yearText, monthText] = row.work_date.split('-')
+    const key = `${yearText}-${monthText}`
+    const group = groups.get(key) || {
+      year: Number(yearText),
+      month: Number(monthText),
+      employeeIds: new Set()
+    }
+    group.employeeIds.add(row.employee_id)
+    groups.set(key, group)
+  }
+
+  const stats = []
+
+  for (const group of groups.values()) {
+    const employeeIds = Array.from(group.employeeIds)
+    if (employeeIds.length === 0) continue
+
+    const { start, end } = getMonthDateRange(group.year, group.month)
+    const path = [
+      'tender_timesheet?select=employee_id,work_date,status,hours_worked',
+      `employee_id=in.(${employeeIds.join(',')})`,
+      `work_date=gte.${start}`,
+      `work_date=lte.${end}`
+    ].join('&')
+    const rows = await supabaseRequest(config, path)
+    stats.push(...calculateStats(Array.isArray(rows) ? rows : []))
+  }
+
+  return stats
 }
 
 async function upsertRows(config, table, conflictColumns, rows) {
@@ -901,7 +943,7 @@ async function main() {
 
   if (!config.dryRun) {
     await upsertRows(config, 'tender_timesheet', ['employee_id', 'work_date'], upsertPayload)
-    await upsertRows(config, 'tender_timesheet_stats', ['employee_id', 'year', 'month'], calculateStats(upsertPayload))
+    await upsertRows(config, 'tender_timesheet_stats', ['employee_id', 'year', 'month'], await buildStatsFromDatabase(config, upsertPayload))
     await logImport(config, dateRange, summary, errors)
   }
 

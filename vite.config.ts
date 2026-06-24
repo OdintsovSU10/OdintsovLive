@@ -67,6 +67,8 @@ export default defineConfig(({ mode }) => {
   const fotApiProxy = createFotApiProxy(env.FOT_API || '', env.FOT_API_TOKEN)
   const fotDepartmentsApi = env.FOT_API ? createFotApiTableUrl(env.FOT_API, 'org_departments') : ''
   const fotDepartmentsProxy = createFotApiProxy(fotDepartmentsApi, env.FOT_API_TOKEN, '/fot-api-departments')
+  const fotTimesheetApi = env.FOT_TIMESHEET_API || 'https://fot.su10.ru/api/public/v1/timesheet'
+  const fotTimesheetProxy = createFotApiProxy(fotTimesheetApi, env.FOT_API_TOKEN, '/fot-api-timesheet')
 
   return {
     plugins: [react()],
@@ -87,6 +89,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false
         },
+        ...(fotTimesheetProxy ? { '/fot-api-timesheet': fotTimesheetProxy } : {}),
         ...(fotDepartmentsProxy ? { '/fot-api-departments': fotDepartmentsProxy } : {}),
         ...(fotApiProxy ? { '/fot-api': fotApiProxy } : {})
       }

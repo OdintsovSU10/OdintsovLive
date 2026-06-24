@@ -273,6 +273,44 @@
   border-color: rgba(129, 140, 248, 0.5);
 }
 
+.tender-page .timesheet-sync-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.16);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.tender-page .timesheet-sync-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tender-page .timesheet-sync-control span,
+.tender-page .timesheet-sync-note {
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.tender-page .timesheet-sync-control select {
+  min-width: 150px;
+  height: 38px;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #e2e8f0;
+  padding: 0 10px;
+}
+
+.tender-page .timesheet-sync-note {
+  align-self: center;
+}
+
 .tender-page .timesheet-months-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

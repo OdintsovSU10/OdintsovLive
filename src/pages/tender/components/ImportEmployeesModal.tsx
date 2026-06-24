@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DEFAULT_EMPLOYEE_IMPORT_OPTIONS,
   useEmployeeImport
@@ -26,22 +26,19 @@ const FOT_FIELD_OPTIONS: Array<{
 ]
 
 export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
-  const { loading, preview, parseFile, loadFromFotApi, importEmployees, clearPreview } = useEmployeeImport()
-  const [dragOver, setDragOver] = useState(false)
+  const { loading, preview, loadFromFotApi, importEmployees, clearPreview } = useEmployeeImport()
   const [error, setError] = useState<string | null>(null)
   const [departments, setDepartments] = useState<FotApiDepartment[]>([])
   const [departmentsLoading, setDepartmentsLoading] = useState(false)
   const [departmentsError, setDepartmentsError] = useState<string | null>(null)
-  const [previewSource, setPreviewSource] = useState<'excel' | 'fot' | null>(null)
   const [fotLoadOptions, setFotLoadOptions] = useState<FotApiLoadOptions>({
     activeOnly: true,
     departmentId: '',
     maxRecords: 1000
   })
   const [fotImportOptions, setFotImportOptions] = useState<EmployeeImportOptions>(DEFAULT_EMPLOYEE_IMPORT_OPTIONS)
-  const fileRef = useRef<HTMLInputElement>(null)
 
-  const activeImportOptions = previewSource === 'fot' ? fotImportOptions : DEFAULT_EMPLOYEE_IMPORT_OPTIONS
+  const activeImportOptions = fotImportOptions
   const previewColumnCount = [
     true,
     activeImportOptions.work,
@@ -86,22 +83,10 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
     }
   }, [])
 
-  const handleFile = async (file: File | undefined) => {
-    if (!file) return
-    setError(null)
-    try {
-      await parseFile(file)
-      setPreviewSource('excel')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка парсинга файла')
-    }
-  }
-
   const handleFotApiLoad = async () => {
     setError(null)
     try {
       await loadFromFotApi(fotLoadOptions)
-      setPreviewSource('fot')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки FOT API')
     }
@@ -119,7 +104,6 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
 
   const handleClose = () => {
     clearPreview()
-    setPreviewSource(null)
     onClose()
   }
 
@@ -138,7 +122,7 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
     <div className="import-overlay" onClick={handleClose}>
       <div className="import-modal import-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="import-header">
-          <h3>Импорт сотрудников</h3>
+          <h3>Синхронизация сотрудников FOT</h3>
           <button className="import-close" onClick={handleClose}>✕</button>
         </div>
 
@@ -222,96 +206,26 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
                 </div>
 
                 <button className="import-btn-primary" onClick={handleFotApiLoad} disabled={loading}>
-                  {loading ? 'Загрузка...' : 'Загрузить выбранное из FOT API'}
+                  {loading ? 'Загрузка...' : 'Загрузить из FOT API'}
                 </button>
-              </div>
-
-              <div className="import-source-separator-line"><span>или Excel</span></div>
-
-              <p className="import-desc">
-                Загрузите Excel файл со списком сотрудников. Ожидаемая структура:
-              </p>
-              <div className="import-example-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>A</th>
-                      <th>B</th>
-                      <th>C</th>
-                      <th>D</th>
-                      <th>E</th>
-                      <th>F</th>
-                      <th>G</th>
-                      <th>H</th>
-                      <th>I</th>
-                      <th>J</th>
-                      <th>K</th>
-                      <th>L</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="import-example-header">
-                      <td>ФИО</td>
-                      <td>Должность</td>
-                      <td>Отдел</td>
-                      <td>Подразделение</td>
-                      <td>Дата приёма</td>
-                      <td>Дата рождения</td>
-                      <td>Оклад</td>
-                      <td>Страна</td>
-                      <td>СНИЛС</td>
-                      <td>Компания</td>
-                      <td>Email</td>
-                      <td>Телефон</td>
-                    </tr>
-                    <tr>
-                      <td>Иванов И.И.</td>
-                      <td>Менеджер</td>
-                      <td>Продажи</td>
-                      <td>Отдел 1 / Группа А</td>
-                      <td>01.01.2024</td>
-                      <td>20.05.1990</td>
-                      <td>50000</td>
-                      <td>Россия</td>
-                      <td>123-456-789 00</td>
-                      <td>ООО Ромашка</td>
-                      <td>ivanov@example.com</td>
-                      <td>+7 (999) 123-45-67</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div
-                className={`import-dropzone ${dragOver ? 'import-dropzone-active' : ''}`}
-                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
-                onClick={() => fileRef.current?.click()}
-              >
-                <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e => handleFile(e.target.files?.[0])} />
-                <div className="import-icon">📋</div>
-                <div className="import-text">Перетащите файл сюда</div>
-                <div className="import-subtext">или нажмите для выбора</div>
               </div>
             </>
           ) : (
             <>
               <p className="import-desc">
-                Найдено {preview.length} сотрудников{previewSource === 'fot' ? ' из FOT API' : ''}. Проверьте данные перед импортом.
+                Найдено {preview.length} сотрудников из FOT API. Проверьте данные перед синхронизацией.
               </p>
-              {previewSource === 'fot' && (
-                <div className="fot-selected-summary">
-                  <span>Будет импортировано:</span>
-                  <strong>
-                    ФИО
-                    {activeImportOptions.work ? ', должности/отделы' : ''}
-                    {activeImportOptions.employment ? ', даты' : ''}
-                    {activeImportOptions.salary ? ', оклады' : ''}
-                    {activeImportOptions.contacts ? ', контакты' : ''}
-                    {activeImportOptions.documents ? ', документы/организация' : ''}
-                  </strong>
-                </div>
-              )}
+              <div className="fot-selected-summary">
+                <span>Будет синхронизировано:</span>
+                <strong>
+                  ФИО
+                  {activeImportOptions.work ? ', должности/отделы' : ''}
+                  {activeImportOptions.employment ? ', даты' : ''}
+                  {activeImportOptions.salary ? ', оклады' : ''}
+                  {activeImportOptions.contacts ? ', контакты' : ''}
+                  {activeImportOptions.documents ? ', документы/организация' : ''}
+                </strong>
+              </div>
               <div className="import-preview-table">
                 <table>
                   <thead>
@@ -356,7 +270,7 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
         <div className="import-actions">
           {preview.length > 0 && (
             <button className="import-btn-primary" onClick={handleImport} disabled={loading}>
-              {loading ? 'Импорт...' : `Импортировать ${preview.length} сотр.`}
+              {loading ? 'Синхронизация...' : `Синхронизировать ${preview.length} сотр.`}
             </button>
           )}
           <button className="import-btn-secondary" onClick={handleClose} disabled={loading}>
