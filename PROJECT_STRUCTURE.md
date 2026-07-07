@@ -18,9 +18,6 @@
 │   └── ui-ux-designer.md
 └── settings.local.json
 
-.mimocode/
-└── plans/
-
 Logo/
 docker/
 ├── frontend/
@@ -40,21 +37,10 @@ public/
     └── SocialGothicSoft.woff2
 
 scripts/
-├── apply-timesheet-migration.sh
 ├── check-db.sh
-├── grant-timesheet-permissions.sh
-├── swap-water-values.sql
-└── update-timesheet-constraint.sh
+└── sync-fot-timesheet.mjs
 
 supabase/
-├── exports/
-│   ├── enums.json
-│   ├── functions.json
-│   ├── indexes.json
-│   ├── roles.json
-│   ├── tables.json
-│   ├── triggers.json
-│   └── views.json
 ├── migrations/
 │   ├── 001_tender_timesheet.sql
 │   ├── 002_add_absent_status.sql
@@ -255,10 +241,8 @@ Config & Docs:
 ├── claude.md
 ├── deploy.sh
 ├── index.html
-├── mimocode.md
 ├── package.json
 ├── package-lock.json
-├── tender-bundle.zip
 ├── tsconfig.json
 └── vite.config.ts
 ```
