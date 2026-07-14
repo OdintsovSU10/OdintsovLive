@@ -7,6 +7,7 @@ import { useLivePayroll } from '../hooks/useLivePayroll'
 import {
   calculateMonthlyPayrollPlan,
   formatLiveMoney,
+  getLivePayrollPauseLabel,
   getExtraBonusKey,
   getSavedTransport,
   parseExtraBonuses,
@@ -377,7 +378,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
             <div className={`fot-live-rate${livePayroll.isAccruing ? '' : ' paused'}`}>
               {livePayroll.isAccruing
                 ? `● +${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
-                : '● Начисление на паузе'}
+                : `● ${getLivePayrollPauseLabel(livePayroll.accrualState)}`}
             </div>
           )}
           <div className={`fot-growth ${growthTone}`}>

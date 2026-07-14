@@ -12,7 +12,16 @@ export interface LivePayrollSnapshot {
   ratePerSecond: number
   isLive: boolean
   isAccruing: boolean
+  accrualState: LivePayrollAccrualState
 }
+
+export type LivePayrollAccrualState =
+  | 'completed'
+  | 'upcoming'
+  | 'accruing'
+  | 'before-workday'
+  | 'after-workday'
+  | 'non-working-day'
 
 const WORKDAY_START_HOUR = 9
 
@@ -112,11 +121,27 @@ export function calculateLivePayrollSnapshot(
   const currentMonthIndex = moscow.year * 12 + moscow.month
 
   if (selectedMonthIndex < currentMonthIndex) {
-    return { accrued: planned, planned, progress: 1, ratePerSecond: 0, isLive: false, isAccruing: false }
+    return {
+      accrued: planned,
+      planned,
+      progress: 1,
+      ratePerSecond: 0,
+      isLive: false,
+      isAccruing: false,
+      accrualState: 'completed'
+    }
   }
 
   if (selectedMonthIndex > currentMonthIndex) {
-    return { accrued: 0, planned, progress: 0, ratePerSecond: 0, isLive: false, isAccruing: false }
+    return {
+      accrued: 0,
+      planned,
+      progress: 0,
+      ratePerSecond: 0,
+      isLive: false,
+      isAccruing: false,
+      accrualState: 'upcoming'
+    }
   }
 
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
@@ -125,6 +150,7 @@ export function calculateLivePayrollSnapshot(
   let totalNormSeconds = 0
   let elapsedNormSeconds = 0
   let isAccruing = false
+  let todayNormSeconds = 0
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day, 12, 0, 0)
@@ -140,6 +166,7 @@ export function calculateLivePayrollSnapshot(
 
     if (day > moscow.day) continue
 
+    todayNormSeconds = dailyNormSeconds
     const todayElapsed = Math.min(
       dailyNormSeconds,
       Math.max(0, currentSecondOfDay - workdayStartSecond)
@@ -150,6 +177,13 @@ export function calculateLivePayrollSnapshot(
 
   const progress = totalNormSeconds > 0 ? elapsedNormSeconds / totalNormSeconds : 0
   const baseRatePerSecond = totalNormSeconds > 0 ? planned / totalNormSeconds : 0
+  const accrualState: LivePayrollAccrualState = isAccruing
+    ? 'accruing'
+    : todayNormSeconds === 0
+      ? 'non-working-day'
+      : currentSecondOfDay < workdayStartSecond
+        ? 'before-workday'
+        : 'after-workday'
 
   return {
     accrued: planned * progress,
@@ -157,7 +191,21 @@ export function calculateLivePayrollSnapshot(
     progress,
     ratePerSecond: isAccruing ? baseRatePerSecond : 0,
     isLive: true,
-    isAccruing
+    isAccruing,
+    accrualState
+  }
+}
+
+export function getLivePayrollPauseLabel(state: LivePayrollAccrualState): string {
+  switch (state) {
+    case 'before-workday':
+      return 'Начисление начнётся в 09:00'
+    case 'after-workday':
+      return 'Рабочий день завершён'
+    case 'non-working-day':
+      return 'Сегодня нерабочий день'
+    default:
+      return 'Начисление на паузе'
   }
 }
 

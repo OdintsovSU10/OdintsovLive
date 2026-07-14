@@ -12,7 +12,8 @@ import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHolid
 import {
   calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
-  formatLiveNumber
+  formatLiveNumber,
+  getLivePayrollPauseLabel
 } from './utils/livePayroll'
 import {
   createEmptyTimesheetStatusCounts,
@@ -1052,7 +1053,7 @@ export function EmployeeDetail({
               {employeeLivePayroll.isLive
                 ? (employeeLivePayroll.isAccruing
                     ? `+${formatLiveMoney(employeeLivePayroll.ratePerSecond)} / сек`
-                    : 'Счётчик на паузе')
+                    : getLivePayrollPauseLabel(employeeLivePayroll.accrualState))
                 : 'Период завершён'}
             </span>
           </div>
