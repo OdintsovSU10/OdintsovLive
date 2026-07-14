@@ -150,6 +150,7 @@
 .fot-total.live {
   color: #34d399;
   text-shadow: 0 0 24px rgba(52, 211, 153, 0.22);
+  transition: color 1s linear, text-shadow 1s linear;
 }
 
 .fot-live-rate {
@@ -157,6 +158,7 @@
   font-size: 0.73rem;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   font-weight: 700;
+  transition: color 1s linear;
 }
 
 .fot-live-rate.paused {

@@ -7,6 +7,7 @@ import { useLivePayroll } from '../hooks/useLivePayroll'
 import {
   calculateMonthlyPayrollPlan,
   formatLiveMoney,
+  getLivePayrollAccrualColor,
   getLivePayrollPauseLabel,
   getExtraBonusKey,
   getSavedTransport,
@@ -123,6 +124,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
     [baseTransport, employees, extraBonuses, month, year]
   )
   const livePayroll = useLivePayroll(plannedMonthlyFOT, year, month)
+  const livePayrollColor = getLivePayrollAccrualColor(livePayroll.workdayProgress)
 
   const payrollData = useMemo(() => {
     const managers: EmployeePayrollRow[] = []
@@ -366,7 +368,13 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
 
         <div className="fot-summary-right">
           <span>{livePayroll.isLive ? 'Начислено сейчас' : 'Итого ФОТ'}</span>
-          <strong className={`fot-total ${livePayroll.isLive ? 'live' : growthTone}`}>
+          <strong
+            className={`fot-total ${livePayroll.isLive ? 'live' : growthTone}`}
+            style={livePayroll.isLive ? {
+              color: livePayrollColor,
+              textShadow: `0 0 24px color-mix(in srgb, ${livePayrollColor} 22%, transparent)`
+            } : undefined}
+          >
             {livePayroll.isLive ? formatLiveMoney(livePayroll.accrued) : formatMoney(payrollData.totals.final)}
           </strong>
           <small>
@@ -375,7 +383,10 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
               : `Базовый ФОТ: ${formatMoney(payrollData.baseFot)}`}
           </small>
           {livePayroll.isLive && (
-            <div className={`fot-live-rate${livePayroll.isAccruing ? '' : ' paused'}`}>
+            <div
+              className={`fot-live-rate${livePayroll.isAccruing ? '' : ' paused'}`}
+              style={livePayroll.isAccruing ? { color: livePayrollColor } : undefined}
+            >
               {livePayroll.isAccruing
                 ? `● +${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
                 : `● ${getLivePayrollPauseLabel(livePayroll.accrualState)}`}

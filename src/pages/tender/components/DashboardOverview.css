@@ -90,6 +90,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--dash-text);
+  transition: color 1s linear;
 }
 
 .dash-kpi-sub {
@@ -321,6 +322,7 @@
 
 .dash-ranking-payroll {
   font-size: 0.82rem;
+  transition: color 1s linear;
 }
 
 .dash-ranking-payroll-plan {

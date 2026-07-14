@@ -7,6 +7,7 @@ import {
   calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
   formatLiveNumber,
+  getLivePayrollAccrualColor,
   getLivePayrollPauseLabel,
   getExtraBonusKey,
   getSavedTransport,
@@ -344,6 +345,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
     }
   }, [employees, month, year])
   const livePayroll = useLivePayroll(payrollPlanning.total, year, month)
+  const livePayrollColor = getLivePayrollAccrualColor(livePayroll.workdayProgress)
 
   const monthSlots = useMemo(() => buildMonthSlots(year, month, MONTHS_WINDOW), [year, month])
 
@@ -682,7 +684,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 value: livePayroll.isLive ? livePayroll.accrued : analytics.latestEarned,
                 suffix: ' ₽',
                 color: livePayroll.isLive
-                  ? '#34d399'
+                  ? livePayrollColor
                   : analytics.latestFOTDelta > 0
                     ? '#ef4444'
                     : analytics.latestFOTDelta < 0
@@ -775,7 +777,10 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                   )}
 
                   {analytics.sortedEmployees.map((trend, index) => {
-                    const baseColor = SORT_OPTIONS.find(option => option.key === sortBy)?.color || '#818cf8'
+                    const selectedMetricColor = SORT_OPTIONS.find(option => option.key === sortBy)?.color || '#818cf8'
+                    const baseColor = sortBy === 'earned' && livePayroll.isLive
+                      ? livePayrollColor
+                      : selectedMetricColor
                     const hoursExceeded = trend.latest.hours > trend.latest.normHoursWeekdays
                     const employeePlan = payrollPlanning.byEmployee.get(trend.employee.id) || 0
                     const employeeFact = livePayroll.isLive

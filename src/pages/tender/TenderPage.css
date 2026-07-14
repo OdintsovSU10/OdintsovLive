@@ -844,6 +844,7 @@
 .tender-detail-live-primary strong {
   color: #34d399;
   font-size: 1.2rem;
+  transition: color 1s linear;
 }
 
 .tender-detail-live-primary > span {
@@ -852,6 +853,7 @@
   color: #64748b;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   font-size: 0.68rem;
+  transition: color 1s linear;
 }
 
 .tender-detail-live-primary > span.accruing {

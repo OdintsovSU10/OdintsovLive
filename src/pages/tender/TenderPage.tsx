@@ -13,6 +13,7 @@ import {
   calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
   formatLiveNumber,
+  getLivePayrollAccrualColor,
   getLivePayrollPauseLabel
 } from './utils/livePayroll'
 import {
@@ -874,6 +875,7 @@ export function EmployeeDetail({
     )
   }, [chartMonth, chartYear, configuredTransport, employee])
   const employeeLivePayroll = useLivePayroll(employeeMonthlyPlan, chartYear, chartMonth)
+  const employeeLivePayrollColor = getLivePayrollAccrualColor(employeeLivePayroll.workdayProgress)
   const employeeAccrued = employeeLivePayroll.isLive
     ? employeeLivePayroll.accrued
     : selectedMonthStats.earned
@@ -1048,8 +1050,13 @@ export function EmployeeDetail({
         <div className="tender-detail-live-grid">
           <div className="tender-detail-live-primary">
             <small>{employeeLivePayroll.isLive ? 'Начислено сейчас' : 'Начислено'}</small>
-            <strong>{formatLiveNumber(employeeAccrued)} ₽</strong>
-            <span className={employeeLivePayroll.isAccruing ? 'accruing' : ''}>
+            <strong style={employeeLivePayroll.isLive ? { color: employeeLivePayrollColor } : undefined}>
+              {formatLiveNumber(employeeAccrued)} ₽
+            </strong>
+            <span
+              className={employeeLivePayroll.isAccruing ? 'accruing' : ''}
+              style={employeeLivePayroll.isAccruing ? { color: employeeLivePayrollColor } : undefined}
+            >
               {employeeLivePayroll.isLive
                 ? (employeeLivePayroll.isAccruing
                     ? `+${formatLiveMoney(employeeLivePayroll.ratePerSecond)} / сек`
