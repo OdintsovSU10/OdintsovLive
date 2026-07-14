@@ -356,6 +356,7 @@ export function EmployeeDetail({
   ))
   const [chartYear, setChartYear] = useState(year)
   const [chartMonth, setChartMonth] = useState(month)
+  const [selectedSkudDate, setSelectedSkudDate] = useState<string | null>(null)
   const [chartTimesheetCache, setChartTimesheetCache] = useState<Record<string, TimesheetEntry[]>>({})
   const [chartLoading, setChartLoading] = useState(false)
   const [chartError, setChartError] = useState<string | null>(null)
@@ -367,6 +368,10 @@ export function EmployeeDetail({
   useEffect(() => {
     setHistoryYear(year)
   }, [employee.id, year])
+
+  useEffect(() => {
+    setSelectedSkudDate(null)
+  }, [chartMonth, chartYear, employee.id])
 
   useEffect(() => {
     let cancelled = false
@@ -904,6 +909,17 @@ export function EmployeeDetail({
     setChartError(null)
   }
 
+  const openSkudDay = (day: number) => {
+    const date = `${chartYear}-${String(chartMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    setSelectedSkudDate(date)
+    window.requestAnimationFrame(() => {
+      document.getElementById('employee-skud-events')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      })
+    })
+  }
+
   const salaryRaiseHistory = useMemo(() => {
     const salaryHistory = [...(employee.salaryHistory || [])]
       .sort((left, right) => new Date(`${left.effective_date}T12:00:00`).getTime() - new Date(`${right.effective_date}T12:00:00`).getTime())
@@ -1107,7 +1123,10 @@ export function EmployeeDetail({
 
       <article className="tender-detail-daily">
         <div className="tender-detail-daily-head">
-          <h3>Табель по дням</h3>
+          <div className="tender-detail-daily-copy">
+            <h3>Табель по дням</h3>
+            <p>Нажмите на день, чтобы открыть события СКУД</p>
+          </div>
           <div className="tender-detail-daily-nav">
             <button
               type="button"
@@ -1148,6 +1167,7 @@ export function EmployeeDetail({
         <div className="tender-daily-scroll">
           <div className="tender-daily-bars">
             {dailySeries.map(item => {
+              const itemDate = `${chartYear}-${String(chartMonth).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
               const worked = item.status ? isWorkedTimesheetStatus(item.status) : false
               const barHeight = item.status
                 ? (worked ? Math.max(8, Math.min(100, (item.hours / 10) * 100)) : 42)
@@ -1159,12 +1179,16 @@ export function EmployeeDetail({
                 ? { '--daily-status-color': item.statusMeta.color } as CSSProperties
                 : undefined
               return (
-                <div
+                <button
                   key={item.day}
-                  className="tender-daily-bar-col"
+                  type="button"
+                  className={`tender-daily-bar-col ${selectedSkudDate === itemDate ? 'selected' : ''}`}
+                  onClick={() => openSkudDay(item.day)}
+                  aria-pressed={selectedSkudDate === itemDate}
+                  aria-controls="employee-skud-events"
                   title={item.statusMeta
-                    ? `${item.day} ${monthNames[chartMonth - 1]}: ${item.statusMeta.label}${worked ? `, ${item.hours} ч` : ''}`
-                    : `${item.day} ${monthNames[chartMonth - 1]}: нет данных`}
+                    ? `${item.day} ${monthNames[chartMonth - 1]}: ${item.statusMeta.label}${worked ? `, ${item.hours} ч` : ''}. Открыть события СКУД`
+                    : `${item.day} ${monthNames[chartMonth - 1]}: нет данных. Открыть события СКУД`}
                   style={statusStyle}
                 >
                   <span className={`value ${item.status ? 'status' : ''}`}>{value}</span>
@@ -1173,7 +1197,7 @@ export function EmployeeDetail({
                     style={{ height: `${barHeight}%` }}
                   />
                   <span className={`day ${item.weekend ? 'weekend' : ''}`}>{item.day}</span>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -1182,8 +1206,9 @@ export function EmployeeDetail({
 
       <EmployeeSkudEvents
         fotEmployeeId={employee.fot_employee_id}
-        initialYear={year}
-        initialMonth={month}
+        year={chartYear}
+        month={chartMonth}
+        selectedDate={selectedSkudDate}
       />
 
       <article className="tender-detail-history">

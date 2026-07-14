@@ -1,20 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchFotEmployeeEvents, type FotEmployeeEvent } from '../utils/fotEmployeeEvents'
+import {
+  calculateFotSkudDay,
+  FOT_DEFAULT_LUNCH_SECONDS,
+  formatSkudDuration,
+  type SkudDayCalculation
+} from '../utils/skudTimeCalculation'
 import './EmployeeSkudEvents.css'
 
 const monthNames = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
 ]
-
-interface EventDayGroup {
-  date: string
-  events: FotEmployeeEvent[]
-  firstEntry: FotEmployeeEvent | null
-  lastExit: FotEmployeeEvent | null
-}
-
-const weekdayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
 function getMonthRange(year: number, month: number): { from: string; to: string } {
   const monthText = String(month).padStart(2, '0')
@@ -37,33 +34,68 @@ function formatEventDate(value: string): string {
   })
 }
 
+function toLocalIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function getDirectionLabel(direction: FotEmployeeEvent['direction']): string {
   if (direction === 'entry') return 'Вход'
   if (direction === 'exit') return 'Выход'
   return 'Событие'
 }
 
+function DayWorkTimeline({ calculation }: { calculation: SkudDayCalculation }) {
+  const rangeStart = calculation.rangeStartSeconds
+  const rangeEnd = calculation.rangeEndSeconds
+  if (rangeStart === null || rangeEnd === null || rangeEnd <= rangeStart) return null
+
+  const rangeSeconds = rangeEnd - rangeStart
+  return (
+    <div className="tender-skud-work-visual">
+      <div className="tender-skud-work-visual-head">
+        <span>Присутствие по закрытым парам</span>
+        <strong>{formatSkudDuration(calculation.rawWorkSeconds)}</strong>
+      </div>
+      <div className="tender-skud-work-track" aria-label="Интервалы присутствия сотрудника">
+        {calculation.pairs.map(pair => {
+          const left = ((pair.startSeconds - rangeStart) / rangeSeconds) * 100
+          const width = Math.max(1.2, (pair.durationSeconds / rangeSeconds) * 100)
+          return (
+            <span
+              key={`${pair.entry.id}-${pair.exit?.id || 'now'}`}
+              className={`tender-skud-work-segment ${pair.isOpen ? 'open' : ''}`}
+              style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
+              title={`${formatEventTime(pair.entry.event_time)}–${pair.exit ? formatEventTime(pair.exit.event_time) : 'сейчас'} · ${formatSkudDuration(pair.durationSeconds)}`}
+            />
+          )
+        })}
+      </div>
+      <div className="tender-skud-work-scale">
+        <span>{formatEventTime(calculation.pairs[0].entry.event_time)}</span>
+        <span>{calculation.hasOpenPair ? 'сейчас' : formatEventTime(calculation.pairs[calculation.pairs.length - 1].exit!.event_time)}</span>
+      </div>
+    </div>
+  )
+}
+
 export function EmployeeSkudEvents({
   fotEmployeeId,
-  initialYear,
-  initialMonth
+  year,
+  month,
+  selectedDate
 }: {
   fotEmployeeId: string | null
-  initialYear: number
-  initialMonth: number
+  year: number
+  month: number
+  selectedDate: string | null
 }) {
-  const [year, setYear] = useState(initialYear)
-  const [month, setMonth] = useState(initialMonth)
   const [events, setEvents] = useState<FotEmployeeEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-
-  useEffect(() => {
-    setYear(initialYear)
-    setMonth(initialMonth)
-    setSelectedDate(null)
-  }, [fotEmployeeId, initialMonth, initialYear])
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     if (!fotEmployeeId) {
@@ -94,192 +126,155 @@ export function EmployeeSkudEvents({
     return () => controller.abort()
   }, [fotEmployeeId, month, year])
 
-  const groupedEvents = useMemo<EventDayGroup[]>(() => {
-    const byDate = new Map<string, FotEmployeeEvent[]>()
+  const eventsByDate = useMemo(() => {
+    const grouped = new Map<string, FotEmployeeEvent[]>()
     for (const event of events) {
-      const dayEvents = byDate.get(event.event_date) || []
+      const dayEvents = grouped.get(event.event_date) || []
       dayEvents.push(event)
-      byDate.set(event.event_date, dayEvents)
+      grouped.set(event.event_date, dayEvents)
     }
-
-    return Array.from(byDate.entries())
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([date, dayEvents]) => {
-        const sortedEvents = dayEvents.sort((left, right) => left.event_time.localeCompare(right.event_time))
-        return {
-          date,
-          events: sortedEvents,
-          firstEntry: sortedEvents.find(event => event.direction === 'entry') || null,
-          lastExit: [...sortedEvents].reverse().find(event => event.direction === 'exit') || null
-        }
-      })
+    for (const dayEvents of grouped.values()) {
+      dayEvents.sort((left, right) => left.event_time.localeCompare(right.event_time))
+    }
+    return grouped
   }, [events])
 
-  const eventsByDate = useMemo(
-    () => new Map(groupedEvents.map(group => [group.date, group])),
-    [groupedEvents]
-  )
-
-  const calendarDays = useMemo(() => {
-    const daysInMonth = new Date(year, month, 0).getDate()
-    return Array.from({ length: daysInMonth }, (_, index) => {
-      const day = index + 1
-      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      const dayOfWeek = new Date(year, month - 1, day, 12, 0, 0).getDay()
-      return {
-        day,
-        date,
-        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-        group: eventsByDate.get(date) || null
-      }
-    })
-  }, [eventsByDate, month, year])
-
-  const calendarStartOffset = useMemo(() => {
-    const firstWeekday = new Date(year, month - 1, 1, 12, 0, 0).getDay()
-    return (firstWeekday + 6) % 7
-  }, [month, year])
-
-  const selectedGroup = selectedDate ? eventsByDate.get(selectedDate) || null : null
-
   useEffect(() => {
-    if (loading || error || groupedEvents.length === 0) return
+    if (selectedDate !== toLocalIsoDate(new Date())) return
+    const update = () => setNow(Date.now())
+    update()
+    const interval = window.setInterval(update, 1000)
+    return () => window.clearInterval(interval)
+  }, [selectedDate])
 
-    setSelectedDate(current => {
-      if (current && eventsByDate.has(current)) return current
-
-      const now = new Date()
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-      if (eventsByDate.has(today)) return today
-
-      return groupedEvents[groupedEvents.length - 1].date
-    })
-  }, [error, eventsByDate, groupedEvents, loading])
-
-  const summary = useMemo(() => {
-    const entries = events.filter(event => event.direction === 'entry').length
-    const exits = events.filter(event => event.direction === 'exit').length
-    return { entries, exits, activeDays: groupedEvents.length }
-  }, [events, groupedEvents.length])
-
-  const shiftMonth = (offset: -1 | 1) => {
-    const next = new Date(year, month - 1 + offset, 1)
-    setYear(next.getFullYear())
-    setMonth(next.getMonth() + 1)
-    setSelectedDate(null)
-  }
+  const selectedEvents = useMemo(
+    () => selectedDate ? eventsByDate.get(selectedDate) || [] : [],
+    [eventsByDate, selectedDate]
+  )
+  const calculation = useMemo(
+    () => selectedDate ? calculateFotSkudDay(selectedEvents, selectedDate, new Date(now)) : null,
+    [now, selectedDate, selectedEvents]
+  )
+  const pairByExitId = useMemo(() => new Map(
+    calculation?.pairs
+      .filter(pair => pair.exit)
+      .map(pair => [pair.exit!.id, pair]) || []
+  ), [calculation])
+  const breakByEntryId = useMemo(() => new Map(
+    calculation?.breaks.map(item => [item.beforeEntry.id, item]) || []
+  ), [calculation])
 
   return (
-    <article className="tender-skud-events">
+    <article id="employee-skud-events" className="tender-skud-events">
       <div className="tender-skud-events-head">
         <div>
           <div className="tender-skud-events-title-line">
             <h3>События СКУД</h3>
             <span className="tender-skud-source">FOT</span>
           </div>
-          <p>Фактические входы и выходы сотрудника</p>
+          <p>Выберите день в строке табеля выше</p>
         </div>
-        <div className="tender-skud-period-nav">
-          <button type="button" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц событий">←</button>
-          <span>{monthNames[month - 1]} {year}</span>
-          <button type="button" onClick={() => shiftMonth(1)} aria-label="Следующий месяц событий">→</button>
-        </div>
+        <span className="tender-skud-period-label">{monthNames[month - 1]} {year}</span>
       </div>
 
       {!fotEmployeeId ? (
         <div className="tender-skud-state muted">
           У сотрудника нет FOT ID. Обновите его через синхронизацию сотрудников.
         </div>
+      ) : loading ? (
+        <div className="tender-skud-state">Загрузка событий из FOT…</div>
+      ) : error ? (
+        <div className="tender-skud-state error">{error}</div>
+      ) : !selectedDate ? (
+        <div className="tender-skud-state muted">Нажмите на день в табеле, чтобы открыть события</div>
       ) : (
-        <>
-          <div className="tender-skud-summary">
-            <span><strong>{summary.activeDays}</strong> дней с событиями</span>
-            <span><strong>{events.length}</strong> всего</span>
-            <span className="entry"><strong>{summary.entries}</strong> входов</span>
-            <span className="exit"><strong>{summary.exits}</strong> выходов</span>
+        <section className="tender-skud-selected-day">
+          <div className="tender-skud-selected-head">
+            <div>
+              <span>Выбранный день</span>
+              <strong>{formatEventDate(selectedDate)}</strong>
+            </div>
+            <span className="tender-skud-selected-count">
+              {selectedEvents.length} событий
+            </span>
           </div>
 
-          {loading && <div className="tender-skud-state">Загрузка событий из FOT…</div>}
-          {!loading && error && <div className="tender-skud-state error">{error}</div>}
-          {!loading && !error && groupedEvents.length === 0 && (
-            <div className="tender-skud-state muted">За выбранный месяц событий нет</div>
-          )}
-          {!loading && !error && groupedEvents.length > 0 && (
+          {!calculation || selectedEvents.length === 0 ? (
+            <div className="tender-skud-selected-empty">В этот день событий СКУД нет</div>
+          ) : (
             <>
-              <div className="tender-skud-calendar" aria-label={`События СКУД за ${monthNames[month - 1]} ${year}`}>
-                {weekdayNames.map((weekday, index) => (
-                  <span key={weekday} className={`tender-skud-weekday ${index > 4 ? 'weekend' : ''}`}>
-                    {weekday}
-                  </span>
-                ))}
-                {Array.from({ length: calendarStartOffset }, (_, index) => (
-                  <span key={`blank-${index}`} className="tender-skud-calendar-blank" aria-hidden="true" />
-                ))}
-                {calendarDays.map(day => {
-                  const eventCount = day.group?.events.length || 0
+              <div className="tender-skud-day-overview">
+                <div className="tender-skud-paid-time">
+                  <span>Учтено по FOT</span>
+                  <strong>{formatSkudDuration(calculation.paidSeconds)}</strong>
+                  <small>
+                    {formatSkudDuration(calculation.rawWorkSeconds)} в парах
+                    {' − '}{formatSkudDuration(calculation.lunchDeductionSeconds)} довычтено на обед
+                  </small>
+                </div>
+                <div className="tender-skud-day-metric entry">
+                  <span>Первый вход</span>
+                  <strong>{calculation.firstEntry ? formatEventTime(calculation.firstEntry.event_time) : '—'}</strong>
+                </div>
+                <div className="tender-skud-day-metric exit">
+                  <span>Последний выход</span>
+                  <strong>{calculation.hasOpenPair ? 'На объекте' : calculation.lastExit ? formatEventTime(calculation.lastExit.event_time) : '—'}</strong>
+                </div>
+                <div className="tender-skud-day-metric break">
+                  <span>Вне объекта</span>
+                  <strong>{formatSkudDuration(calculation.outsideSeconds)}</strong>
+                </div>
+              </div>
+
+              <DayWorkTimeline calculation={calculation} />
+
+              <div className="tender-skud-rule-note">
+                <span>Расчёт FOT</span>
+                Только закрытые пары вход–выход. Перерывы покрывают часовую обеденную квоту;
+                непарные проходы в рабочее время не входят.
+              </div>
+
+              <div className="tender-skud-event-list">
+                {calculation.events.map(event => {
+                  const breakBefore = breakByEntryId.get(event.id)
+                  const pair = pairByExitId.get(event.id)
                   return (
-                    <button
-                      key={day.date}
-                      type="button"
-                      className={`tender-skud-calendar-day ${day.group ? 'has-events' : ''} ${day.isWeekend ? 'weekend' : ''} ${selectedDate === day.date ? 'selected' : ''}`}
-                      onClick={() => setSelectedDate(day.date)}
-                      aria-pressed={selectedDate === day.date}
-                      aria-label={`${day.day} ${monthNames[month - 1]}: ${eventCount > 0 ? `${eventCount} событий` : 'событий нет'}`}
-                    >
-                      <span className="tender-skud-calendar-day-head">
-                        <strong>{day.day}</strong>
-                        {eventCount > 0 && <b>{eventCount}</b>}
-                      </span>
-                      {day.group ? (
-                        <span className="tender-skud-day-times">
-                          <small className="entry"><i>Вход</i>{day.group.firstEntry ? formatEventTime(day.group.firstEntry.event_time) : '—'}</small>
-                          <small className="exit"><i>Выход</i>{day.group.lastExit ? formatEventTime(day.group.lastExit.event_time) : '—'}</small>
-                        </span>
-                      ) : (
-                        <span className="tender-skud-no-events">—</span>
+                    <div key={event.id} className="tender-skud-event-block">
+                      {breakBefore && (
+                        <div className="tender-skud-break-row">
+                          <span />
+                          <b>Перерыв вне объекта</b>
+                          <strong>{formatSkudDuration(breakBefore.durationSeconds)}</strong>
+                        </div>
                       )}
-                    </button>
+                      <div className={`tender-skud-event ${event.direction || 'unknown'}`}>
+                        <span className="tender-skud-event-mark">
+                          {event.direction === 'entry' ? '→' : event.direction === 'exit' ? '←' : '•'}
+                        </span>
+                        <time>{formatEventTime(event.event_time)}</time>
+                        <span className="tender-skud-direction">{getDirectionLabel(event.direction)}</span>
+                        <span className="tender-skud-point">{event.access_point || 'Точка не указана'}</span>
+                        {pair && <strong className="tender-skud-pair-duration">{formatSkudDuration(pair.durationSeconds)}</strong>}
+                      </div>
+                    </div>
                   )
                 })}
               </div>
 
-              {selectedDate && (
-                <section className="tender-skud-selected-day">
-                  <div className="tender-skud-selected-head">
-                    <div>
-                      <span>Выбранный день</span>
-                      <strong>{formatEventDate(selectedDate)}</strong>
-                    </div>
-                    {selectedGroup && (
-                      <div className="tender-skud-selected-summary">
-                        <span className="entry">Вход <strong>{selectedGroup.firstEntry ? formatEventTime(selectedGroup.firstEntry.event_time) : '—'}</strong></span>
-                        <span className="exit">Выход <strong>{selectedGroup.lastExit ? formatEventTime(selectedGroup.lastExit.event_time) : '—'}</strong></span>
-                        <span><strong>{selectedGroup.events.length}</strong> событий</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedGroup ? (
-                    <div className="tender-skud-day-events">
-                      {selectedGroup.events.map(event => (
-                        <div key={event.id} className="tender-skud-event">
-                          <time>{formatEventTime(event.event_time)}</time>
-                          <span className={`tender-skud-direction ${event.direction || 'unknown'}`}>
-                            {event.direction === 'entry' ? '→' : event.direction === 'exit' ? '←' : '•'}
-                            {' '}{getDirectionLabel(event.direction)}
-                          </span>
-                          <span className="tender-skud-point">{event.access_point || 'Точка не указана'}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="tender-skud-selected-empty">В этот день событий СКУД нет</div>
+              {(calculation.ignoredEvents > 0 || calculation.hasOpenPair) && (
+                <div className="tender-skud-calculation-flags">
+                  {calculation.hasOpenPair && <span className="live">Открытая пара считается до текущего времени</span>}
+                  {calculation.ignoredEvents > 0 && (
+                    <span>{calculation.ignoredEvents} непарных событий не вошли в расчёт</span>
                   )}
-                </section>
+                </div>
               )}
+              <span className="tender-skud-lunch-source">
+                Обеденная квота: {formatSkudDuration(FOT_DEFAULT_LUNCH_SECONDS)}
+              </span>
             </>
           )}
-        </>
+        </section>
       )}
     </article>
   )

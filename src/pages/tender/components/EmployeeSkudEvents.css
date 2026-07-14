@@ -1,4 +1,5 @@
 .tender-skud-events {
+  scroll-margin-top: 18px;
   border: 1px solid rgba(56, 189, 248, 0.18);
   border-radius: 14px;
   background: linear-gradient(145deg, rgba(14, 30, 52, 0.78), rgba(15, 23, 42, 0.58));
@@ -45,67 +46,15 @@
   letter-spacing: 0.08em;
 }
 
-.tender-skud-period-nav {
-  display: inline-grid;
-  grid-template-columns: 30px minmax(130px, auto) 30px;
-  align-items: center;
-  gap: 6px;
-  padding: 3px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
+.tender-skud-period-label {
+  padding: 7px 11px;
+  border: 1px solid rgba(100, 116, 139, 0.16);
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.74);
-}
-
-.tender-skud-period-nav button {
-  width: 30px;
-  height: 30px;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  background: rgba(56, 189, 248, 0.1);
-  color: #bae6fd;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.tender-skud-period-nav button:hover {
-  border-color: rgba(56, 189, 248, 0.45);
-  background: rgba(56, 189, 248, 0.2);
-}
-
-.tender-skud-period-nav span {
-  text-align: center;
-  color: #cbd5e1;
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.tender-skud-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 12px;
-}
-
-.tender-skud-summary span {
-  padding: 5px 9px;
-  border: 1px solid rgba(100, 116, 139, 0.14);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.64);
-  color: #64748b;
+  background: rgba(15, 23, 42, 0.6);
+  color: #94a3b8;
   font-size: 0.68rem;
-}
-
-.tender-skud-summary strong {
-  color: #cbd5e1;
-  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-}
-
-.tender-skud-summary .entry strong {
-  color: #6ee7b7;
-}
-
-.tender-skud-summary .exit strong {
-  color: #fbbf24;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .tender-skud-state {
@@ -126,144 +75,10 @@
   color: #fca5a5;
 }
 
-.tender-skud-calendar {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.tender-skud-weekday {
-  padding: 2px 0 4px;
-  color: #64748b;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.tender-skud-weekday.weekend {
-  color: #d97706;
-}
-
-.tender-skud-calendar-blank {
-  min-height: 78px;
-}
-
-.tender-skud-calendar-day {
-  min-width: 0;
-  min-height: 78px;
-  padding: 7px;
-  border: 1px solid rgba(100, 116, 139, 0.11);
-  border-radius: 9px;
-  background: rgba(15, 23, 42, 0.38);
-  color: #64748b;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
-}
-
-.tender-skud-calendar-day:hover {
-  border-color: rgba(56, 189, 248, 0.32);
-  background: rgba(30, 41, 59, 0.62);
-  transform: translateY(-1px);
-}
-
-.tender-skud-calendar-day:focus-visible {
-  outline: 2px solid #38bdf8;
-  outline-offset: 2px;
-}
-
-.tender-skud-calendar-day.weekend {
-  background: rgba(120, 53, 15, 0.08);
-}
-
-.tender-skud-calendar-day.has-events {
-  border-color: rgba(56, 189, 248, 0.2);
-  background: rgba(8, 47, 73, 0.22);
-}
-
-.tender-skud-calendar-day.selected {
-  border-color: rgba(34, 211, 238, 0.72);
-  background: rgba(8, 47, 73, 0.5);
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
-}
-
-.tender-skud-calendar-day-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.tender-skud-calendar-day-head strong {
-  color: #94a3b8;
-  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.68rem;
-}
-
-.tender-skud-calendar-day.weekend .tender-skud-calendar-day-head strong {
-  color: #fbbf24;
-}
-
-.tender-skud-calendar-day-head b {
-  display: inline-flex;
-  min-width: 18px;
-  height: 18px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: rgba(56, 189, 248, 0.13);
-  color: #7dd3fc;
-  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.54rem;
-}
-
-.tender-skud-day-times {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 8px;
-}
-
-.tender-skud-day-times small {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.58rem;
-  font-weight: 700;
-}
-
-.tender-skud-day-times small.entry {
-  color: #6ee7b7;
-}
-
-.tender-skud-day-times small.exit {
-  color: #fbbf24;
-}
-
-.tender-skud-day-times i {
-  color: #64748b;
-  font-family: inherit;
-  font-size: 0.48rem;
-  font-style: normal;
-  font-weight: 500;
-}
-
-.tender-skud-no-events {
-  display: block;
-  margin-top: 12px;
-  color: rgba(100, 116, 139, 0.42);
-  font-size: 0.65rem;
-  text-align: center;
-}
-
 .tender-skud-selected-day {
-  margin-top: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.18);
-  border-radius: 11px;
-  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.5);
   overflow: hidden;
 }
 
@@ -272,12 +87,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-bottom: 1px solid rgba(100, 116, 139, 0.1);
   background: rgba(30, 41, 59, 0.4);
 }
 
-.tender-skud-selected-head > div:first-child > span {
+.tender-skud-selected-head > div > span {
   display: block;
   color: #64748b;
   font-size: 0.55rem;
@@ -286,107 +101,325 @@
   text-transform: uppercase;
 }
 
-.tender-skud-selected-head > div:first-child > strong {
+.tender-skud-selected-head > div > strong {
   display: block;
   margin-top: 2px;
   color: #e2e8f0;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   text-transform: capitalize;
 }
 
-.tender-skud-selected-summary {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 5px;
+.tender-skud-selected-count {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.1);
+  color: #7dd3fc;
+  font-size: 0.62rem;
+  font-weight: 700;
 }
 
-.tender-skud-selected-summary span {
-  padding: 3px 7px;
-  border-radius: 6px;
-  background: rgba(100, 116, 139, 0.1);
+.tender-skud-selected-empty {
+  padding: 22px 12px;
   color: #64748b;
-  font-size: 0.6rem;
+  font-size: 0.74rem;
+  text-align: center;
 }
 
-.tender-skud-selected-summary strong {
-  color: #cbd5e1;
+.tender-skud-day-overview {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.35fr) repeat(3, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 12px;
+}
+
+.tender-skud-paid-time,
+.tender-skud-day-metric {
+  min-width: 0;
+  min-height: 78px;
+  padding: 10px 11px;
+  border: 1px solid rgba(100, 116, 139, 0.12);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.tender-skud-paid-time {
+  border-color: rgba(45, 212, 191, 0.24);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.13), rgba(8, 47, 73, 0.18));
+}
+
+.tender-skud-paid-time > span,
+.tender-skud-day-metric > span {
+  display: block;
+  color: #64748b;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tender-skud-paid-time > strong,
+.tender-skud-day-metric > strong {
+  display: block;
+  margin-top: 5px;
+  color: #e2e8f0;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
 }
 
-.tender-skud-selected-summary .entry strong {
+.tender-skud-paid-time > strong {
+  color: #5eead4;
+  font-size: 1.3rem;
+}
+
+.tender-skud-paid-time > small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.58rem;
+}
+
+.tender-skud-day-metric.entry > strong {
   color: #6ee7b7;
 }
 
-.tender-skud-selected-summary .exit strong {
+.tender-skud-day-metric.exit > strong {
   color: #fbbf24;
 }
 
-.tender-skud-day-events {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.tender-skud-day-metric.break > strong {
+  color: #93c5fd;
+}
+
+.tender-skud-work-visual {
+  margin: 0 12px 12px;
+  padding: 11px 12px 9px;
+  border: 1px solid rgba(100, 116, 139, 0.1);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.tender-skud-work-visual-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.tender-skud-work-visual-head span {
+  color: #64748b;
+  font-size: 0.62rem;
+}
+
+.tender-skud-work-visual-head strong {
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.67rem;
+}
+
+.tender-skud-work-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.13);
+  overflow: hidden;
+}
+
+.tender-skud-work-segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14b8a6, #38bdf8);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.18);
+}
+
+.tender-skud-work-segment.open {
+  background: linear-gradient(90deg, #14b8a6, #22d3ee);
+  animation: tenderSkudOpenPair 1.8s ease-in-out infinite;
+}
+
+@keyframes tenderSkudOpenPair {
+  50% { opacity: 0.66; }
+}
+
+.tender-skud-work-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  color: #64748b;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.56rem;
+}
+
+.tender-skud-rule-note {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0 12px 12px;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(56, 189, 248, 0.42);
+  background: rgba(56, 189, 248, 0.05);
+  color: #64748b;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.tender-skud-rule-note span {
+  flex: 0 0 auto;
+  color: #7dd3fc;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tender-skud-event-list {
+  margin: 0 12px 12px;
+  border: 1px solid rgba(100, 116, 139, 0.1);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.42);
+  overflow: hidden;
+}
+
+.tender-skud-event-block + .tender-skud-event-block {
+  border-top: 1px solid rgba(100, 116, 139, 0.07);
 }
 
 .tender-skud-event {
   display: grid;
-  grid-template-columns: 50px 88px minmax(0, 1fr);
+  grid-template-columns: 24px 52px 70px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.07);
+  min-height: 40px;
+  padding: 7px 10px;
 }
 
-.tender-skud-event:nth-child(odd) {
-  border-right: 1px solid rgba(100, 116, 139, 0.07);
+.tender-skud-event-mark {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(100, 116, 139, 0.1);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
-.tender-skud-selected-empty {
-  padding: 16px 12px;
-  color: #64748b;
-  font-size: 0.7rem;
-  text-align: center;
+.tender-skud-event.entry .tender-skud-event-mark {
+  background: rgba(110, 231, 183, 0.1);
+  color: #6ee7b7;
+}
+
+.tender-skud-event.exit .tender-skud-event-mark {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
 }
 
 .tender-skud-event time {
   color: #e2e8f0;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
 .tender-skud-direction {
-  font-size: 0.68rem;
+  color: #94a3b8;
+  font-size: 0.66rem;
   font-weight: 700;
 }
 
-.tender-skud-direction.entry {
+.tender-skud-event.entry .tender-skud-direction {
   color: #6ee7b7;
 }
 
-.tender-skud-direction.exit {
+.tender-skud-event.exit .tender-skud-direction {
   color: #fbbf24;
-}
-
-.tender-skud-direction.unknown {
-  color: #94a3b8;
 }
 
 .tender-skud-point {
   min-width: 0;
   overflow: hidden;
   color: #94a3b8;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.tender-skud-pair-duration {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(45, 212, 191, 0.08);
+  color: #5eead4;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.tender-skud-break-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: rgba(251, 191, 36, 0.045);
+  color: #64748b;
+  font-size: 0.6rem;
+}
+
+.tender-skud-break-row > span {
+  width: 1px;
+  height: 16px;
+  margin: 0 auto;
+  background: rgba(251, 191, 36, 0.36);
+}
+
+.tender-skud-break-row b {
+  font-weight: 600;
+}
+
+.tender-skud-break-row strong {
+  color: #fbbf24;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.6rem;
+}
+
+.tender-skud-calculation-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: -2px 12px 10px;
+}
+
+.tender-skud-calculation-flags span,
+.tender-skud-lunch-source {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(100, 116, 139, 0.08);
+  color: #64748b;
+  font-size: 0.58rem;
+}
+
+.tender-skud-calculation-flags span.live {
+  background: rgba(45, 212, 191, 0.08);
+  color: #5eead4;
+}
+
+.tender-skud-lunch-source {
+  margin: 0 12px 12px;
+}
+
 @media (max-width: 900px) {
-  .tender-skud-day-events {
-    grid-template-columns: 1fr;
+  .tender-skud-day-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .tender-skud-event:nth-child(odd) {
-    border-right: 0;
+  .tender-skud-paid-time {
+    grid-column: 1 / -1;
   }
 }
 
@@ -396,69 +429,49 @@
   }
 
   .tender-skud-events-head {
+    align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
   }
 
-  .tender-skud-period-nav {
-    width: 100%;
-    grid-template-columns: 38px minmax(0, 1fr) 38px;
-  }
-
-  .tender-skud-period-nav button {
-    width: 38px;
-    height: 38px;
-  }
-
-  .tender-skud-calendar {
-    gap: 3px;
-  }
-
-  .tender-skud-calendar-blank,
-  .tender-skud-calendar-day {
-    min-height: 65px;
-  }
-
-  .tender-skud-calendar-day {
-    padding: 5px 4px;
-    border-radius: 7px;
-  }
-
-  .tender-skud-calendar-day-head strong {
-    font-size: 0.62rem;
-  }
-
-  .tender-skud-calendar-day-head b {
-    min-width: 15px;
-    height: 15px;
-    font-size: 0.48rem;
-  }
-
-  .tender-skud-day-times {
-    gap: 2px;
-    margin-top: 7px;
-  }
-
-  .tender-skud-day-times small {
-    justify-content: center;
-    font-size: 0.5rem;
-  }
-
-  .tender-skud-day-times i {
-    display: none;
+  .tender-skud-period-label {
+    padding: 5px 9px;
   }
 
   .tender-skud-selected-head {
     align-items: flex-start;
+  }
+
+  .tender-skud-day-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .tender-skud-paid-time {
+    grid-column: auto;
+  }
+
+  .tender-skud-paid-time,
+  .tender-skud-day-metric {
+    min-height: 0;
+  }
+
+  .tender-skud-rule-note {
+    align-items: flex-start;
     flex-direction: column;
   }
 
-  .tender-skud-selected-summary {
-    justify-content: flex-start;
-  }
-
   .tender-skud-event {
-    grid-template-columns: 44px 80px minmax(0, 1fr);
+    grid-template-columns: 22px 46px 58px minmax(0, 1fr);
     gap: 6px;
     padding-inline: 8px;
+  }
+
+  .tender-skud-pair-duration {
+    grid-column: 4;
+    justify-self: start;
+  }
+
+  .tender-skud-point {
+    font-size: 0.62rem;
   }
 }
