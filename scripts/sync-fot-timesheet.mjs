@@ -410,21 +410,12 @@ function normalizeStatus(value, hours) {
   return null
 }
 
-function normalizeFotHours(hours, status, workDate, hoursOverridden) {
+function normalizeFotHours(hours, _status, _workDate, _hoursOverridden) {
   if (hours === null) return null
 
-  const date = new Date(`${workDate}T12:00:00`)
-  const dayOfWeek = date.getDay()
-  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5
-  const hasAutomaticLunch = !hoursOverridden
-    && isWeekday
-    && hours > 0
-    && (status === 'work' || status === 'remote')
-  const grossHours = hours + (hasAutomaticLunch ? 1 : 0)
-
-  // FOT API отдаёт нетто-часы после обеденной квоты. Восстанавливаем час обеда,
-  // затем применяем то же арифметическое округление, что и в табеле FOT.
-  return Math.max(0, Math.round(grossHours))
+  // FOT API уже вычел обеденную квоту. Округляем готовое нетто-время,
+  // не возвращая час обеда повторно.
+  return Math.max(0, Math.round(hours))
 }
 
 function extractRows(payload) {
