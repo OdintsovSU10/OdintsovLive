@@ -56,7 +56,7 @@ function DayWorkTimeline({ calculation }: { calculation: SkudDayCalculation }) {
   return (
     <div className="tender-skud-work-visual">
       <div className="tender-skud-work-visual-head">
-        <span>Присутствие по закрытым парам</span>
+        <span>Интервалы присутствия</span>
         <strong>{formatSkudDuration(calculation.rawWorkSeconds)}</strong>
       </div>
       <div className="tender-skud-work-track" aria-label="Интервалы присутствия сотрудника">
@@ -205,7 +205,7 @@ export function EmployeeSkudEvents({
             <>
               <div className="tender-skud-day-overview">
                 <div className="tender-skud-paid-time">
-                  <span>Учтено по FOT</span>
+                  <span>Расчёт по правилам FOT</span>
                   <strong>{formatSkudDuration(calculation.paidSeconds)}</strong>
                   <small>
                     {formatSkudDuration(calculation.rawWorkSeconds)} в парах
@@ -230,8 +230,8 @@ export function EmployeeSkudEvents({
 
               <div className="tender-skud-rule-note">
                 <span>Расчёт FOT</span>
-                Только закрытые пары вход–выход. Перерывы покрывают часовую обеденную квоту;
-                непарные проходы в рабочее время не входят.
+                Закрытые пары вход–выход; сегодняшняя открытая пара считается до текущего времени.
+                Перерывы покрывают часовую обеденную квоту; непарные проходы не входят в расчёт.
               </div>
 
               <div className="tender-skud-event-list">
