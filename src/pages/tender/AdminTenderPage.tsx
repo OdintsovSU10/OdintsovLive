@@ -1700,77 +1700,78 @@ export default function AdminTenderPage() {
         )}
 
         {activeTab === 'settings' && (
-          <>
-            <div className="admin-section">
-              <h3>Синхронизация и импорт</h3>
-              <div className="admin-actions">
-                <div className="admin-card">
-                  <h4>Сотрудники</h4>
-                  <p>Синхронизация из FOT API</p>
-                  <button className="btn-primary" onClick={() => setShowImportEmployees(true)}>Синхронизировать</button>
-                </div>
-                <div className="admin-card">
-                  <h4>История ЗП</h4>
-                  <p>Изменения окладов</p>
-                  <button className="btn-primary" onClick={() => setShowImportSalaryHistory(true)}>Импорт</button>
-                </div>
-                <div className="admin-card admin-card-timesheet-sync">
-                  <h4>Табель</h4>
-                  <p>Ручная синхронизация из FOT API</p>
-                  <div className="timesheet-sync-panel">
-                    <label className="timesheet-sync-control timesheet-sync-year">
-                      <span>Год</span>
-                      <input
-                        type="number"
-                        min="2000"
-                        max="2100"
-                        value={timesheetSyncYear}
-                        onChange={event => setTimesheetSyncYear(Number(event.target.value))}
-                        disabled={syncingTimesheet}
-                      />
-                    </label>
-                    <label className="timesheet-sync-control">
-                      <span>Месяц</span>
-                      <select
-                        value={timesheetSyncMonth}
-                        onChange={event => setTimesheetSyncMonth(Number(event.target.value))}
-                        disabled={syncingTimesheet}
-                      >
-                        {monthNames.map((name, idx) => (
-                          <option key={name} value={idx + 1}>{name}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      className="btn-primary"
-                      onClick={() => handleSyncTimesheetPeriod(timesheetSyncYear, timesheetSyncMonth)}
-                      disabled={syncingTimesheet || employees.length === 0 || timesheetSyncYear < 2000 || timesheetSyncYear > 2100}
-                    >
-                      {syncingTimesheet ? 'Синхронизация...' : 'Синхронизировать'}
-                    </button>
-                  </div>
-                </div>
+          <div className="settings-list">
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <h3>Сотрудники</h3>
+                <p>Синхронизация сотрудников из FOT API</p>
+              </div>
+              <button className="btn-primary" onClick={() => setShowImportEmployees(true)}>Синхронизировать</button>
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <h3>История ЗП</h3>
+                <p>Импорт изменений окладов сотрудников</p>
+              </div>
+              <button className="btn-primary" onClick={() => setShowImportSalaryHistory(true)}>Импортировать</button>
+            </div>
+
+            <div className="settings-row settings-row-timesheet">
+              <div className="settings-row-copy">
+                <h3>Табель</h3>
+                <p>Ручная синхронизация табеля из FOT API</p>
+              </div>
+              <div className="settings-row-actions">
+                <label className="settings-period-control settings-period-year">
+                  <span>Год</span>
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={timesheetSyncYear}
+                    onChange={event => setTimesheetSyncYear(Number(event.target.value))}
+                    disabled={syncingTimesheet}
+                  />
+                </label>
+                <label className="settings-period-control">
+                  <span>Месяц</span>
+                  <select
+                    value={timesheetSyncMonth}
+                    onChange={event => setTimesheetSyncMonth(Number(event.target.value))}
+                    disabled={syncingTimesheet}
+                  >
+                    {monthNames.map((name, idx) => (
+                      <option key={name} value={idx + 1}>{name}</option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  className="btn-primary"
+                  onClick={() => handleSyncTimesheetPeriod(timesheetSyncYear, timesheetSyncMonth)}
+                  disabled={syncingTimesheet || employees.length === 0 || timesheetSyncYear < 2000 || timesheetSyncYear > 2100}
+                >
+                  {syncingTimesheet ? 'Синхронизация...' : 'Синхронизировать'}
+                </button>
               </div>
             </div>
 
-            <div className="admin-section">
-              <h3>Очистка данных</h3>
-              <div className="admin-actions admin-actions-danger">
-                <div className="admin-card admin-card-danger">
-                  <h4>Очистка повышений</h4>
-                  <p>Удалить историю окладов</p>
-                  <button className="btn-danger" onClick={() => setShowConfirmClearSalaryHistory(true)}>
-                    Очистить
-                  </button>
-                </div>
-                <div className="admin-card admin-card-danger">
-                  <h4>Полная очистка</h4>
-                  <p>Удалить сотрудников и табель</p>
-                  <button className="btn-danger" onClick={() => setShowConfirmClear(true)}>Очистить</button>
-                </div>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <h3>История повышений</h3>
+                <p>Удалить всю историю изменений окладов</p>
               </div>
+              <button className="btn-danger" onClick={() => setShowConfirmClearSalaryHistory(true)}>Очистить</button>
             </div>
-          </>
+
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <h3>Все данные сотрудников</h3>
+                <p>Удалить сотрудников и данные табеля</p>
+              </div>
+              <button className="btn-danger" onClick={() => setShowConfirmClear(true)}>Удалить всё</button>
+            </div>
+          </div>
         )}
       </div>
 

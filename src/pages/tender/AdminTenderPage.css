@@ -66,41 +66,42 @@
   font-weight: 700;
 }
 
-.tender-page .admin-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+.tender-page .settings-list {
+  width: 100%;
+  border-top: 1px solid rgba(100, 116, 139, 0.14);
 }
 
-.tender-page .admin-actions-danger {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.tender-page .settings-row {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 2px;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.14);
 }
 
-.tender-page .admin-card {
-  border: 1px solid rgba(100, 116, 139, 0.16);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.72);
-  padding: 14px;
+.tender-page .settings-row-copy {
+  min-width: 0;
 }
 
-.tender-page .admin-card h4 {
+.tender-page .settings-row-copy h3 {
   margin: 0;
-  font-size: 0.88rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
-.tender-page .admin-card p {
-  margin: 6px 0 12px;
-  color: #94a3b8;
+.tender-page .settings-row-copy p {
+  margin: 4px 0 0;
+  color: #64748b;
   font-size: 0.78rem;
 }
 
-.tender-page .admin-card.admin-card-danger {
-  border-color: rgba(248, 113, 113, 0.28);
-}
-
-.tender-page .admin-card.admin-card-timesheet-sync {
-  grid-column: span 2;
+.tender-page .settings-row > .btn-primary,
+.tender-page .settings-row > .btn-danger {
+  min-width: 132px;
+  flex: 0 0 auto;
 }
 
 .tender-page .tender-tabs {
@@ -281,27 +282,28 @@
   border-color: rgba(129, 140, 248, 0.5);
 }
 
-.tender-page .timesheet-sync-panel {
+.tender-page .settings-row-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
+  justify-content: flex-end;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
-.tender-page .timesheet-sync-control {
+.tender-page .settings-period-control {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.tender-page .timesheet-sync-control span,
-.tender-page .timesheet-sync-note {
+.tender-page .settings-period-control span {
   color: #94a3b8;
   font-size: 0.76rem;
 }
 
-.tender-page .timesheet-sync-control select,
-.tender-page .timesheet-sync-control input {
+.tender-page .settings-period-control select,
+.tender-page .settings-period-control input {
   min-width: 150px;
   height: 38px;
   border: 1px solid rgba(100, 116, 139, 0.2);
@@ -312,13 +314,9 @@
   font: inherit;
 }
 
-.tender-page .timesheet-sync-control.timesheet-sync-year input {
+.tender-page .settings-period-control.settings-period-year input {
   min-width: 96px;
   width: 110px;
-}
-
-.tender-page .timesheet-sync-note {
-  align-self: center;
 }
 
 .tender-page .timesheet-months-grid {
@@ -868,14 +866,6 @@
 }
 
 @media (max-width: 1180px) {
-  .tender-page .admin-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .tender-page .admin-card.admin-card-timesheet-sync {
-    grid-column: 1 / -1;
-  }
-
   .tender-page .timesheet-months-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -896,6 +886,16 @@
 
   .tender-page .timesheet-months-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tender-page .settings-row-timesheet {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tender-page .settings-row-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .tender-page .subdivision-create-form {
@@ -933,13 +933,34 @@
     font-size: 0.7rem;
   }
 
-  .tender-page .admin-actions,
   .tender-page .timesheet-months-grid {
     grid-template-columns: 1fr;
   }
 
-  .tender-page .admin-card.admin-card-timesheet-sync {
-    grid-column: auto;
+  .tender-page .settings-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 2px;
+  }
+
+  .tender-page .settings-row > .btn-primary,
+  .tender-page .settings-row > .btn-danger {
+    min-width: 0;
+  }
+
+  .tender-page .settings-row-actions {
+    align-items: stretch;
+  }
+
+  .tender-page .settings-period-control {
+    flex: 1 1 150px;
+  }
+
+  .tender-page .settings-period-control select,
+  .tender-page .settings-period-control input,
+  .tender-page .settings-period-control.settings-period-year input {
+    width: 100%;
   }
 
   .tender-page .tender-tabs {
