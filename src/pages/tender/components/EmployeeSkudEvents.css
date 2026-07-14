@@ -126,53 +126,205 @@
   color: #fca5a5;
 }
 
-.tender-skud-days {
+.tender-skud-calendar {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  max-height: 520px;
-  overflow: auto;
-  padding-right: 2px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
 }
 
-.tender-skud-day {
+.tender-skud-weekday {
+  padding: 2px 0 4px;
+  color: #64748b;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.tender-skud-weekday.weekend {
+  color: #d97706;
+}
+
+.tender-skud-calendar-blank {
+  min-height: 78px;
+}
+
+.tender-skud-calendar-day {
   min-width: 0;
-  border: 1px solid rgba(100, 116, 139, 0.13);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.56);
-  overflow: hidden;
+  min-height: 78px;
+  padding: 7px;
+  border: 1px solid rgba(100, 116, 139, 0.11);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.38);
+  color: #64748b;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
 }
 
-.tender-skud-day-head {
+.tender-skud-calendar-day:hover {
+  border-color: rgba(56, 189, 248, 0.32);
+  background: rgba(30, 41, 59, 0.62);
+  transform: translateY(-1px);
+}
+
+.tender-skud-calendar-day:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.tender-skud-calendar-day.weekend {
+  background: rgba(120, 53, 15, 0.08);
+}
+
+.tender-skud-calendar-day.has-events {
+  border-color: rgba(56, 189, 248, 0.2);
+  background: rgba(8, 47, 73, 0.22);
+}
+
+.tender-skud-calendar-day.selected {
+  border-color: rgba(34, 211, 238, 0.72);
+  background: rgba(8, 47, 73, 0.5);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
+}
+
+.tender-skud-calendar-day-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.1);
-  background: rgba(30, 41, 59, 0.46);
+  gap: 4px;
 }
 
-.tender-skud-day-head strong {
-  color: #cbd5e1;
-  font-size: 0.72rem;
+.tender-skud-calendar-day-head strong {
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.68rem;
+}
+
+.tender-skud-calendar-day.weekend .tender-skud-calendar-day-head strong {
+  color: #fbbf24;
+}
+
+.tender-skud-calendar-day-head b {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.13);
+  color: #7dd3fc;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.54rem;
+}
+
+.tender-skud-day-times {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.tender-skud-day-times small {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.tender-skud-day-times small.entry {
+  color: #6ee7b7;
+}
+
+.tender-skud-day-times small.exit {
+  color: #fbbf24;
+}
+
+.tender-skud-day-times i {
+  color: #64748b;
+  font-family: inherit;
+  font-size: 0.48rem;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.tender-skud-no-events {
+  display: block;
+  margin-top: 12px;
+  color: rgba(100, 116, 139, 0.42);
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.tender-skud-selected-day {
+  margin-top: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 11px;
+  background: rgba(15, 23, 42, 0.58);
+  overflow: hidden;
+}
+
+.tender-skud-selected-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.1);
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.tender-skud-selected-head > div:first-child > span {
+  display: block;
+  color: #64748b;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tender-skud-selected-head > div:first-child > strong {
+  display: block;
+  margin-top: 2px;
+  color: #e2e8f0;
+  font-size: 0.78rem;
   text-transform: capitalize;
 }
 
-.tender-skud-day-head span {
-  display: inline-flex;
-  min-width: 22px;
-  justify-content: center;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(100, 116, 139, 0.14);
-  color: #94a3b8;
-  font-size: 0.62rem;
+.tender-skud-selected-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.tender-skud-selected-summary span {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+  font-size: 0.6rem;
+}
+
+.tender-skud-selected-summary strong {
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+.tender-skud-selected-summary .entry strong {
+  color: #6ee7b7;
+}
+
+.tender-skud-selected-summary .exit strong {
+  color: #fbbf24;
 }
 
 .tender-skud-day-events {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .tender-skud-event {
@@ -184,8 +336,15 @@
   border-bottom: 1px solid rgba(100, 116, 139, 0.07);
 }
 
-.tender-skud-event:last-child {
-  border-bottom: 0;
+.tender-skud-event:nth-child(odd) {
+  border-right: 1px solid rgba(100, 116, 139, 0.07);
+}
+
+.tender-skud-selected-empty {
+  padding: 16px 12px;
+  color: #64748b;
+  font-size: 0.7rem;
+  text-align: center;
 }
 
 .tender-skud-event time {
@@ -222,8 +381,12 @@
 }
 
 @media (max-width: 900px) {
-  .tender-skud-days {
+  .tender-skud-day-events {
     grid-template-columns: 1fr;
+  }
+
+  .tender-skud-event:nth-child(odd) {
+    border-right: 0;
   }
 }
 
@@ -244,6 +407,53 @@
   .tender-skud-period-nav button {
     width: 38px;
     height: 38px;
+  }
+
+  .tender-skud-calendar {
+    gap: 3px;
+  }
+
+  .tender-skud-calendar-blank,
+  .tender-skud-calendar-day {
+    min-height: 65px;
+  }
+
+  .tender-skud-calendar-day {
+    padding: 5px 4px;
+    border-radius: 7px;
+  }
+
+  .tender-skud-calendar-day-head strong {
+    font-size: 0.62rem;
+  }
+
+  .tender-skud-calendar-day-head b {
+    min-width: 15px;
+    height: 15px;
+    font-size: 0.48rem;
+  }
+
+  .tender-skud-day-times {
+    gap: 2px;
+    margin-top: 7px;
+  }
+
+  .tender-skud-day-times small {
+    justify-content: center;
+    font-size: 0.5rem;
+  }
+
+  .tender-skud-day-times i {
+    display: none;
+  }
+
+  .tender-skud-selected-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tender-skud-selected-summary {
+    justify-content: flex-start;
   }
 
   .tender-skud-event {
