@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import type { EmployeeWithStats, TimesheetEntry, TimesheetStatus } from '../types'
+import type { EmployeeWithStats, TimesheetEntry } from '../types'
 import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
+import { TIMESHEET_STATUS_META } from '../utils/timesheetStatus'
 import './TimesheetGrid.css'
 
 interface Props {
@@ -24,18 +25,6 @@ interface EmployeeStats {
 const DOW_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
 const DEPT_PALETTE = ['#a78bfa', '#38bdf8', '#6ee7b7', '#fbbf24', '#f472b6', '#fb923c', '#34d399', '#818cf8']
-
-const STATUS_META: Record<TimesheetStatus, { label: string; short: string; className: string }> = {
-  work: { label: 'Работа', short: '', className: 'work' },
-  remote: { label: 'Удалёнка', short: 'УУ', className: 'remote' },
-  vacation: { label: 'Отпуск', short: 'От', className: 'vacation' },
-  sick: { label: 'Больничный', short: 'Б', className: 'sick' },
-  dayoff: { label: 'Выходной', short: 'В', className: 'dayoff' },
-  absent: { label: 'Неявка', short: 'Н', className: 'absent' },
-  unpaid: { label: 'За свой счёт', short: 'С', className: 'unpaid' },
-  educational_leave: { label: 'Учебный отпуск', short: 'У', className: 'educational' },
-  sick_worked: { label: 'Работа на больничном', short: 'РБ', className: 'sick-worked' }
-}
 
 const getPositionPriority = (position: string | undefined): number => {
   const p = position?.toLowerCase() || ''
@@ -209,14 +198,16 @@ const getCellVisual = (
       stateTone = 'ts-state-low'
     }
 
-    const titlePrefix = entry.status === 'remote' ? STATUS_META.remote.label : STATUS_META.work.label
+    const titlePrefix = entry.status === 'remote'
+      ? TIMESHEET_STATUS_META.remote.label
+      : TIMESHEET_STATUS_META.work.label
     const hasAdjustedHours = Math.abs(rawHours - hours) > 0.001
     const title = hasAdjustedHours
       ? `${titlePrefix}. Факт в табеле: ${formatHours(rawHours)} ч. Учтено в расчёте: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
       : `${titlePrefix}. Отработано: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
 
     return {
-      label: entry.status === 'remote' ? STATUS_META.remote.short : formatHours(hours),
+      label: entry.status === 'remote' ? TIMESHEET_STATUS_META.remote.short : formatHours(hours),
       className: `ts-pill ${entry.status === 'remote' ? 'ts-pill-status' : 'ts-pill-hours'} ${baseTone} ${stateTone}`,
       title,
       underworkTag: isUnderworked ? getUnderworkTag(date) : undefined
@@ -225,7 +216,7 @@ const getCellVisual = (
 
   if (entry.status === 'sick_worked') {
     const hours = getWorkedHours(entry, date)
-    const meta = STATUS_META.sick_worked
+    const meta = TIMESHEET_STATUS_META.sick_worked
     return {
       label: meta.short,
       className: `ts-pill ts-pill-status ts-status-${meta.className}`,
@@ -233,7 +224,7 @@ const getCellVisual = (
     }
   }
 
-  const meta = STATUS_META[entry.status]
+  const meta = TIMESHEET_STATUS_META[entry.status]
   return {
     label: meta.short,
     className: `ts-pill ts-pill-status ts-status-${meta.className}`,

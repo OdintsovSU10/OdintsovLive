@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useTenderData } from './hooks/useTenderData'
+import { useLivePayroll } from './hooks/useLivePayroll'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
 import { DashboardOverview } from './components/DashboardOverview'
@@ -8,6 +9,18 @@ import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { getWorkDaysNorm } from '../../lib/workNorms'
 import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from './utils/salaryCalculator'
+import {
+  calculateEmployeeMonthlyPayrollPlan,
+  formatLiveMoney,
+  formatLiveNumber
+} from './utils/livePayroll'
+import {
+  createEmptyTimesheetStatusCounts,
+  isWorkedTimesheetStatus,
+  TIMESHEET_STATUS_META,
+  TIMESHEET_STATUS_ORDER,
+  type TimesheetStatusCounts
+} from './utils/timesheetStatus'
 import {
   getAgeFromBirthDate,
   formatAgeYears,
@@ -65,6 +78,7 @@ interface EmployeeHistoryPoint {
   weekendBonus: number
   transportPayment: number
   earned: number
+  statusCounts: TimesheetStatusCounts
 }
 
 interface SalaryRaiseTimelineItem {
@@ -132,6 +146,25 @@ function parseExtraBonuses(raw: string | null): Record<number, number> {
   } catch {
     return {}
   }
+}
+
+function resolveTimesheetWorkedHours(entry: TimesheetEntry, date: Date): number {
+  const expectedHours = getDailyHoursNorm(date)
+
+  if (entry.status === 'sick_worked') {
+    return roundTimesheetHours(entry.hours_worked) || expectedHours
+  }
+
+  if (
+    entry.status === 'remote'
+    && !isWeekendOrHoliday(date)
+    && entry.hours_worked === 8
+    && !entry.is_correction
+  ) {
+    return expectedHours
+  }
+
+  return roundTimesheetHours(entry.hours_worked, expectedHours)
 }
 
 function MonthSelector({
@@ -400,7 +433,8 @@ export function EmployeeDetail({
               remoteDays: 0,
               weekendBonus: 0,
               transportPayment: 0,
-              earned: 0
+              earned: 0,
+              statusCounts: createEmptyTimesheetStatusCounts()
             }
           }
 
@@ -422,6 +456,7 @@ export function EmployeeDetail({
           let workedDays = 0
           let weekendDays = 0
           let remoteDays = 0
+          const statusCounts = createEmptyTimesheetStatusCounts()
           const daysInMonth = new Date(slot.year, slot.month, 0).getDate()
           let normHours = 0
 
@@ -433,22 +468,25 @@ export function EmployeeDetail({
           }
 
           for (const entry of monthTimesheet) {
-            if (entry.status !== 'work' && entry.status !== 'remote') continue
+            statusCounts[entry.status] += 1
+            if (!isWorkedTimesheetStatus(entry.status)) continue
             const date = new Date(`${entry.work_date}T12:00:00`)
-            const normHours = getDailyHoursNorm(date)
-            const workedHours = (
-              entry.status === 'remote'
-              && !isWeekendOrHoliday(date)
-              && entry.hours_worked === 8
-              && !entry.is_correction
-            )
-              ? normHours
-              : roundTimesheetHours(entry.hours_worked, normHours)
+            const dailyNormHours = getDailyHoursNorm(date)
+            const workedHours = resolveTimesheetWorkedHours(entry, date)
             hours += workedHours
-            overtime += Math.max(0, workedHours - normHours)
+            overtime += Math.max(0, workedHours - dailyNormHours)
 
             if (entry.status === 'remote') {
               remoteDays += 1
+              if (isWeekendOrHoliday(date)) {
+                weekendDays += 1
+              } else {
+                workedDays += 1
+              }
+              continue
+            }
+
+            if (entry.status === 'sick_worked') {
               if (isWeekendOrHoliday(date)) {
                 weekendDays += 1
               } else {
@@ -483,7 +521,8 @@ export function EmployeeDetail({
             remoteDays,
             weekendBonus: salaryCalc.weekend_payment,
             transportPayment: salaryCalc.transport_payment,
-            earned: salaryCalc.final_salary
+            earned: salaryCalc.final_salary,
+            statusCounts
           }
         })
 
@@ -669,19 +708,6 @@ export function EmployeeDetail({
     ? ((calculatedHistory[calculatedHistory.length - 1].salary - calculatedHistory[0].salary) / calculatedHistory[0].salary) * 100
     : 0
 
-  const resolveWorkedHours = (entry: TimesheetEntry, date: Date): number => {
-    const expectedHours = getDailyHoursNorm(date)
-    if (
-      entry.status === 'remote'
-      && !isWeekendOrHoliday(date)
-      && entry.hours_worked === 8
-      && !entry.is_correction
-    ) {
-      return expectedHours
-    }
-    return roundTimesheetHours(entry.hours_worked, expectedHours)
-  }
-
   const chartMonthEntries = useMemo(
     () => chartTimesheetCache[chartMonthKey] || [],
     [chartMonthKey, chartTimesheetCache]
@@ -706,7 +732,8 @@ export function EmployeeDetail({
       hours: 0,
       normHours: 0,
       overtime: 0,
-      earned: 0
+      earned: 0,
+      statusCounts: createEmptyTimesheetStatusCounts()
     }
 
     if (chartMonthEntries.length === 0) {
@@ -727,17 +754,28 @@ export function EmployeeDetail({
     let weekendDays = 0
     let hours = 0
     let overtime = 0
+    const statusCounts = createEmptyTimesheetStatusCounts()
 
     for (const entry of chartMonthTimesheet.values()) {
-      if (entry.status !== 'work' && entry.status !== 'remote') continue
+      statusCounts[entry.status] += 1
+      if (!isWorkedTimesheetStatus(entry.status)) continue
       const date = new Date(`${entry.work_date}T12:00:00`)
       const expectedHours = getDailyHoursNorm(date)
-      const workedHours = resolveWorkedHours(entry, date)
+      const workedHours = resolveTimesheetWorkedHours(entry, date)
 
       hours += workedHours
       overtime += Math.max(0, workedHours - expectedHours)
 
       if (entry.status === 'remote') {
+        if (isWeekendOrHoliday(date)) {
+          weekendDays += 1
+        } else {
+          workedWeekdays += 1
+        }
+        continue
+      }
+
+      if (entry.status === 'sick_worked') {
         if (isWeekendOrHoliday(date)) {
           weekendDays += 1
         } else {
@@ -796,7 +834,8 @@ export function EmployeeDetail({
       hours: Math.round(hours),
       normHours: Math.round(normHours),
       overtime: Math.round(overtime),
-      earned: salaryCalc.final_salary
+      earned: salaryCalc.final_salary,
+      statusCounts
     }
   }, [
     chartMonth,
@@ -812,6 +851,30 @@ export function EmployeeDetail({
   const workNormRatio = `${selectedMonthStats.workedWeekdays}/${selectedMonthStats.normDays}`
   const selectedMonthHoursRatio = `${selectedMonthStats.hours.toLocaleString('ru-RU')}/${selectedMonthStats.normHours.toLocaleString('ru-RU')}`
 
+  const employeeMonthlyPlan = useMemo(() => {
+    let extraBonuses: Record<number, number> = {}
+    try {
+      extraBonuses = parseExtraBonuses(localStorage.getItem(getExtraBonusKey(chartYear, chartMonth)))
+    } catch {
+      extraBonuses = {}
+    }
+
+    return calculateEmployeeMonthlyPayrollPlan(
+      employee,
+      chartYear,
+      chartMonth,
+      configuredTransport,
+      extraBonuses
+    )
+  }, [chartMonth, chartYear, configuredTransport, employee])
+  const employeeLivePayroll = useLivePayroll(employeeMonthlyPlan, chartYear, chartMonth)
+  const employeeAccrued = employeeLivePayroll.isLive
+    ? employeeLivePayroll.accrued
+    : selectedMonthStats.earned
+  const employeePayrollProgress = employeeMonthlyPlan > 0
+    ? Math.min(100, Math.max(0, (employeeAccrued / employeeMonthlyPlan) * 100))
+    : 0
+
   const dailySeries = useMemo(() => {
     const daysInTargetMonth = new Date(chartYear, chartMonth, 0).getDate()
     return Array.from({ length: daysInTargetMonth }, (_, index) => {
@@ -819,15 +882,17 @@ export function EmployeeDetail({
       const entry = chartMonthTimesheet.get(day)
       const date = new Date(chartYear, chartMonth - 1, day)
       const weekend = isWeekendOrHoliday(date)
-      if (!entry || (entry.status !== 'work' && entry.status !== 'remote')) {
-        return { day, hours: 0, weekend, kind: 'empty' as const }
+      if (!entry) {
+        return { day, hours: 0, weekend, status: null, statusMeta: null }
       }
-      const hours = resolveWorkedHours(entry, date)
+      const worked = isWorkedTimesheetStatus(entry.status)
+      const hours = worked ? resolveTimesheetWorkedHours(entry, date) : 0
       return {
         day,
         hours,
         weekend,
-        kind: entry.status === 'remote' ? ('remote' as const) : ('work' as const)
+        status: entry.status,
+        statusMeta: TIMESHEET_STATUS_META[entry.status]
       }
     })
   }, [chartMonth, chartMonthTimesheet, chartYear])
@@ -838,11 +903,6 @@ export function EmployeeDetail({
     setChartMonth(nextDate.getMonth() + 1)
     setChartError(null)
   }
-
-  const efficiencyTrend = history.map(point => {
-    if (!point.hasTimesheet || point.salary <= 0) return 0
-    return (point.earned / point.salary) * 100
-  })
 
   const salaryRaiseHistory = useMemo(() => {
     const salaryHistory = [...(employee.salaryHistory || [])]
@@ -955,6 +1015,56 @@ export function EmployeeDetail({
         </div>
       </article>
 
+      <article className="tender-detail-live-payroll">
+        <div className="tender-detail-live-head">
+          <div>
+            <span className={`tender-detail-live-status ${employeeLivePayroll.isLive ? 'live' : 'static'}`}>
+              <i />
+              {employeeLivePayroll.isLive ? 'Живое начисление' : 'Расчёт периода'}
+            </span>
+            <h3>{monthNames[chartMonth - 1]} {chartYear}</h3>
+          </div>
+          <span className="tender-detail-live-caption">
+            Переработка не увеличивает начисление
+          </span>
+        </div>
+        <div className="tender-detail-live-grid">
+          <div className="tender-detail-live-primary">
+            <small>{employeeLivePayroll.isLive ? 'Начислено сейчас' : 'Начислено'}</small>
+            <strong>{formatLiveNumber(employeeAccrued)} ₽</strong>
+            <span className={employeeLivePayroll.isAccruing ? 'accruing' : ''}>
+              {employeeLivePayroll.isLive
+                ? (employeeLivePayroll.isAccruing
+                    ? `+${formatLiveMoney(employeeLivePayroll.ratePerSecond)} / сек`
+                    : 'Счётчик на паузе')
+                : 'Период завершён'}
+            </span>
+          </div>
+          <div className="tender-detail-live-metric">
+            <small>План месяца</small>
+            <strong>{employeeMonthlyPlan.toLocaleString('ru-RU')} ₽</strong>
+          </div>
+          <div className="tender-detail-live-metric">
+            <small>Выполнение</small>
+            <strong>{employeePayrollProgress.toFixed(1)}%</strong>
+          </div>
+          <div className="tender-detail-live-metric">
+            <small>По табелю</small>
+            <strong>{Math.round(selectedMonthStats.earned).toLocaleString('ru-RU')} ₽</strong>
+          </div>
+        </div>
+        <div
+          className="tender-detail-live-progress"
+          role="progressbar"
+          aria-label="Выполнение плана начисления"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(employeePayrollProgress)}
+        >
+          <div style={{ width: `${employeePayrollProgress}%` }} />
+        </div>
+      </article>
+
       <article className="tender-detail-weighted">
         <div>
           <span>Средний заработок за {historyYear} год (с учётом бонусов и проезда)</span>
@@ -974,7 +1084,7 @@ export function EmployeeDetail({
 
       <div className="tender-detail-kpis">
         <article className="tender-detail-kpi-card">
-          <small>Норма рабочих дней</small>
+          <small>Рабочие дни (отработано / норма)</small>
           <strong style={{ color: '#e2e8f0' }}>{workNormRatio}</strong>
         </article>
         <article className="tender-detail-kpi-card weekend">
@@ -982,22 +1092,22 @@ export function EmployeeDetail({
           <strong style={{ color: '#fbbf24' }}>{selectedMonthStats.weekendDays.toLocaleString('ru-RU')} д</strong>
         </article>
         <article className="tender-detail-kpi-card">
-          <small>Часы (ф/н)</small>
+          <small>Часы (отработано / норма)</small>
           <strong style={{ color: '#6ee7b7' }}>{selectedMonthHoursRatio} ч</strong>
         </article>
         <article className="tender-detail-kpi-card">
-          <small>Переработка</small>
+          <small>Сверх нормы (без начисления)</small>
           <strong style={{ color: '#fbbf24' }}>{selectedMonthStats.overtime.toLocaleString('ru-RU')} ч</strong>
         </article>
         <article className="tender-detail-kpi-card">
-          <small>Всего заработано</small>
+          <small>По табелю</small>
           <strong style={{ color: '#a5b4fc' }}>{Math.round(selectedMonthStats.earned).toLocaleString('ru-RU')} ₽</strong>
         </article>
       </div>
 
       <article className="tender-detail-daily">
         <div className="tender-detail-daily-head">
-          <h3>Часы по дням</h3>
+          <h3>Табель по дням</h3>
           <div className="tender-detail-daily-nav">
             <button
               type="button"
@@ -1018,20 +1128,48 @@ export function EmployeeDetail({
             </button>
           </div>
         </div>
+        <div className="tender-detail-daily-legend" aria-label="Обозначения статусов табеля">
+          {TIMESHEET_STATUS_ORDER.map(status => {
+            const meta = TIMESHEET_STATUS_META[status]
+            return (
+              <span
+                key={status}
+                className="tender-detail-daily-legend-item"
+                style={{ '--daily-status-color': meta.color } as CSSProperties}
+              >
+                <b>{status === 'work' ? 'ч' : meta.short}</b>
+                {meta.label}
+              </span>
+            )
+          })}
+        </div>
         {chartLoading && <span className="tender-detail-daily-state">Загрузка месяца…</span>}
         {chartError && <span className="tender-detail-daily-state error">{chartError}</span>}
         <div className="tender-daily-scroll">
           <div className="tender-daily-bars">
             {dailySeries.map(item => {
-              const barHeight = Math.max(2, (item.hours / 16) * 100)
-              const value = item.kind === 'remote'
-                ? 'У'
-                : (item.hours > 0 ? (isMobileDaily ? Math.round(item.hours) : item.hours) : '')
+              const worked = item.status ? isWorkedTimesheetStatus(item.status) : false
+              const barHeight = item.status
+                ? (worked ? Math.max(8, Math.min(100, (item.hours / 10) * 100)) : 42)
+                : 2
+              const value = item.status === 'work'
+                ? (item.hours > 0 ? (isMobileDaily ? Math.round(item.hours) : item.hours) : '')
+                : (item.statusMeta?.short || '')
+              const statusStyle = item.statusMeta
+                ? { '--daily-status-color': item.statusMeta.color } as CSSProperties
+                : undefined
               return (
-                <div key={item.day} className="tender-daily-bar-col">
-                  <span className={`value ${item.kind === 'remote' ? 'remote' : ''}`}>{value}</span>
+                <div
+                  key={item.day}
+                  className="tender-daily-bar-col"
+                  title={item.statusMeta
+                    ? `${item.day} ${monthNames[chartMonth - 1]}: ${item.statusMeta.label}${worked ? `, ${item.hours} ч` : ''}`
+                    : `${item.day} ${monthNames[chartMonth - 1]}: нет данных`}
+                  style={statusStyle}
+                >
+                  <span className={`value ${item.status ? 'status' : ''}`}>{value}</span>
                   <div
-                    className={`bar ${item.kind !== 'empty' ? 'active' : ''} ${item.weekend ? 'weekend' : ''} ${item.kind === 'remote' ? 'remote' : ''}`}
+                    className={`bar ${item.status ? 'active status' : ''} ${item.weekend ? 'weekend' : ''}`}
                     style={{ height: `${barHeight}%` }}
                   />
                   <span className={`day ${item.weekend ? 'weekend' : ''}`}>{item.day}</span>
@@ -1065,9 +1203,9 @@ export function EmployeeDetail({
           <thead>
             <tr>
               <th>Месяц</th>
-              <th>Дни</th>
+              <th>Дни / статусы</th>
               <th>Часы</th>
-              <th>Переработка</th>
+              <th>Сверх нормы</th>
               <th>Оклад</th>
               <th>Выходные</th>
               <th>Проезд</th>
@@ -1098,9 +1236,24 @@ export function EmployeeDetail({
                 <tr key={point.key}>
                   <td>{point.label}</td>
                   <td className="tender-history-work-summary">
-                    {point.workedDays.toLocaleString('ru-RU')}/{point.normDays.toLocaleString('ru-RU')}
-                    {' '}
-                    {point.weekendDays.toLocaleString('ru-RU')}/{point.remoteDays.toLocaleString('ru-RU')}
+                    <strong>{point.workedDays.toLocaleString('ru-RU')}/{point.normDays.toLocaleString('ru-RU')}</strong>
+                    <span className="tender-history-statuses">
+                      {TIMESHEET_STATUS_ORDER
+                        .filter(status => status !== 'work' && point.statusCounts[status] > 0)
+                        .map(status => {
+                          const meta = TIMESHEET_STATUS_META[status]
+                          return (
+                            <span
+                              key={status}
+                              className="tender-history-status"
+                              title={meta.label}
+                              style={{ '--daily-status-color': meta.color } as CSSProperties}
+                            >
+                              {meta.short} {point.statusCounts[status]}
+                            </span>
+                          )
+                        })}
+                    </span>
                   </td>
                   <td>{point.hours.toLocaleString('ru-RU')}</td>
                   <td>{point.overtime.toLocaleString('ru-RU')} ч</td>
@@ -1120,16 +1273,16 @@ export function EmployeeDetail({
         </table>
         <div className="tender-detail-trends">
           <div>
-            <span>Переработки</span>
-            <Sparkline values={history.map(item => item.overtime)} color="#fbbf24" />
+            <span>Отработанные часы</span>
+            <Sparkline values={history.map(item => item.hours)} color="#38bdf8" />
           </div>
           <div>
             <span>Начисления</span>
             <Sparkline values={history.map(item => item.earned)} color="#6ee7b7" />
           </div>
           <div>
-            <span>Эффективность</span>
-            <Sparkline values={efficiencyTrend} color="#a78bfa" />
+            <span>Рабочие дни</span>
+            <Sparkline values={history.map(item => item.workedDays)} color="#a78bfa" />
           </div>
         </div>
       </article>
