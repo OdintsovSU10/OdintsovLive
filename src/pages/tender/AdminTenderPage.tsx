@@ -866,7 +866,7 @@ export default function AdminTenderPage() {
   const [clearingSalaryHistory, setClearingSalaryHistory] = useState(false)
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EditableEmployee | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null)
   const [search, setSearch] = useState('')
   const [timesheetSummary, setTimesheetSummary] = useState<TimesheetSummary[]>([])
   const [loadingTimesheet, setLoadingTimesheet] = useState(false)
@@ -1078,9 +1078,9 @@ export default function AdminTenderPage() {
 
   const displayYear = timesheetYear ?? new Date().getFullYear()
 
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
+  const showToast = (message: string, isError = false) => {
+    setToast({ message, isError })
+    setTimeout(() => setToast(null), isError ? 7000 : 3000)
   }
 
   const handleSyncTimesheetPeriod = async (year: number, month: number) => {
@@ -1091,7 +1091,7 @@ export default function AdminTenderPage() {
       showToast(`FOT табель: ${result.matched} строк, ${result.failed} ошибок`)
     } catch (err) {
       console.error('Error syncing FOT timesheet:', err)
-      showToast(err instanceof Error ? err.message : 'Ошибка синхронизации FOT')
+      showToast(err instanceof Error ? err.message : 'Ошибка синхронизации FOT', true)
     } finally {
       setSyncingTimesheet(false)
     }
@@ -1821,7 +1821,12 @@ export default function AdminTenderPage() {
           subdivisions={subdivisionNames}
         />
       )}
-      {toast && <div className="toast"><span>✓</span>{toast}</div>}
+      {toast && (
+        <div className={`toast${toast.isError ? ' error' : ''}`}>
+          <span>{toast.isError ? '!' : '✓'}</span>
+          {toast.message}
+        </div>
+      )}
     </div>
   )
 }

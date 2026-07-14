@@ -823,6 +823,15 @@
   font-weight: 700;
 }
 
+.tender-page .toast.error {
+  border-color: rgba(248, 113, 113, 0.42);
+  color: #fecaca;
+}
+
+.tender-page .toast.error span {
+  color: #f87171;
+}
+
 .tender-page .tender-loading {
   min-height: 60vh;
   display: flex;

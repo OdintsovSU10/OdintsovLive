@@ -95,6 +95,19 @@ function isRecord(value: unknown): value is ApiRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function createDatabaseError(error: unknown, fallbackMessage: string): Error {
+  if (!isRecord(error)) return new Error(fallbackMessage)
+
+  const code = String(error.code || '').trim()
+  const message = String(error.message || error.details || '').trim()
+
+  if (code === '23505') {
+    return new Error(`${fallbackMessage}: конфликт идентификаторов в базе данных`)
+  }
+
+  return new Error(message ? `${fallbackMessage}: ${message}` : fallbackMessage)
+}
+
 function extractRows(payload: unknown): unknown[] {
   if (Array.isArray(payload)) return payload
   if (!isRecord(payload)) return []
@@ -287,7 +300,7 @@ async function recalculateMonthStats(year: number, month: number, employeeIds: n
     .gte('work_date', start)
     .lte('work_date', end)
 
-  if (error) throw error
+  if (error) throw createDatabaseError(error, 'Не удалось прочитать записанный табель')
 
   const stats = calculateStats((data || []) as TimesheetRow[])
   if (stats.length === 0) return
@@ -296,7 +309,7 @@ async function recalculateMonthStats(year: number, month: number, employeeIds: n
     .from('tender_timesheet_stats')
     .upsert(stats, { onConflict: 'employee_id,year,month' })
 
-  if (statsError) throw statsError
+  if (statsError) throw createDatabaseError(statsError, 'Не удалось обновить статистику табеля')
 }
 
 export async function syncFotTimesheetMonth(year: number, month: number, employees: Employee[]): Promise<FotTimesheetSyncResult> {
@@ -359,13 +372,13 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
       .from('tender_timesheet')
       .upsert(rowsToUpsert, { onConflict: 'employee_id,work_date' })
 
-    if (error) throw error
+    if (error) throw createDatabaseError(error, 'Не удалось записать табель')
 
     const employeeIds = Array.from(new Set(rowsToUpsert.map(row => row.employee_id)))
     await recalculateMonthStats(year, month, employeeIds)
   }
 
-  await supabase.from('tender_imports').insert({
+  const { error: importError } = await supabase.from('tender_imports').insert({
     import_type: 'fot_timesheet_sync',
     file_name: `FOT API ${year}-${String(month).padStart(2, '0')}`,
     year,
@@ -375,6 +388,8 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
     records_failed: failed,
     errors: failed > 0 ? [`Не распознано строк: ${failed}`] : null
   })
+
+  if (importError) throw createDatabaseError(importError, 'Не удалось записать результат синхронизации')
 
   return {
     period: `${year}-${String(month).padStart(2, '0')}`,
