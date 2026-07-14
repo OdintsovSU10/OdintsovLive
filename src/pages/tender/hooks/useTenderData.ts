@@ -18,8 +18,11 @@ const mapTimesheetToUiStatus = (status: string | null): 'active' | 'vacation' | 
     vacation: 'vacation',
     dayoff: 'vacation',
     remote: 'remote',
+    sick: 'sick',
     absent: 'sick',
-    unpaid: 'sick'
+    unpaid: 'sick',
+    educational_leave: 'vacation',
+    sick_worked: 'active'
   }
   return map[status] || 'active'
 }
@@ -110,18 +113,20 @@ export function useTenderData() {
         }
 
         // Подсчёт по категориям напрямую из табеля
-        const workWeekday = timesheet.filter(t => t.status === 'work' && !isHoliday(t.work_date)).length
+        const workWeekday = timesheet.filter(t =>
+          (t.status === 'work' || t.status === 'sick_worked') && !isHoliday(t.work_date)
+        ).length
         const remoteWeekday = timesheet.filter(t => t.status === 'remote' && !isHoliday(t.work_date)).length
         const weekendWork = timesheet.filter(t =>
-          (t.status === 'work' || t.status === 'remote') && isHoliday(t.work_date)
+          (t.status === 'work' || t.status === 'remote' || t.status === 'sick_worked') && isHoliday(t.work_date)
         ).length
 
         const attendance: AttendanceStats = {
-          work: timesheet.filter(t => t.status === 'work').length,
+          work: timesheet.filter(t => t.status === 'work' || t.status === 'sick_worked').length,
           remote: timesheet.filter(t => t.status === 'remote').length,
-          vacation: timesheet.filter(t => t.status === 'vacation').length,
+          vacation: timesheet.filter(t => t.status === 'vacation' || t.status === 'educational_leave').length,
           dayoff: timesheet.filter(t => t.status === 'dayoff').length,
-          absent: timesheet.filter(t => t.status === 'absent' || t.status === 'unpaid').length,
+          absent: timesheet.filter(t => t.status === 'absent' || t.status === 'unpaid' || t.status === 'sick').length,
           work_weekday: workWeekday,
           remote_weekday: remoteWeekday,
           weekend_work: weekendWork,
@@ -201,10 +206,10 @@ export function useTenderData() {
 
       result.push({
         month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
-        present: data?.filter(d => d.status === 'work').length || 0,
+        present: data?.filter(d => d.status === 'work' || d.status === 'sick_worked').length || 0,
         remote: data?.filter(d => d.status === 'remote').length || 0,
         late: 0,
-        absent: data?.filter(d => d.status === 'absent' || d.status === 'unpaid').length || 0
+        absent: data?.filter(d => d.status === 'absent' || d.status === 'unpaid' || d.status === 'sick').length || 0
       })
     }
 

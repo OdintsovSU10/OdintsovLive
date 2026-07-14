@@ -102,7 +102,7 @@ export function ImportTimesheetModal({ employees, onClose, onSuccess }: Props) {
                   </tbody>
                 </table>
               </div>
-              <p className="import-hint">8 = работа, У = удалёнка, О = отпуск, Б = больничный, В = выходной</p>
+              <p className="import-hint">Коды FOT: От = отпуск, Б = больничный, Н = неявка, В = выходной, УУ = удалёнка, С = за свой счёт, У = учебный отпуск, РБ = работа на больничном</p>
               <div
                 className={`import-dropzone ${dragOver ? 'import-dropzone-active' : ''}`}
                 onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -160,7 +160,7 @@ export function ImportTimesheetModal({ employees, onClose, onSuccess }: Props) {
                     {preview.slice(0, 15).map((row, i) => {
                       const workDays = row.days.filter(d => d.status === 'work').length
                       const remoteDays = row.days.filter(d => d.status === 'remote').length
-                      const vacationDays = row.days.filter(d => d.status === 'vacation').length
+                      const vacationDays = row.days.filter(d => d.status === 'vacation' || d.status === 'educational_leave').length
 
                       return (
                         <tr key={i} className={row.matched_employee_id ? '' : 'import-row-unmatched'}>
