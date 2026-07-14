@@ -1,68 +1,68 @@
 .tender-skud-events {
   scroll-margin-top: 18px;
   border: 1px solid rgba(56, 189, 248, 0.18);
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(145deg, rgba(14, 30, 52, 0.78), rgba(15, 23, 42, 0.58));
-  padding: 16px 18px;
+  padding: 20px 22px;
 }
 
 .tender-skud-events-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .tender-skud-events-title-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .tender-skud-events h3 {
   margin: 0;
   color: #e2e8f0;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .tender-skud-events-head p {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
 }
 
 .tender-skud-source {
   display: inline-flex;
   align-items: center;
-  min-height: 20px;
-  padding: 2px 7px;
+  min-height: 24px;
+  padding: 3px 8px;
   border: 1px solid rgba(56, 189, 248, 0.28);
   border-radius: 999px;
   background: rgba(56, 189, 248, 0.1);
   color: #7dd3fc;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
 
 .tender-skud-period-label {
-  padding: 7px 11px;
+  padding: 9px 13px;
   border: 1px solid rgba(100, 116, 139, 0.16);
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.6);
   color: #94a3b8;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .tender-skud-state {
-  padding: 18px 12px;
+  padding: 22px 14px;
   border: 1px dashed rgba(100, 116, 139, 0.18);
   border-radius: 10px;
   color: #94a3b8;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   text-align: center;
 }
 
@@ -77,7 +77,7 @@
 
 .tender-skud-selected-day {
   border: 1px solid rgba(56, 189, 248, 0.16);
-  border-radius: 12px;
+  border-radius: 14px;
   background: rgba(15, 23, 42, 0.5);
   overflow: hidden;
 }
@@ -86,8 +86,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 11px 13px;
+  gap: 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid rgba(100, 116, 139, 0.1);
   background: rgba(30, 41, 59, 0.4);
 }
@@ -95,7 +95,7 @@
 .tender-skud-selected-head > div > span {
   display: block;
   color: #64748b;
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -103,42 +103,42 @@
 
 .tender-skud-selected-head > div > strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   color: #e2e8f0;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   text-transform: capitalize;
 }
 
 .tender-skud-selected-count {
-  padding: 4px 8px;
+  padding: 5px 10px;
   border-radius: 999px;
   background: rgba(56, 189, 248, 0.1);
   color: #7dd3fc;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
 .tender-skud-selected-empty {
-  padding: 22px 12px;
+  padding: 28px 14px;
   color: #64748b;
-  font-size: 0.74rem;
+  font-size: 0.84rem;
   text-align: center;
 }
 
 .tender-skud-day-overview {
   display: grid;
   grid-template-columns: minmax(210px, 1.35fr) repeat(3, minmax(120px, 1fr));
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px;
 }
 
 .tender-skud-paid-time,
 .tender-skud-day-metric {
   min-width: 0;
-  min-height: 78px;
-  padding: 10px 11px;
+  min-height: 94px;
+  padding: 13px 14px;
   border: 1px solid rgba(100, 116, 139, 0.12);
-  border-radius: 9px;
+  border-radius: 11px;
   background: rgba(15, 23, 42, 0.62);
 }
 
@@ -151,7 +151,7 @@
 .tender-skud-day-metric > span {
   display: block;
   color: #64748b;
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -160,24 +160,24 @@
 .tender-skud-paid-time > strong,
 .tender-skud-day-metric > strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 7px;
   color: #e2e8f0;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
 }
 
 .tender-skud-paid-time > strong {
   color: #5eead4;
-  font-size: 1.3rem;
+  font-size: 1.55rem;
 }
 
 .tender-skud-paid-time > small {
   display: block;
-  margin-top: 3px;
+  margin-top: 5px;
   color: #64748b;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.58rem;
+  font-size: 0.68rem;
 }
 
 .tender-skud-day-metric.entry > strong {
@@ -193,10 +193,10 @@
 }
 
 .tender-skud-work-visual {
-  margin: 0 12px 12px;
-  padding: 11px 12px 9px;
+  margin: 0 14px 14px;
+  padding: 14px 15px 11px;
   border: 1px solid rgba(100, 116, 139, 0.1);
-  border-radius: 9px;
+  border-radius: 11px;
   background: rgba(15, 23, 42, 0.48);
 }
 
@@ -204,24 +204,24 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .tender-skud-work-visual-head span {
   color: #64748b;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
 }
 
 .tender-skud-work-visual-head strong {
   color: #94a3b8;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.67rem;
+  font-size: 0.78rem;
 }
 
 .tender-skud-work-track {
   position: relative;
-  height: 12px;
+  height: 14px;
   border-radius: 999px;
   background: rgba(251, 191, 36, 0.13);
   overflow: hidden;
@@ -249,22 +249,22 @@
 .tender-skud-work-scale {
   display: flex;
   justify-content: space-between;
-  margin-top: 5px;
+  margin-top: 6px;
   color: #64748b;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.56rem;
+  font-size: 0.66rem;
 }
 
 .tender-skud-rule-note {
   display: flex;
   align-items: baseline;
-  gap: 7px;
-  margin: 0 12px 12px;
-  padding: 8px 10px;
+  gap: 9px;
+  margin: 0 14px 14px;
+  padding: 10px 12px;
   border-left: 2px solid rgba(56, 189, 248, 0.42);
   background: rgba(56, 189, 248, 0.05);
   color: #64748b;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   line-height: 1.45;
 }
 
@@ -276,9 +276,9 @@
 }
 
 .tender-skud-event-list {
-  margin: 0 12px 12px;
+  margin: 0 14px 14px;
   border: 1px solid rgba(100, 116, 139, 0.1);
-  border-radius: 9px;
+  border-radius: 11px;
   background: rgba(15, 23, 42, 0.42);
   overflow: hidden;
 }
@@ -289,23 +289,23 @@
 
 .tender-skud-event {
   display: grid;
-  grid-template-columns: 24px 52px 70px minmax(0, 1fr) auto;
+  grid-template-columns: 30px 60px 78px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 7px 10px;
+  gap: 10px;
+  min-height: 50px;
+  padding: 9px 12px;
 }
 
 .tender-skud-event-mark {
   display: inline-flex;
-  width: 22px;
-  height: 22px;
+  width: 27px;
+  height: 27px;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   background: rgba(100, 116, 139, 0.1);
   color: #94a3b8;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
@@ -322,13 +322,13 @@
 .tender-skud-event time {
   color: #e2e8f0;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.76rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
 .tender-skud-direction {
   color: #94a3b8;
-  font-size: 0.66rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
@@ -344,35 +344,35 @@
   min-width: 0;
   overflow: hidden;
   color: #94a3b8;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .tender-skud-pair-duration {
-  padding: 3px 6px;
-  border-radius: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
   background: rgba(45, 212, 191, 0.08);
   color: #5eead4;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
 .tender-skud-break-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
+  gap: 10px;
+  padding: 7px 12px;
   background: rgba(251, 191, 36, 0.045);
   color: #64748b;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
 }
 
 .tender-skud-break-row > span {
   width: 1px;
-  height: 16px;
+  height: 20px;
   margin: 0 auto;
   background: rgba(251, 191, 36, 0.36);
 }
@@ -384,24 +384,24 @@
 .tender-skud-break-row strong {
   color: #fbbf24;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
 }
 
 .tender-skud-calculation-flags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin: -2px 12px 10px;
+  gap: 6px;
+  margin: -2px 14px 12px;
 }
 
 .tender-skud-calculation-flags span,
 .tender-skud-lunch-source {
   display: inline-flex;
-  padding: 3px 7px;
+  padding: 4px 8px;
   border-radius: 6px;
   background: rgba(100, 116, 139, 0.08);
   color: #64748b;
-  font-size: 0.58rem;
+  font-size: 0.68rem;
 }
 
 .tender-skud-calculation-flags span.live {
@@ -410,7 +410,7 @@
 }
 
 .tender-skud-lunch-source {
-  margin: 0 12px 12px;
+  margin: 0 14px 14px;
 }
 
 @media (max-width: 900px) {
@@ -425,7 +425,7 @@
 
 @media (max-width: 640px) {
   .tender-skud-events {
-    padding: 14px 12px;
+    padding: 16px 12px;
   }
 
   .tender-skud-events-head {
@@ -435,7 +435,7 @@
   }
 
   .tender-skud-period-label {
-    padding: 5px 9px;
+    padding: 7px 10px;
   }
 
   .tender-skud-selected-head {
@@ -461,9 +461,9 @@
   }
 
   .tender-skud-event {
-    grid-template-columns: 22px 46px 58px minmax(0, 1fr);
-    gap: 6px;
-    padding-inline: 8px;
+    grid-template-columns: 27px 52px 64px minmax(0, 1fr);
+    gap: 7px;
+    padding-inline: 9px;
   }
 
   .tender-skud-pair-duration {
@@ -472,6 +472,6 @@
   }
 
   .tender-skud-point {
-    font-size: 0.62rem;
+    font-size: 0.72rem;
   }
 }
