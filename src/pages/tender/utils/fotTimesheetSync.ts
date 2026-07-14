@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabase'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
 import { roundTimesheetHours } from './salaryCalculator'
+import { normalizeFotHours } from './fotTimeNormalization'
 import type { Employee, TimesheetStatus } from '../types'
 
 type ApiRecord = Record<string, unknown>
@@ -351,19 +352,21 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
         }
 
         const parsedHours = parseHours(day.hours)
-        const hours = parsedHours == null ? null : roundTimesheetHours(parsedHours)
-        const status = normalizeStatus(day.status, hours)
+        const status = normalizeStatus(day.status, parsedHours)
         if (!status) {
           failed += 1
           continue
         }
+
+        const isCorrection = Boolean(day.corrected || day.hours_overridden)
+        const hours = normalizeFotHours(parsedHours, status, workDate, Boolean(day.hours_overridden))
 
         rowsToUpsert.push({
           employee_id: localEmployee.id,
           work_date: workDate,
           status,
           hours_worked: hours,
-          is_correction: Boolean(day.corrected || day.hours_overridden)
+          is_correction: isCorrection
         })
       }
     }

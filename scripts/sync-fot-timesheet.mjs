@@ -407,6 +407,23 @@ function normalizeStatus(value, hours) {
   return null
 }
 
+function normalizeFotHours(hours, status, workDate, hoursOverridden) {
+  if (hours === null) return null
+
+  const date = new Date(`${workDate}T12:00:00`)
+  const dayOfWeek = date.getDay()
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5
+  const hasAutomaticLunch = !hoursOverridden
+    && isWeekday
+    && hours > 0
+    && (status === 'work' || status === 'remote')
+  const grossHours = hours + (hasAutomaticLunch ? 1 : 0)
+
+  // FOT API отдаёт нетто-часы после обеденной квоты. Восстанавливаем час обеда,
+  // затем применяем то же арифметическое округление, что и в табеле FOT.
+  return Math.max(0, Math.round(grossHours))
+}
+
 function extractRows(payload) {
   if (Array.isArray(payload)) return payload
   if (!payload || typeof payload !== 'object') return []
@@ -714,12 +731,14 @@ function normalizeTimesheetRow(row, dateField) {
     : FIELD_ALIASES.date
   const workDate = parseDate(pickValue(record, dateAliases))
   const parsedHours = parseHours(pickValue(record, FIELD_ALIASES.hours))
-  // FOT показывает и суммирует арифметически округлённые дневные часы.
-  const hours = parsedHours === null ? null : Math.max(0, Math.round(parsedHours))
-  const status = normalizeStatus(pickString(record, FIELD_ALIASES.status), hours)
+  const status = normalizeStatus(pickString(record, FIELD_ALIASES.status), parsedHours)
+  const isCorrection = parseBoolean(pickValue(record, FIELD_ALIASES.isCorrection))
+  const hoursOverridden = parseBoolean(pickValue(record, ['hours_overridden']))
 
   if (!workDate) return { error: 'Missing work date' }
   if (!status) return { error: `Missing status/hours for ${workDate}` }
+
+  const hours = normalizeFotHours(parsedHours, status, workDate, hoursOverridden)
 
   return {
     employeeId: pickString(record, FIELD_ALIASES.employeeId),
@@ -729,7 +748,7 @@ function normalizeTimesheetRow(row, dateField) {
     workDate,
     status,
     hours,
-    isCorrection: parseBoolean(pickValue(record, FIELD_ALIASES.isCorrection))
+    isCorrection
   }
 }
 

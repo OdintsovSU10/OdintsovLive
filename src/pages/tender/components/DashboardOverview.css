@@ -204,7 +204,7 @@
   border-bottom: 1px solid rgba(100, 116, 139, 0.16);
   padding: 10px 2px;
   display: grid;
-  grid-template-columns: 32px 38px minmax(0, 1fr) 196px 116px;
+  grid-template-columns: 32px 38px minmax(0, 1fr) 254px 116px;
   gap: 8px;
   align-items: center;
   text-align: left;
@@ -297,6 +297,21 @@
   margin-top: 2px;
   color: #93c5fd;
   font-family: 'DM Mono', monospace;
+}
+
+.dash-ranking-payroll {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.dash-ranking-payroll-plan {
+  color: #67e8f9;
+  font-family: 'DM Mono', monospace;
+}
+
+.dash-ranking-payroll-inline {
+  color: #67e8f9;
+  white-space: nowrap;
 }
 
 .dash-fact-value.alert {

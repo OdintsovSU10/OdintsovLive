@@ -63,14 +63,23 @@ export function calculateMonthlyPayrollPlan(
   transport: number,
   extraBonuses: Record<number, number> = {}
 ): number {
-  const safeTransport = Number.isFinite(transport) ? Math.max(0, transport) : 0
+  return employees.reduce((total, employee) => (
+    total + calculateEmployeeMonthlyPayrollPlan(employee, year, month, transport, extraBonuses)
+  ), 0)
+}
 
-  return employees.reduce((total, employee) => {
-    const salary = getSalaryForMonth(employee.salaryHistory || [], employee.current_salary, year, month)
-    const monthlyBonus = Number(employee.monthly_bonus || 0)
-    const extraBonus = Number(extraBonuses[employee.id] || 0)
-    return total + salary + monthlyBonus + extraBonus + safeTransport
-  }, 0)
+export function calculateEmployeeMonthlyPayrollPlan(
+  employee: EmployeeWithStats,
+  year: number,
+  month: number,
+  transport: number,
+  extraBonuses: Record<number, number> = {}
+): number {
+  const safeTransport = Number.isFinite(transport) ? Math.max(0, transport) : 0
+  const salary = getSalaryForMonth(employee.salaryHistory || [], employee.current_salary, year, month)
+  const monthlyBonus = Number(employee.monthly_bonus || 0)
+  const extraBonus = Number(extraBonuses[employee.id] || 0)
+  return salary + monthlyBonus + extraBonus + safeTransport
 }
 
 function getMoscowParts(date: Date) {

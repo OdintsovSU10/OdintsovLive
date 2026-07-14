@@ -4,7 +4,7 @@ import type { EmployeeWithStats, TimesheetEntry } from '../types'
 import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import { useLivePayroll } from '../hooks/useLivePayroll'
 import {
-  calculateMonthlyPayrollPlan,
+  calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
   formatLiveNumber,
   getExtraBonusKey,
@@ -75,8 +75,6 @@ interface DonutSegment {
 }
 
 const MONTHS_WINDOW = 5
-const TRANSPORT_KEY = 'fot_base_transport'
-const DEFAULT_TRANSPORT = 2730
 
 const SORT_OPTIONS: Array<{ key: SortBy; label: string; color: string }> = [
   { key: 'hours', label: 'Часы', color: '#818cf8' },
@@ -314,18 +312,31 @@ function getRankLabel(index: number): string {
 }
 
 export function DashboardOverview({ employees, year, month, onSelectEmployee }: Props) {
-  const [sortBy, setSortBy] = useState<SortBy>('hours')
+  const [sortBy, setSortBy] = useState<SortBy>('earned')
   const [departmentMetric, setDepartmentMetric] = useState<DepartmentMetric>('earned')
   const [historyEntries, setHistoryEntries] = useState<TimesheetEntry[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
 
-  const plannedMonthlyFOT = useMemo(() => {
+  const payrollPlanning = useMemo(() => {
     const transport = getSavedTransport()
     const extraBonuses = parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month)))
-    return calculateMonthlyPayrollPlan(employees, year, month, transport, extraBonuses)
+    const byEmployee = new Map<number, number>()
+
+    for (const employee of employees) {
+      byEmployee.set(
+        employee.id,
+        calculateEmployeeMonthlyPayrollPlan(employee, year, month, transport, extraBonuses)
+      )
+    }
+
+    return {
+      transport,
+      byEmployee,
+      total: Array.from(byEmployee.values()).reduce((sum, value) => sum + value, 0)
+    }
   }, [employees, month, year])
-  const livePayroll = useLivePayroll(plannedMonthlyFOT, year, month)
+  const livePayroll = useLivePayroll(payrollPlanning.total, year, month)
 
   const monthSlots = useMemo(() => buildMonthSlots(year, month, MONTHS_WINDOW), [year, month])
 
@@ -381,7 +392,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
   }, [employees, year, month])
 
   const analytics = useMemo(() => {
-    const baseTransport = Number(localStorage.getItem(TRANSPORT_KEY)) || DEFAULT_TRANSPORT
+    const baseTransport = payrollPlanning.transport
 
     const entriesByEmployeeMonth = new Map<string, TimesheetEntry[]>()
     for (const entry of historyEntries) {
@@ -452,6 +463,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
         }
 
         const salary = getSalaryForMonth(employee.salaryHistory || [], employee.current_salary, slot.year, slot.month)
+        const slotExtraBonuses = parseExtraBonuses(localStorage.getItem(getExtraBonusKey(slot.year, slot.month)))
         const salaryCalc = calculateSalary({
           employee_id: employee.id,
           base_salary: salary,
@@ -459,7 +471,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
           month: slot.month,
           timesheet,
           transport: baseTransport,
-          bonus: employee.monthly_bonus || 0
+          bonus: (employee.monthly_bonus || 0) + (slotExtraBonuses[employee.id] || 0)
         })
 
         // База = рабочие дни + ежемесячный бонус + проезд (без доплаты за выходные).
@@ -517,8 +529,12 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
 
     const dashboardEmployeeTrends = employeeTrends.filter(trend => trend.latest.hasTimesheet)
 
-    const sortedEmployees = [...dashboardEmployeeTrends].sort((left, right) => {
+    const sortedEmployees = [...employeeTrends].sort((left, right) => {
       if (sortBy === 'earned') {
+        if (livePayroll.isLive) {
+          return (payrollPlanning.byEmployee.get(right.employee.id) || 0)
+            - (payrollPlanning.byEmployee.get(left.employee.id) || 0)
+        }
         return right.latest.earned - left.latest.earned
       }
       return right.latest.hours - left.latest.hours
@@ -593,10 +609,9 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
       latestFOTDelta,
       latestHours,
       latestWeekendDays,
-      baseTransport,
       totalEmployees: employeeTrends.length
     }
-  }, [employees, historyEntries, monthSlots, month, sortBy, year])
+  }, [employees, historyEntries, livePayroll.isLive, monthSlots, month, payrollPlanning, sortBy, year])
 
   if (employees.length === 0) {
     return (
@@ -755,21 +770,18 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                   {analytics.sortedEmployees.map((trend, index) => {
                     const baseColor = SORT_OPTIONS.find(option => option.key === sortBy)?.color || '#818cf8'
                     const hoursExceeded = trend.latest.hours > trend.latest.normHoursWeekdays
-                    const earnedExceeded = trend.latest.earned > trend.latest.earnedPlan
-                    const isMetricExceeded = sortBy === 'earned' ? earnedExceeded : hoursExceeded
-                    const earnedDelta = trend.latest.earned - trend.latest.earnedPlan
-                    const earnedDeltaPct = trend.latest.earnedPlan > 0
-                      ? (earnedDelta / trend.latest.earnedPlan) * 100
+                    const employeePlan = payrollPlanning.byEmployee.get(trend.employee.id) || 0
+                    const employeeFact = livePayroll.isLive
+                      ? employeePlan * livePayroll.progress
+                      : trend.latest.earned
+                    const employeeProgress = employeePlan > 0
+                      ? Math.min(100, Math.max(0, (employeeFact / employeePlan) * 100))
                       : 0
-                    const baseSalary = trend.latest.salary
-                    const realSalary = baseSalary + (trend.employee.monthly_bonus || 0) + analytics.baseTransport
-                    const factValue = sortBy === 'earned'
-                      ? formatNumber(trend.latest.earned)
-                      : formatNumber(trend.latest.hours)
-                    const planValue = sortBy === 'earned'
-                      ? formatNumber(trend.latest.earnedPlan)
-                      : formatNumber(trend.latest.normHoursWeekdays)
-                    const metricUnit = sortBy === 'earned' ? ' ₽' : ' ч'
+                    const employeeRatePerSecond = livePayroll.planned > 0 && livePayroll.isAccruing
+                      ? livePayroll.ratePerSecond * (employeePlan / livePayroll.planned)
+                      : 0
+                    const earnedExceeded = employeeFact > employeePlan
+                    const isMetricExceeded = sortBy === 'earned' ? earnedExceeded : hoursExceeded
 
                     const sparkData = trend.points.map(point => {
                       if (sortBy === 'earned') return point.earned
@@ -792,18 +804,39 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                           <span className="dash-employee-meta">{trend.employee.position} • {departmentName}</span>
                         </span>
                         <span className="dash-ranking-metric">
-                          <span className="dash-ranking-main" style={{ color: baseColor }}>
-                            <span className={`dash-fact-value ${isMetricExceeded ? 'alert' : ''}`}>{factValue}</span>
-                            /{planValue}{metricUnit}
-                          </span>
-                          <span className={`dash-ranking-sub ${isMetricExceeded ? 'alert' : ''}`}>
-                            {sortBy === 'earned'
-                              ? `Δ: ${earnedDelta > 0 ? '+' : ''}${formatNumber(earnedDelta)} ₽ (${formatPercent(earnedDeltaPct)})`
-                              : `OT: +${formatDecimal(trend.latest.overtime)} ч`}
-                          </span>
-                          <span className="dash-ranking-sub dash-ranking-sub-salary">
-                            Реал/база: {formatNumber(realSalary)} / {formatNumber(baseSalary)} ₽
-                          </span>
+                          {sortBy === 'earned' ? (
+                            <>
+                              <span className="dash-ranking-main dash-ranking-payroll" style={{ color: baseColor }}>
+                                Факт: {formatLiveNumber(employeeFact)} ₽
+                              </span>
+                              <span className="dash-ranking-sub dash-ranking-payroll-plan">
+                                План: {formatNumber(employeePlan)} ₽ · {employeeProgress.toFixed(1)}%
+                              </span>
+                              <span className="dash-ranking-sub dash-ranking-sub-salary">
+                                {livePayroll.isLive
+                                  ? (livePayroll.isAccruing
+                                      ? `+${formatLiveMoney(employeeRatePerSecond)} / сек`
+                                      : 'Счётчик на паузе')
+                                  : 'Расчётный месяц завершён'}
+                                {' · '}По табелю: {formatNumber(trend.latest.earned)} ₽
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="dash-ranking-main" style={{ color: baseColor }}>
+                                <span className={`dash-fact-value ${isMetricExceeded ? 'alert' : ''}`}>
+                                  {formatNumber(trend.latest.hours)}
+                                </span>
+                                /{formatNumber(trend.latest.normHoursWeekdays)} ч
+                              </span>
+                              <span className={`dash-ranking-sub ${isMetricExceeded ? 'alert' : ''}`}>
+                                OT: +{formatDecimal(trend.latest.overtime)} ч
+                              </span>
+                              <span className="dash-ranking-sub dash-ranking-sub-salary dash-ranking-payroll-inline">
+                                ₽ факт: {formatLiveNumber(employeeFact)} / план: {formatNumber(employeePlan)}
+                              </span>
+                            </>
+                          )}
                         </span>
                         <Sparkline data={sparkData} color={baseColor} />
                       </button>
