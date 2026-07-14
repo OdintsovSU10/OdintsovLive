@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Check, X, Users, Palette, Type, Upload, Trash2 } from 'lucide-react'
+import { Check, X, Users, Palette, Type, Upload, Trash2, KeyRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import FotTokenSettings from './admin/FotTokenSettings'
 import './AdminPage.css'
 
 interface UserProfile {
@@ -62,7 +63,7 @@ const DEFAULT_SETTINGS: VisualSettings = {
   custom_fonts: []
 }
 
-type Tab = 'users' | 'visual'
+type Tab = 'users' | 'visual' | 'fot'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('users')
@@ -270,6 +271,13 @@ export default function AdminPage() {
           <Palette size={18} />
           <span>Оформление</span>
         </button>
+        <button
+          className={`admin-tab ${activeTab === 'fot' ? 'active' : ''}`}
+          onClick={() => setActiveTab('fot')}
+        >
+          <KeyRound size={18} />
+          <span>FOT API</span>
+        </button>
       </div>
 
       {activeTab === 'users' && (
@@ -437,6 +445,12 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'fot' && (
+        <div className="tab-content">
+          <FotTokenSettings />
         </div>
       )}
     </div>
