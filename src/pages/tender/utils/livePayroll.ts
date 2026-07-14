@@ -9,6 +9,7 @@ export interface LivePayrollSnapshot {
   accrued: number
   planned: number
   progress: number
+  workdayProgress: number
   ratePerSecond: number
   isLive: boolean
   isAccruing: boolean
@@ -125,6 +126,7 @@ export function calculateLivePayrollSnapshot(
       accrued: planned,
       planned,
       progress: 1,
+      workdayProgress: 1,
       ratePerSecond: 0,
       isLive: false,
       isAccruing: false,
@@ -137,6 +139,7 @@ export function calculateLivePayrollSnapshot(
       accrued: 0,
       planned,
       progress: 0,
+      workdayProgress: 0,
       ratePerSecond: 0,
       isLive: false,
       isAccruing: false,
@@ -151,6 +154,7 @@ export function calculateLivePayrollSnapshot(
   let elapsedNormSeconds = 0
   let isAccruing = false
   let todayNormSeconds = 0
+  let todayElapsedNormSeconds = 0
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day, 12, 0, 0)
@@ -171,11 +175,15 @@ export function calculateLivePayrollSnapshot(
       dailyNormSeconds,
       Math.max(0, currentSecondOfDay - workdayStartSecond)
     )
+    todayElapsedNormSeconds = todayElapsed
     elapsedNormSeconds += todayElapsed
     isAccruing = todayElapsed < dailyNormSeconds && currentSecondOfDay >= workdayStartSecond
   }
 
   const progress = totalNormSeconds > 0 ? elapsedNormSeconds / totalNormSeconds : 0
+  const workdayProgress = todayNormSeconds > 0
+    ? todayElapsedNormSeconds / todayNormSeconds
+    : 1
   const baseRatePerSecond = totalNormSeconds > 0 ? planned / totalNormSeconds : 0
   const accrualState: LivePayrollAccrualState = isAccruing
     ? 'accruing'
@@ -189,11 +197,35 @@ export function calculateLivePayrollSnapshot(
     accrued: planned * progress,
     planned,
     progress,
+    workdayProgress,
     ratePerSecond: isAccruing ? baseRatePerSecond : 0,
     isLive: true,
     isAccruing,
     accrualState
   }
+}
+
+const ACCRUAL_COLOR_STOPS = [
+  { at: 0, rgb: [251, 113, 133] },
+  { at: 0.5, rgb: [251, 191, 36] },
+  { at: 1, rgb: [52, 211, 153] }
+] as const
+
+export function getLivePayrollAccrualColor(workdayProgress: number): string {
+  const progress = Number.isFinite(workdayProgress)
+    ? Math.min(1, Math.max(0, workdayProgress))
+    : 0
+  const endIndex = ACCRUAL_COLOR_STOPS.findIndex(stop => progress <= stop.at)
+  const end = ACCRUAL_COLOR_STOPS[endIndex === -1 ? ACCRUAL_COLOR_STOPS.length - 1 : endIndex]
+  const start = ACCRUAL_COLOR_STOPS[Math.max(0, (endIndex === -1 ? ACCRUAL_COLOR_STOPS.length - 1 : endIndex) - 1)]
+  const segmentProgress = end.at === start.at
+    ? 0
+    : (progress - start.at) / (end.at - start.at)
+  const rgb = start.rgb.map((channel, index) => (
+    Math.round(channel + (end.rgb[index] - channel) * segmentProgress)
+  ))
+
+  return `rgb(${rgb.join(', ')})`
 }
 
 export function getLivePayrollPauseLabel(state: LivePayrollAccrualState): string {
