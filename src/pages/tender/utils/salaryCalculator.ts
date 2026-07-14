@@ -13,6 +13,13 @@ const DAILY_HOURS: Record<number, number> = {
   0: 5  // Вс
 }
 
+// Как в табеле FOT: каждый день арифметически округляется до целого часа,
+// а месячный итог складывается уже из округлённых дневных значений.
+export function roundTimesheetHours(value: number | null | undefined, fallback = 0): number {
+  const parsed = Number(value ?? fallback)
+  return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : Math.max(0, Math.round(fallback))
+}
+
 // Средневзвешенный оклад для месяца с учётом изменений в середине месяца
 export function getSalaryForMonth(
   salaryHistory: SalaryHistory[],
@@ -129,7 +136,7 @@ export function calculateSalary(input: SalaryInput): SalaryCalculation {
   for (const entry of timesheet) {
     const entryDate = new Date(entry.work_date)
     const isWeekend = isWeekendOrHoliday(entryDate)
-    const hours = entry.hours_worked || 0
+    const hours = roundTimesheetHours(entry.hours_worked)
 
     switch (entry.status) {
       case 'work':
@@ -191,7 +198,7 @@ export function calculateSalary(input: SalaryInput): SalaryCalculation {
     base_salary,
     work_days_norm,
     work_days_actual,
-    work_hours_actual: Math.round(total_hours * 100) / 100,
+    work_hours_actual: Math.round(total_hours),
     remote_days,
     vacation_days,
     dayoff_days,
@@ -270,7 +277,7 @@ export function checkTimeDeviations(timesheet: TimesheetEntry[]): TimeDeviation[
 
     const date = new Date(entry.work_date)
     const expected = getDailyHoursNorm(date)
-    const actual = entry.hours_worked || 0
+    const actual = roundTimesheetHours(entry.hours_worked)
     const deviation = actual - expected
 
     // Порог отклонения: 0.5 часа

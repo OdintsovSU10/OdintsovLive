@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { parseTimesheetExcel, extractLastName } from '../utils/excelParser'
+import { roundTimesheetHours } from '../utils/salaryCalculator'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
 import type { ParsedTimesheetRow, ImportResult, Employee } from '../types'
 
@@ -80,7 +81,7 @@ export function useTimesheetImport() {
               employee_id: row.matched_employee_id!,
               work_date: workDate,
               status: day.status,
-              hours_worked: day.hours,
+              hours_worked: day.hours == null ? null : roundTimesheetHours(day.hours),
               is_correction: day.is_correction
             })
           }
@@ -104,7 +105,7 @@ export function useTimesheetImport() {
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
 
             if (day.status === 'work') {
-              const hours = day.hours || 0
+              const hours = roundTimesheetHours(day.hours)
               if (isWeekend) {
                 // Выходной засчитывается только если >= 3 часов
                 if (hours >= 3) weekendWorkDays++
@@ -113,7 +114,7 @@ export function useTimesheetImport() {
               }
               totalHours += hours
             } else if (day.status === 'remote') {
-              const hours = day.hours || 8
+              const hours = roundTimesheetHours(day.hours, 8)
               if (isWeekend) {
                 // Удалёнка в выходной тоже считается рабочим выходным (>= 3ч)
                 if (hours >= 3) weekendWorkDays++

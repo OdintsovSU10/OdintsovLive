@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { isWeekendOrHoliday } from '../utils/salaryCalculator'
+import { isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import type { Employee, SalaryHistory, TimesheetEntry, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
 
 const getAvatar = (fullName: string): string => {
@@ -72,8 +72,13 @@ export function useTenderData() {
         .gte('work_date', startOfMonth)
         .lte('work_date', endOfMonth)
 
+      const roundedTimesheetData = (timesheetData || []).map(entry => ({
+        ...entry,
+        hours_worked: entry.hours_worked == null ? null : roundTimesheetHours(entry.hours_worked)
+      }))
+
       const latestStatusMap = new Map<number, string>()
-      timesheetData?.forEach(t => {
+      roundedTimesheetData.forEach(t => {
         const existing = latestStatusMap.get(t.employee_id)
         if (!existing || t.work_date > existing) {
           latestStatusMap.set(t.employee_id, t.status)
@@ -88,7 +93,7 @@ export function useTenderData() {
       })
 
       const timesheetByEmployee = new Map<number, TimesheetEntry[]>()
-      timesheetData?.forEach(t => {
+      roundedTimesheetData.forEach(t => {
         const list = timesheetByEmployee.get(t.employee_id) || []
         list.push(t)
         timesheetByEmployee.set(t.employee_id, list)

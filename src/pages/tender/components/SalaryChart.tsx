@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../../../lib/supabase'
-import { calculateSalary, formatMoney } from '../utils/salaryCalculator'
+import { calculateSalary, formatMoney, roundTimesheetHours } from '../utils/salaryCalculator'
 import type { TimesheetEntry, SalaryHistory } from '../types'
 
 interface Props {
@@ -61,7 +61,10 @@ export function SalaryChart({ employeeId, currentSalary }: Props) {
         .order('effective_date', { ascending: true })
     ])
 
-    const timesheet: TimesheetEntry[] = timesheetRes.data || []
+    const timesheet: TimesheetEntry[] = ((timesheetRes.data || []) as TimesheetEntry[]).map(entry => ({
+      ...entry,
+      hours_worked: entry.hours_worked == null ? null : roundTimesheetHours(entry.hours_worked)
+    }))
     const salaryHistory: SalaryHistory[] = salaryRes.data || []
 
     const getSalaryForDate = (year: number, month: number): number => {

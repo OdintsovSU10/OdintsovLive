@@ -6,7 +6,7 @@ import { DashboardOverview } from './components/DashboardOverview'
 import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { getWorkDaysNorm } from '../../lib/workNorms'
-import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday } from './utils/salaryCalculator'
+import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from './utils/salaryCalculator'
 import {
   getAgeFromBirthDate,
   formatAgeYears,
@@ -364,7 +364,11 @@ export function EmployeeDetail({
         if (error) throw error
 
         const byMonth = new Map<string, TimesheetEntry[]>()
-        for (const entry of (data || []) as TimesheetEntry[]) {
+        for (const rawEntry of (data || []) as TimesheetEntry[]) {
+          const entry = {
+            ...rawEntry,
+            hours_worked: rawEntry.hours_worked == null ? null : roundTimesheetHours(rawEntry.hours_worked)
+          }
           const date = new Date(`${entry.work_date}T12:00:00`)
           const key = monthKey(date.getFullYear(), date.getMonth() + 1)
           const list = byMonth.get(key) || []
@@ -438,7 +442,7 @@ export function EmployeeDetail({
               && !entry.is_correction
             )
               ? normHours
-              : (entry.hours_worked ?? normHours)
+              : roundTimesheetHours(entry.hours_worked, normHours)
             hours += workedHours
             overtime += Math.max(0, workedHours - normHours)
 
@@ -607,7 +611,11 @@ export function EmployeeDetail({
         if (error) throw error
 
         if (!cancelled) {
-          setChartTimesheetCache(previous => ({ ...previous, [chartMonthKey]: (data || []) as TimesheetEntry[] }))
+          const roundedEntries = ((data || []) as TimesheetEntry[]).map(entry => ({
+            ...entry,
+            hours_worked: entry.hours_worked == null ? null : roundTimesheetHours(entry.hours_worked)
+          }))
+          setChartTimesheetCache(previous => ({ ...previous, [chartMonthKey]: roundedEntries }))
         }
       } catch (err) {
         console.error('Error loading daily chart month:', err)
@@ -670,7 +678,7 @@ export function EmployeeDetail({
     ) {
       return expectedHours
     }
-    return entry.hours_worked ?? expectedHours
+    return roundTimesheetHours(entry.hours_worked, expectedHours)
   }
 
   const chartMonthEntries = useMemo(
@@ -786,7 +794,7 @@ export function EmployeeDetail({
       weekendDays,
       hours: Math.round(hours),
       normHours: Math.round(normHours),
-      overtime: Math.round(overtime * 10) / 10,
+      overtime: Math.round(overtime),
       earned: salaryCalc.final_salary
     }
   }, [

@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
+import { roundTimesheetHours } from './salaryCalculator'
 import type { Employee, TimesheetStatus } from '../types'
 
 type ApiRecord = Record<string, unknown>
@@ -272,7 +273,7 @@ function calculateStats(rows: Array<Pick<TimesheetRow, 'employee_id' | 'work_dat
 
     const date = new Date(`${row.work_date}T12:00:00`)
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const hours = Number(row.hours_worked || 0)
+    const hours = roundTimesheetHours(row.hours_worked)
 
     if (row.status === 'work' || row.status === 'remote') {
       if (isWeekend) {
@@ -349,7 +350,8 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
           continue
         }
 
-        const hours = parseHours(day.hours)
+        const parsedHours = parseHours(day.hours)
+        const hours = parsedHours == null ? null : roundTimesheetHours(parsedHours)
         const status = normalizeStatus(day.status, hours)
         if (!status) {
           failed += 1

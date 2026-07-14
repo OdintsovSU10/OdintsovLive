@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { EmployeeWithStats, TimesheetEntry, TimesheetStatus } from '../types'
-import { getDailyHoursNorm, isWeekendOrHoliday } from '../utils/salaryCalculator'
+import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import './TimesheetGrid.css'
 
 interface Props {
@@ -50,10 +50,7 @@ const isWeekendDay = (year: number, month: number, day: number): boolean => {
   return isWeekendOrHoliday(new Date(year, month - 1, day))
 }
 
-const formatHours = (value: number): string => (Number.isInteger(value) ? String(value) : value.toFixed(1))
-const formatExactHours = (value: number): string => (
-  value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-)
+const formatHours = (value: number): string => String(roundTimesheetHours(value))
 
 const toIsoDate = (year: number, month: number, day: number): string => {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -74,7 +71,7 @@ const getWorkedHours = (entry: TimesheetEntry, date: Date): number => {
 
   const expectedHours = getDailyHoursNorm(date)
   const weekendOrHoliday = isWeekendOrHoliday(date)
-  const rawHours = entry.hours_worked ?? expectedHours
+  const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
 
   // Импорт "У" подставляет 8ч по умолчанию. В будни считаем это полной нормой дня (9/8),
   // чтобы суммарные часы и факт/план не занижались.
@@ -87,7 +84,7 @@ const getWorkedHours = (entry: TimesheetEntry, date: Date): number => {
     return expectedHours
   }
 
-  return rawHours
+  return roundTimesheetHours(rawHours)
 }
 
 const getMinimumHoursForDay = (date: Date): number => {
@@ -175,7 +172,7 @@ const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: numbe
     vacationDays,
     weekendDays,
     totalHours: Math.round(totalHours),
-    overtimeHours: Math.round(overtimeHours * 10) / 10
+    overtimeHours: Math.round(overtimeHours)
   }
 }
 
@@ -187,7 +184,7 @@ const getCellVisual = (
 
   if (entry.status === 'work' || entry.status === 'remote') {
     const hours = getWorkedHours(entry, date)
-    const rawHours = entry.hours_worked ?? getDailyHoursNorm(date)
+    const rawHours = roundTimesheetHours(entry.hours_worked, getDailyHoursNorm(date))
     const minimumHours = getMinimumHoursForDay(date)
     const isCritical = hours < 3
     const isUnderworked = hours < minimumHours
@@ -208,8 +205,8 @@ const getCellVisual = (
     const titlePrefix = entry.status === 'remote' ? STATUS_META.remote.label : STATUS_META.work.label
     const hasAdjustedHours = Math.abs(rawHours - hours) > 0.001
     const title = hasAdjustedHours
-      ? `${titlePrefix}. Факт в табеле: ${formatExactHours(rawHours)} ч. Учтено в расчёте: ${formatExactHours(hours)} ч. Норма дня: ${minimumHours} ч.`
-      : `${titlePrefix}. Отработано: ${formatExactHours(hours)} ч. Норма дня: ${minimumHours} ч.`
+      ? `${titlePrefix}. Факт в табеле: ${formatHours(rawHours)} ч. Учтено в расчёте: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
+      : `${titlePrefix}. Отработано: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
 
     return {
       label: entry.status === 'remote' ? STATUS_META.remote.short : formatHours(hours),

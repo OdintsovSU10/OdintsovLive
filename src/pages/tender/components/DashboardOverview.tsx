@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { supabase } from '../../../lib/supabase'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
-import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday } from '../utils/salaryCalculator'
+import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import { useLivePayroll } from '../hooks/useLivePayroll'
 import {
   calculateMonthlyPayrollPlan,
@@ -356,7 +356,10 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
         if (error) throw error
 
         if (!cancelled) {
-          setHistoryEntries((data || []) as TimesheetEntry[])
+          setHistoryEntries(((data || []) as TimesheetEntry[]).map(entry => ({
+            ...entry,
+            hours_worked: entry.hours_worked == null ? null : roundTimesheetHours(entry.hours_worked)
+          })))
         }
       } catch (err) {
         console.error('Error loading dashboard history:', err)
@@ -407,7 +410,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
           const entryDate = new Date(`${entry.work_date}T12:00:00`)
           const weekendOrHoliday = isWeekendOrHoliday(entryDate)
           const expectedHours = getDailyHoursNorm(entryDate)
-          let workedHours = entry.hours_worked ?? expectedHours
+          let workedHours = roundTimesheetHours(entry.hours_worked, expectedHours)
 
           // Импорт "У" проставляет 8 часов. Для удалёнки в будни считаем это полной нормой дня (9/8),
           // иначе факт по часам занижается даже при полностью отработанном месяце.

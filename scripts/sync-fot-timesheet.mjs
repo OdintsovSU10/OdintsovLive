@@ -713,7 +713,9 @@ function normalizeTimesheetRow(row, dateField) {
     ? [dateField, ...FIELD_ALIASES.date.filter(alias => normalizeKey(alias) !== normalizeKey(dateField))]
     : FIELD_ALIASES.date
   const workDate = parseDate(pickValue(record, dateAliases))
-  const hours = parseHours(pickValue(record, FIELD_ALIASES.hours))
+  const parsedHours = parseHours(pickValue(record, FIELD_ALIASES.hours))
+  // FOT показывает и суммирует арифметически округлённые дневные часы.
+  const hours = parsedHours === null ? null : Math.max(0, Math.round(parsedHours))
   const status = normalizeStatus(pickString(record, FIELD_ALIASES.status), hours)
 
   if (!workDate) return { error: 'Missing work date' }
