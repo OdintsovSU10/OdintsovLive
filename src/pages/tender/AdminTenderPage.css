@@ -72,6 +72,10 @@
   gap: 10px;
 }
 
+.tender-page .admin-actions-danger {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .tender-page .admin-card {
   border: 1px solid rgba(100, 116, 139, 0.16);
   border-radius: 12px;
@@ -93,6 +97,10 @@
 
 .tender-page .admin-card.admin-card-danger {
   border-color: rgba(248, 113, 113, 0.28);
+}
+
+.tender-page .admin-card.admin-card-timesheet-sync {
+  grid-column: span 2;
 }
 
 .tender-page .tender-tabs {
@@ -278,11 +286,6 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
-  margin-bottom: 16px;
-  padding: 12px;
-  border: 1px solid rgba(100, 116, 139, 0.16);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.5);
 }
 
 .tender-page .timesheet-sync-control {
@@ -297,7 +300,8 @@
   font-size: 0.76rem;
 }
 
-.tender-page .timesheet-sync-control select {
+.tender-page .timesheet-sync-control select,
+.tender-page .timesheet-sync-control input {
   min-width: 150px;
   height: 38px;
   border: 1px solid rgba(100, 116, 139, 0.2);
@@ -305,6 +309,12 @@
   background: rgba(15, 23, 42, 0.86);
   color: #e2e8f0;
   padding: 0 10px;
+  font: inherit;
+}
+
+.tender-page .timesheet-sync-control.timesheet-sync-year input {
+  min-width: 96px;
+  width: 110px;
 }
 
 .tender-page .timesheet-sync-note {
@@ -862,6 +872,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .tender-page .admin-card.admin-card-timesheet-sync {
+    grid-column: 1 / -1;
+  }
+
   .tender-page .timesheet-months-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -922,6 +936,10 @@
   .tender-page .admin-actions,
   .tender-page .timesheet-months-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tender-page .admin-card.admin-card-timesheet-sync {
+    grid-column: auto;
   }
 
   .tender-page .tender-tabs {
