@@ -27,11 +27,14 @@ const DEPT_PALETTE = ['#a78bfa', '#38bdf8', '#6ee7b7', '#fbbf24', '#f472b6', '#f
 
 const STATUS_META: Record<TimesheetStatus, { label: string; short: string; className: string }> = {
   work: { label: 'Работа', short: '', className: 'work' },
-  remote: { label: 'Удалёнка', short: 'У', className: 'remote' },
-  vacation: { label: 'Отпуск', short: 'О', className: 'vacation' },
+  remote: { label: 'Удалёнка', short: 'УУ', className: 'remote' },
+  vacation: { label: 'Отпуск', short: 'От', className: 'vacation' },
+  sick: { label: 'Больничный', short: 'Б', className: 'sick' },
   dayoff: { label: 'Выходной', short: 'В', className: 'dayoff' },
-  absent: { label: 'Отсутствие', short: 'Б', className: 'absent' },
-  unpaid: { label: 'За свой счёт', short: 'Н', className: 'unpaid' }
+  absent: { label: 'Неявка', short: 'Н', className: 'absent' },
+  unpaid: { label: 'За свой счёт', short: 'С', className: 'unpaid' },
+  educational_leave: { label: 'Учебный отпуск', short: 'У', className: 'educational' },
+  sick_worked: { label: 'Работа на больничном', short: 'РБ', className: 'sick-worked' }
 }
 
 const getPositionPriority = (position: string | undefined): number => {
@@ -67,9 +70,13 @@ const getTimesheetNormHours = (date: Date): number => {
 const WEEKEND_TARGET_HOURS = 5
 
 const getWorkedHours = (entry: TimesheetEntry, date: Date): number => {
-  if (entry.status !== 'work' && entry.status !== 'remote') return 0
+  if (entry.status !== 'work' && entry.status !== 'remote' && entry.status !== 'sick_worked') return 0
 
   const expectedHours = getDailyHoursNorm(date)
+  if (entry.status === 'sick_worked') {
+    return roundTimesheetHours(entry.hours_worked) || expectedHours
+  }
+
   const weekendOrHoliday = isWeekendOrHoliday(date)
   const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
 
@@ -142,7 +149,7 @@ const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: numbe
     const date = new Date(year, month - 1, day)
     const weekend = isWeekendOrHoliday(date)
 
-    if (entry.status === 'work' || entry.status === 'remote') {
+    if (entry.status === 'work' || entry.status === 'remote' || entry.status === 'sick_worked') {
       const hours = getWorkedHours(entry, date)
       totalHours += hours
       overtimeHours += Math.max(0, hours - getDailyHoursNorm(date))
@@ -152,16 +159,16 @@ const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: numbe
       }
 
       if (weekend) {
-        if (entry.status === 'remote' || hours >= 3) weekendDays += 1
+        if (entry.status === 'remote' || entry.status === 'sick_worked' || hours >= 3) weekendDays += 1
       } else {
-        if (entry.status === 'remote' || hours >= 3) {
+        if (entry.status === 'remote' || entry.status === 'sick_worked' || hours >= 3) {
           workDays += 1
         }
       }
       continue
     }
 
-    if (entry.status === 'vacation') {
+    if (entry.status === 'vacation' || entry.status === 'educational_leave') {
       vacationDays += 1
     }
   }
@@ -213,6 +220,16 @@ const getCellVisual = (
       className: `ts-pill ${entry.status === 'remote' ? 'ts-pill-status' : 'ts-pill-hours'} ${baseTone} ${stateTone}`,
       title,
       underworkTag: isUnderworked ? getUnderworkTag(date) : undefined
+    }
+  }
+
+  if (entry.status === 'sick_worked') {
+    const hours = getWorkedHours(entry, date)
+    const meta = STATUS_META.sick_worked
+    return {
+      label: meta.short,
+      className: `ts-pill ts-pill-status ts-status-${meta.className}`,
+      title: `${meta.label}. Учтено: ${formatHours(hours)} ч.`
     }
   }
 
@@ -405,13 +422,17 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
         <span className="ts-legend-title">Легенда</span>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-weekend" /> Выходные дни</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-workday" /> Рабочие дни (будни)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-remote" /> Удалёнка</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-state-low" /> Недоработка (ярлык &lt;9/&lt;8/&lt;5)</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-state-critical" /> Критично (&lt;3ч)</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-state-high" /> Повышенная нагрузка (&gt;10ч)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-status-vacation" /> Отпуск</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-status-absent" /> Отсутствие</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-weekend-dot" /> Выходной</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-vacation">От</span> Отпуск</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-sick">Б</span> Больничный</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-absent">Н</span> Неявка</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-dayoff">В</span> Выходной</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-remote">УУ</span> Удалёнка</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-unpaid">С</span> За свой счёт</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-educational">У</span> Учебный отпуск</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-sick-worked">РБ</span> Работа на больничном</div>
       </div>
 
       {!isMobile && (

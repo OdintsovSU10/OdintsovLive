@@ -3,6 +3,10 @@
 Инструкция для правильного и безопасного деплоя сайта **live.meridianai.ru**.
 Сервер многосайтовый — рядом живут другие сервисы, ломать их нельзя.
 
+> **Это главный источник истины для деплоя репозитория `OdintsovSU10/OdintsovLive`.**
+> Не применять к нему FOT-инструкции с `ssh vds`, `/var/www/fot`, PM2 или
+> `scripts/deploy-frontend.sh`: они относятся к другому проекту.
+
 > Это отдельный сайт (odintsovlive, SPA + Supabase), **не** приложение Meridian.
 > Инфра-файлы портала: репозиторий `odintsovlive-infra/` (рядом с инфрой).
 
@@ -10,9 +14,9 @@
 
 ## TL;DR
 
-1. Собрать SPA **локально**: `npm run build` → `dist/`.
-2. Убедиться, что в бандле `supabaseUrl = https://live.meridianai.ru`.
-3. Залить статику: `./deploy.sh` (только статика, Supabase не трогаем).
+1. Закоммитить и отправить предназначенные для релиза изменения в `origin`.
+2. Собрать и залить SPA командой с явным production URL (см. §1.2).
+3. Убедиться, что в бандле нет старого `odintsovlive.fvds.ru`.
 4. Проверить: `curl -I https://live.meridianai.ru` → `200`, залогиниться в браузере.
 5. **Сборку на сервере НЕ делать** (1 vCPU / 1.9 ГБ — задушит соседей).
 
@@ -51,34 +55,47 @@
 ### 1.1 Сборка (локально, в оригинальном проекте SPA)
 
 ```bash
-npm run build  # → dist/
+VITE_SUPABASE_URL=https://live.meridianai.ru npm run build  # → dist/
 ```
 
-`deploy.sh` ожидает, что правильный `supabaseUrl` будет зашит в бандл при билде
-(через `VITE_SUPABASE_URL` в `.env`).
+`deploy.sh` ожидает, что правильный `supabaseUrl` будет зашит в бандл при билде.
+Vite читает в том числе локальный `.env.local`, поэтому для production значение
+`VITE_SUPABASE_URL` всегда передаём явно в команде запуска скрипта.
 
 ⚠️ **Перед сборкой** проверь, что Supabase URL зашит правильный:
 `https://live.meridianai.ru` (раньше был `odintsovlive.fvds.ru`). Задавать через
-`.env` / `VITE_*`, а не хардкодом. На сервере sub_filter убран — подмены URL на лету НЕТ.
+явную переменную `VITE_SUPABASE_URL`, а не хардкодом. На сервере sub_filter убран —
+подмены URL на лету НЕТ.
 Supabase при этом **работает локально на сервере** (`/opt/supabase/`) — порталу
 нужен только правильный внешний URL в bundle.
 
 ### 1.2 Заливка на сервер
 
 ```bash
-# по умолчанию:
+# Обязательный production-вариант:
+VITE_SUPABASE_URL=https://live.meridianai.ru \
+EXPECTED_SUPABASE_URL=https://live.meridianai.ru \
+./deploy.sh
+
+# Параметры deploy.sh по умолчанию:
 #   SSH_TARGET=selectel
 #   REMOTE_PATH=/opt/sites/odintsovlive
 #   DIST_DIR=dist
 # опционально:
 #   SKIP_BACKUP=1   # без бэкапа на сервере
 #   SKIP_VERIFY=1  # без curl-проверок
-./deploy.sh
 ```
 
 - `index.html` отдаётся с `no-cache` → новая версия подхватывается сразу.
 - Ассеты `/assets/*` имеют хеш в имени и immutable-кэш — коллизий нет.
 - **Рестарт контейнера не нужен** (bind-mount читается на лету).
+
+После сборки проверить endpoint в бандле:
+
+```bash
+rg -q 'https://live\.meridianai\.ru' dist
+! rg -q 'odintsovlive\.fvds\.ru' dist
+```
 
 ### 1.3 Проверка — см. §4.
 
@@ -104,6 +121,12 @@ ssh selectel 'cd /opt/sites && docker compose up -d --force-recreate web'   # и
 - НЕ хардкодить в nginx-конфиге. Токен хранится в `/opt/sites/fot-token-api/data/token` (`0600`).
 - Ротация — через страницу `https://live.meridianai.ru/fot-admin` (доступ по `profiles.is_admin`).
 - Значение токена не выводить в чат, логи, коммиты, скриншоты.
+
+**События сотрудников FOT:** полный порядок включения endpoint, capability
+`skud_events` и sidecar-маршрута описан в
+`ops/fot-employee-events/README.md`. Изменение затрагивает FOT backend,
+`fot-token-api`, nginx-конфиг портала и SPA, поэтому включается именно в таком
+порядке.
 
 ---
 

@@ -3,6 +3,7 @@ import { useTenderData } from './hooks/useTenderData'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
 import { DashboardOverview } from './components/DashboardOverview'
+import { EmployeeSkudEvents } from './components/EmployeeSkudEvents'
 import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { getWorkDaysNorm } from '../../lib/workNorms'
@@ -1040,6 +1041,12 @@ export function EmployeeDetail({
           </div>
         </div>
       </article>
+
+      <EmployeeSkudEvents
+        fotEmployeeId={employee.fot_employee_id}
+        initialYear={year}
+        initialMonth={month}
+      />
 
       <article className="tender-detail-history">
         <div className="tender-detail-history-head">

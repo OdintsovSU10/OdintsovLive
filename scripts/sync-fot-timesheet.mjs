@@ -397,11 +397,14 @@ function normalizeStatus(value, hours) {
     .replace(/ё/g, 'е')
 
   if (['work', 'worked', 'present', 'manual', 'я', 'работа', 'рабочий', 'явка'].includes(normalized)) return 'work'
-  if (['remote', 'удаленка', 'удаленная работа', 'удаленно', 'у'].includes(normalized)) return 'remote'
-  if (['vacation', 'educational_leave', 'отпуск', 'учебный отпуск', 'о'].includes(normalized)) return 'vacation'
+  if (['sick_worked', 'работа на больничном', 'работал на больничном', 'рб'].includes(normalized)) return 'sick_worked'
+  if (['remote', 'удаленка', 'удаленная работа', 'удаленно', 'уу', 'уд'].includes(normalized)) return 'remote'
+  if (['vacation', 'отпуск', 'от', 'о'].includes(normalized)) return 'vacation'
+  if (['sick', 'ill', 'больничный', 'болезнь', 'б'].includes(normalized)) return 'sick'
   if (['dayoff', 'weekend', 'holiday', 'выходной', 'праздник', 'в'].includes(normalized)) return 'dayoff'
-  if (['unpaid', 'без содержания', 'за свой счет', 'н'].includes(normalized)) return 'unpaid'
-  if (['absent', 'sick', 'ill', 'больничный', 'болезнь', 'неявка', 'прогул', 'б'].includes(normalized)) return 'absent'
+  if (['unpaid', 'без содержания', 'за свой счет', 'с', 'до'].includes(normalized)) return 'unpaid'
+  if (['educational_leave', 'учебный отпуск', 'у', 'уо'].includes(normalized)) return 'educational_leave'
+  if (['absent', 'неявка', 'прогул', 'н'].includes(normalized)) return 'absent'
   if (hours && hours > 0) return 'work'
 
   return null
@@ -787,7 +790,7 @@ function calculateStats(rows) {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
     const hours = Number(row.hours_worked || 0)
 
-    if (row.status === 'work' || row.status === 'remote') {
+    if (row.status === 'work' || row.status === 'remote' || row.status === 'sick_worked') {
       if (isWeekend) {
         if (hours >= 3) current.weekend_work_days += 1
       } else {

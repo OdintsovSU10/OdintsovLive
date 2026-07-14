@@ -143,19 +143,35 @@ export function parseTimesheetCell(value: string): { status: TimesheetStatus; ho
     return { status: 'dayoff', hours: null, is_correction: false }
   }
 
-  // Удалёнка
-  if (upper === 'У') {
+  // Удалёнка (обозначение FOT)
+  if (upper === 'УУ' || upper === 'УД') {
     return { status: 'remote', hours: 8, is_correction: false }
   }
 
   // Отпуск
-  if (upper === 'ОТ') {
+  if (upper === 'ОТ' || upper === 'О') {
     return { status: 'vacation', hours: null, is_correction: false }
   }
 
   // Отпуск за свой счёт
-  if (upper === 'ДО') {
+  if (upper === 'С' || upper === 'ДО') {
     return { status: 'unpaid', hours: null, is_correction: false }
+  }
+
+  if (upper === 'Б') {
+    return { status: 'sick', hours: null, is_correction: false }
+  }
+
+  if (upper === 'Н') {
+    return { status: 'absent', hours: null, is_correction: false }
+  }
+
+  if (upper === 'У' || upper === 'УО') {
+    return { status: 'educational_leave', hours: null, is_correction: false }
+  }
+
+  if (upper === 'РБ') {
+    return { status: 'sick_worked', hours: 8, is_correction: false }
   }
 
   // Рабочий день: "Я 09:15" или "Я 9:15" или "Я 09:15Кор"

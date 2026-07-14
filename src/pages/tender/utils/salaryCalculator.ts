@@ -140,6 +140,7 @@ export function calculateSalary(input: SalaryInput): SalaryCalculation {
 
     switch (entry.status) {
       case 'work':
+      case 'sick_worked':
         total_hours += hours || getDailyHoursNorm(entryDate)
         if (isWeekend) {
           // Выходной засчитывается только если >= 3 часов
@@ -159,6 +160,7 @@ export function calculateSalary(input: SalaryInput): SalaryCalculation {
         total_hours += remoteHours
         break
       case 'vacation':
+      case 'educational_leave':
         vacation_days++
         break
       case 'dayoff':
@@ -166,6 +168,7 @@ export function calculateSalary(input: SalaryInput): SalaryCalculation {
         break
       case 'absent':
       case 'unpaid':
+      case 'sick':
         absent_days++
         break
     }
@@ -273,7 +276,7 @@ export function checkTimeDeviations(timesheet: TimesheetEntry[]): TimeDeviation[
   const deviations: TimeDeviation[] = []
 
   for (const entry of timesheet) {
-    if (entry.status !== 'work' && entry.status !== 'remote') continue
+    if (entry.status !== 'work' && entry.status !== 'remote' && entry.status !== 'sick_worked') continue
 
     const date = new Date(entry.work_date)
     const expected = getDailyHoursNorm(date)

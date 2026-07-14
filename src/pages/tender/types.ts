@@ -62,7 +62,16 @@ export interface PositionHistory {
   note: string | null
 }
 
-export type TimesheetStatus = 'work' | 'vacation' | 'dayoff' | 'remote' | 'unpaid' | 'absent'
+export type TimesheetStatus =
+  | 'work'
+  | 'vacation'
+  | 'sick'
+  | 'dayoff'
+  | 'remote'
+  | 'unpaid'
+  | 'absent'
+  | 'educational_leave'
+  | 'sick_worked'
 
 export interface TimesheetEntry {
   id: number

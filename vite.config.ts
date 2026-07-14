@@ -93,6 +93,12 @@ export default defineConfig(({ mode }) => {
   const fotDepartmentsProxy = createFotApiProxy(fotDepartmentsApi, env.FOT_API_TOKEN, '/fot-api-departments')
   const fotTimesheetApi = env.FOT_TIMESHEET_API || 'https://fot.su10.ru/api/public/v1/timesheet'
   const fotTimesheetProxy = createFotApiProxy(fotTimesheetApi, env.FOT_API_TOKEN, '/fot-api-timesheet')
+  const fotEmployeeEventsApi = env.FOT_EMPLOYEE_EVENTS_API || 'https://fot.su10.ru/api/public/v1/employee-events'
+  const fotEmployeeEventsProxy = createFotApiProxy(
+    fotEmployeeEventsApi,
+    env.FOT_API_TOKEN,
+    '/fot-api-employee-events'
+  )
 
   return {
     plugins: [react(), createAppVersionPlugin(buildVersion, builtAt)],
@@ -117,6 +123,7 @@ export default defineConfig(({ mode }) => {
           secure: false
         },
         ...(fotTimesheetProxy ? { '/fot-api-timesheet': fotTimesheetProxy } : {}),
+        ...(fotEmployeeEventsProxy ? { '/fot-api-employee-events': fotEmployeeEventsProxy } : {}),
         ...(fotDepartmentsProxy ? { '/fot-api-departments': fotDepartmentsProxy } : {}),
         ...(fotApiProxy ? { '/fot-api': fotApiProxy } : {})
       }

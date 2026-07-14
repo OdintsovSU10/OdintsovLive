@@ -133,6 +133,16 @@
   justify-content: center;
 }
 
+.ts-legend-chip.ts-legend-code {
+  width: auto;
+  min-width: 22px;
+  padding: 0 4px;
+  font-family: 'DM Mono', 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .timesheet-table-wrapper {
   overflow: auto;
   border-radius: 12px;
@@ -461,6 +471,12 @@
   color: #fbbf24;
 }
 
+.ts-status-sick {
+  background: rgba(96, 165, 250, 0.14);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #93c5fd;
+}
+
 .ts-status-dayoff {
   background: rgba(148, 163, 184, 0.11);
   border-color: rgba(148, 163, 184, 0.26);
@@ -477,6 +493,18 @@
   background: rgba(251, 146, 60, 0.14);
   border-color: rgba(251, 146, 60, 0.35);
   color: #fdba74;
+}
+
+.ts-status-educational {
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.35);
+  color: #c4b5fd;
+}
+
+.ts-status-sick-worked {
+  background: rgba(45, 212, 191, 0.14);
+  border-color: rgba(45, 212, 191, 0.35);
+  color: #5eead4;
 }
 
 .ts-correction-dot {
