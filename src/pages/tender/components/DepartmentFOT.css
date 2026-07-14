@@ -148,12 +148,12 @@
 }
 
 .fot-total.live {
-  color: #22d3ee;
-  text-shadow: 0 0 24px rgba(34, 211, 238, 0.22);
+  color: #34d399;
+  text-shadow: 0 0 24px rgba(52, 211, 153, 0.22);
 }
 
 .fot-live-rate {
-  color: #22d3ee;
+  color: #6ee7b7;
   font-size: 0.73rem;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   font-weight: 700;

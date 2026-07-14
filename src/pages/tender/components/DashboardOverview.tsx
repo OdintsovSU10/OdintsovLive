@@ -7,6 +7,7 @@ import {
   calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
   formatLiveNumber,
+  getLivePayrollPauseLabel,
   getExtraBonusKey,
   getSavedTransport,
   parseExtraBonuses
@@ -78,10 +79,10 @@ const MONTHS_WINDOW = 5
 
 const SORT_OPTIONS: Array<{ key: SortBy; label: string; color: string }> = [
   { key: 'hours', label: 'Часы', color: '#818cf8' },
-  { key: 'earned', label: 'Заработок', color: '#22d3ee' }
+  { key: 'earned', label: 'Заработок', color: '#34d399' }
 ]
 const DEPARTMENT_METRIC_OPTIONS: Array<{ key: DepartmentMetric; label: string; color: string }> = [
-  { key: 'earned', label: 'Заработок', color: '#22d3ee' },
+  { key: 'earned', label: 'Заработок', color: '#34d399' },
   { key: 'hours', label: 'Часы', color: '#818cf8' }
 ]
 
@@ -681,19 +682,19 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 value: livePayroll.isLive ? livePayroll.accrued : analytics.latestEarned,
                 suffix: ' ₽',
                 color: livePayroll.isLive
-                  ? '#22d3ee'
+                  ? '#34d399'
                   : analytics.latestFOTDelta > 0
                     ? '#ef4444'
                     : analytics.latestFOTDelta < 0
                       ? '#22c55e'
-                      : '#22d3ee',
+                      : '#34d399',
                 sub: livePayroll.isLive ? (
                   <span className="dash-kpi-sub-lines">
                     <span>План месяца: {formatNumber(livePayroll.planned)} ₽</span>
                     <span className={`dash-kpi-sub-accent live${livePayroll.isAccruing ? '' : ' paused'}`}>
                       {livePayroll.isAccruing
                         ? `+${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
-                        : 'Начисление на паузе'}
+                        : getLivePayrollPauseLabel(livePayroll.accrualState)}
                     </span>
                     <span>По табелю: {formatNumber(analytics.latestEarned)} ₽</span>
                   </span>
@@ -826,7 +827,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                                 {livePayroll.isLive
                                   ? (livePayroll.isAccruing
                                       ? `+${formatLiveMoney(employeeRatePerSecond)} / сек`
-                                      : 'Счётчик на паузе')
+                                      : getLivePayrollPauseLabel(livePayroll.accrualState))
                                   : 'Расчётный месяц завершён'}
                                 {' · '}Табель: {formatNumber(trend.latest.earned)} ₽
                               </span>

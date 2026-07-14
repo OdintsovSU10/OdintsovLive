@@ -816,8 +816,8 @@
 }
 
 .tender-detail-live-primary {
-  border-color: rgba(34, 211, 238, 0.24);
-  background: rgba(8, 47, 73, 0.22);
+  border-color: rgba(52, 211, 153, 0.28);
+  background: rgba(6, 78, 59, 0.2);
 }
 
 .tender-detail-live-primary small,
@@ -842,7 +842,7 @@
 }
 
 .tender-detail-live-primary strong {
-  color: #22d3ee;
+  color: #34d399;
   font-size: 1.2rem;
 }
 
@@ -855,7 +855,7 @@
 }
 
 .tender-detail-live-primary > span.accruing {
-  color: #67e8f9;
+  color: #6ee7b7;
 }
 
 .tender-detail-live-progress {
@@ -869,7 +869,7 @@
 .tender-detail-live-progress > div {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #22d3ee, #818cf8);
+  background: linear-gradient(90deg, #34d399, #22d3ee);
   transition: width 0.5s linear;
 }
 
