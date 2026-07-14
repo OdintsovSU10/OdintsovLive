@@ -239,7 +239,7 @@ function Sparkline({
   height?: number
 }) {
   if (data.length < 2) {
-    return <div className="dash-sparkline-empty">—</div>
+    return <span className="dash-sparkline-empty">—</span>
   }
 
   const max = Math.max(...data)
@@ -257,7 +257,13 @@ function Sparkline({
   const lastY = Number(lastPoint[1])
 
   return (
-    <svg width={width} height={height} className="dash-sparkline">
+    <svg
+      width={width}
+      height={height}
+      className="dash-sparkline"
+      aria-hidden="true"
+      focusable="false"
+    >
       <polyline
         fill="none"
         stroke={color}
@@ -777,6 +783,9 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                     const employeeProgress = employeePlan > 0
                       ? Math.min(100, Math.max(0, (employeeFact / employeePlan) * 100))
                       : 0
+                    const employeeHoursProgress = trend.latest.normHoursWeekdays > 0
+                      ? Math.max(0, (trend.latest.hours / trend.latest.normHoursWeekdays) * 100)
+                      : 0
                     const employeeRatePerSecond = livePayroll.planned > 0 && livePayroll.isAccruing
                       ? livePayroll.ratePerSecond * (employeePlan / livePayroll.planned)
                       : 0
@@ -807,10 +816,11 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                           {sortBy === 'earned' ? (
                             <>
                               <span className="dash-ranking-main dash-ranking-payroll" style={{ color: baseColor }}>
-                                Факт: {formatLiveNumber(employeeFact)} ₽
+                                <span className="dash-ranking-label">Начислено</span>
+                                <span className="dash-ranking-value">{formatLiveNumber(employeeFact)} ₽</span>
                               </span>
                               <span className="dash-ranking-sub dash-ranking-payroll-plan">
-                                План: {formatNumber(employeePlan)} ₽ · {employeeProgress.toFixed(1)}%
+                                План месяца: {formatNumber(employeePlan)} ₽ · {employeeProgress.toFixed(1)}%
                               </span>
                               <span className="dash-ranking-sub dash-ranking-sub-salary">
                                 {livePayroll.isLive
@@ -818,27 +828,32 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                                       ? `+${formatLiveMoney(employeeRatePerSecond)} / сек`
                                       : 'Счётчик на паузе')
                                   : 'Расчётный месяц завершён'}
-                                {' · '}По табелю: {formatNumber(trend.latest.earned)} ₽
+                                {' · '}Табель: {formatNumber(trend.latest.earned)} ₽
                               </span>
                             </>
                           ) : (
                             <>
                               <span className="dash-ranking-main" style={{ color: baseColor }}>
-                                <span className={`dash-fact-value ${isMetricExceeded ? 'alert' : ''}`}>
-                                  {formatNumber(trend.latest.hours)}
+                                <span className="dash-ranking-label">Отработано</span>
+                                <span className={`dash-ranking-value dash-fact-value ${isMetricExceeded ? 'alert' : ''}`}>
+                                  {formatNumber(trend.latest.hours)} ч
                                 </span>
-                                /{formatNumber(trend.latest.normHoursWeekdays)} ч
                               </span>
-                              <span className={`dash-ranking-sub ${isMetricExceeded ? 'alert' : ''}`}>
-                                OT: +{formatDecimal(trend.latest.overtime)} ч
+                              <span className="dash-ranking-sub dash-ranking-hours-plan">
+                                Норма месяца: {formatNumber(trend.latest.normHoursWeekdays)} ч · {employeeHoursProgress.toFixed(1)}%
                               </span>
-                              <span className="dash-ranking-sub dash-ranking-sub-salary dash-ranking-payroll-inline">
-                                ₽ факт: {formatLiveNumber(employeeFact)} / план: {formatNumber(employeePlan)}
+                              <span className={`dash-ranking-sub dash-ranking-hours-extra ${isMetricExceeded ? 'alert' : ''}`}>
+                                Сверх нормы: +{formatDecimal(trend.latest.overtime)} ч
                               </span>
                             </>
                           )}
                         </span>
-                        <Sparkline data={sparkData} color={baseColor} />
+                        <span
+                          className="dash-ranking-trend"
+                          aria-label={`Динамика за ${MONTHS_WINDOW} месяцев`}
+                        >
+                          <Sparkline data={sparkData} color={baseColor} />
+                        </span>
                       </button>
                     )
                   })}
