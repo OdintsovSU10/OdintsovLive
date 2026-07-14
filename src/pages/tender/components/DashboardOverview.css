@@ -120,6 +120,15 @@
   color: var(--dash-text-muted);
 }
 
+.dash-kpi-sub-accent.live {
+  color: #22d3ee;
+  font-family: 'DM Mono', monospace;
+}
+
+.dash-kpi-sub-accent.live.paused {
+  color: var(--dash-text-muted);
+}
+
 .dash-main-grid {
   margin-top: 16px;
   display: grid;

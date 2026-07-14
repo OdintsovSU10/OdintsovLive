@@ -2,6 +2,15 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { supabase } from '../../../lib/supabase'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
 import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday } from '../utils/salaryCalculator'
+import { useLivePayroll } from '../hooks/useLivePayroll'
+import {
+  calculateMonthlyPayrollPlan,
+  formatLiveMoney,
+  formatLiveNumber,
+  getExtraBonusKey,
+  getSavedTransport,
+  parseExtraBonuses
+} from '../utils/livePayroll'
 import './DashboardOverview.css'
 
 interface Props {
@@ -310,6 +319,13 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
   const [historyEntries, setHistoryEntries] = useState<TimesheetEntry[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
+
+  const plannedMonthlyFOT = useMemo(() => {
+    const transport = getSavedTransport()
+    const extraBonuses = parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month)))
+    return calculateMonthlyPayrollPlan(employees, year, month, transport, extraBonuses)
+  }, [employees, month, year])
+  const livePayroll = useLivePayroll(plannedMonthlyFOT, year, month)
 
   const monthSlots = useMemo(() => buildMonthSlots(year, month, MONTHS_WINDOW), [year, month])
 
@@ -623,7 +639,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 value: analytics.dashboardEmployeeTrends.length,
                 suffix: '',
                 color: '#818cf8',
-                sub: `С расчётом табеля: ${analytics.dashboardEmployeeTrends.length} из ${analytics.totalEmployees}`
+                sub: `С расчётом табеля: ${analytics.dashboardEmployeeTrends.length} из ${analytics.totalEmployees}`,
+                formatter: formatNumber
               },
               {
                 label: 'Переработки',
@@ -631,19 +648,32 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 value: analytics.latestOvertime,
                 suffix: ' ч',
                 color: '#60a5fa',
-                sub: `За ${latestPeriodLabel}`
+                sub: `За ${latestPeriodLabel}`,
+                formatter: formatNumber
               },
               {
-                label: 'Фонд выплат',
+                label: livePayroll.isLive ? 'Начислено сейчас' : 'Фонд выплат',
                 icon: '💰',
-                value: analytics.latestEarned,
+                value: livePayroll.isLive ? livePayroll.accrued : analytics.latestEarned,
                 suffix: ' ₽',
-                color: analytics.latestFOTDelta > 0
-                  ? '#ef4444'
-                  : analytics.latestFOTDelta < 0
-                    ? '#22c55e'
-                    : '#22d3ee',
-                sub: (
+                color: livePayroll.isLive
+                  ? '#22d3ee'
+                  : analytics.latestFOTDelta > 0
+                    ? '#ef4444'
+                    : analytics.latestFOTDelta < 0
+                      ? '#22c55e'
+                      : '#22d3ee',
+                sub: livePayroll.isLive ? (
+                  <span className="dash-kpi-sub-lines">
+                    <span>План месяца: {formatNumber(livePayroll.planned)} ₽</span>
+                    <span className={`dash-kpi-sub-accent live${livePayroll.isAccruing ? '' : ' paused'}`}>
+                      {livePayroll.isAccruing
+                        ? `+${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
+                        : 'Начисление на паузе'}
+                    </span>
+                    <span>По табелю: {formatNumber(analytics.latestEarned)} ₽</span>
+                  </span>
+                ) : (
                   <span className="dash-kpi-sub-lines">
                     <span>Базовый ФОТ: {formatNumber(analytics.latestBaseFOT)} ₽</span>
                     <span className={`dash-kpi-sub-accent ${
@@ -662,7 +692,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                       {analytics.latestFOTDelta === 0 && 'Отклонение: 0 ₽ (0%)'}
                     </span>
                   </span>
-                )
+                ),
+                formatter: livePayroll.isLive ? formatLiveNumber : formatNumber
               },
               {
                 label: 'Отработано',
@@ -670,7 +701,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 value: analytics.latestHours,
                 suffix: ' ч',
                 color: '#38bdf8',
-                sub: `Выходных смен за ${latestPeriodLabel}: ${analytics.latestWeekendDays}`
+                sub: `Выходных смен за ${latestPeriodLabel}: ${analytics.latestWeekendDays}`,
+                formatter: formatNumber
               }
             ].map(kpi => (
               <article
@@ -683,7 +715,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                   <span className="dash-kpi-icon">{kpi.icon}</span>
                 </div>
                 <div className="dash-kpi-value" style={{ color: kpi.color }}>
-                  <AnimatedNumber value={kpi.value} suffix={kpi.suffix} />
+                  <AnimatedNumber value={kpi.value} suffix={kpi.suffix} formatter={kpi.formatter} />
                 </div>
                 <div className="dash-kpi-sub">{kpi.sub}</div>
               </article>

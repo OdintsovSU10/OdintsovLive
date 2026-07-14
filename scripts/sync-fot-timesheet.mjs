@@ -96,6 +96,7 @@ Options:
   --date-field NAME          FOT date field for gte/lte filters
   --limit N                  Maximum records to read
   --dry-run                  Read and match only, do not write
+  --skip-import-log          Do not append a tender_imports row
   --help                     Show this help
 
 Env:
@@ -109,6 +110,7 @@ Env:
 function parseArgs(argv) {
   const args = {
     dryRun: false,
+    skipImportLog: false,
     date: '',
     from: '',
     to: '',
@@ -135,6 +137,9 @@ function parseArgs(argv) {
         break
       case '--dry-run':
         args.dryRun = true
+        break
+      case '--skip-import-log':
+        args.skipImportLog = true
         break
       case '--date':
         args.date = next()
@@ -189,8 +194,19 @@ function loadEnvFile(path) {
   )
 }
 
-function todayIso() {
-  return new Date().toISOString().split('T')[0]
+function todayIso(timeZone = 'Europe/Moscow') {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+      .formatToParts(new Date())
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value])
+  )
+  return `${parts.year}-${parts.month}-${parts.day}`
 }
 
 function shiftDate(isoDate, deltaDays) {
@@ -220,7 +236,7 @@ function getDateRange(args, env) {
   }
 
   const lookbackDays = args.lookbackDays || Number(env.FOT_TIMESHEET_LOOKBACK_DAYS) || 1
-  const to = todayIso()
+  const to = todayIso(env.FOT_TIMESHEET_TIME_ZONE || 'Europe/Moscow')
   return { from: shiftDate(to, -Math.max(lookbackDays - 1, 0)), to }
 }
 
@@ -867,7 +883,8 @@ function createConfig(args, env) {
     dateField: args.dateField || env.FOT_TIMESHEET_DATE_FIELD || DEFAULT_DATE_FIELD,
     pageSize: Number(env.FOT_TIMESHEET_PAGE_SIZE) || DEFAULT_PAGE_SIZE,
     maxRecords: args.limit || Number(env.FOT_TIMESHEET_MAX_RECORDS) || DEFAULT_MAX_RECORDS,
-    dryRun: args.dryRun
+    dryRun: args.dryRun,
+    skipImportLog: args.skipImportLog || env.FOT_TIMESHEET_SKIP_IMPORT_LOG === '1'
   }
 }
 
@@ -944,7 +961,9 @@ async function main() {
   if (!config.dryRun) {
     await upsertRows(config, 'tender_timesheet', ['employee_id', 'work_date'], upsertPayload)
     await upsertRows(config, 'tender_timesheet_stats', ['employee_id', 'year', 'month'], await buildStatsFromDatabase(config, upsertPayload))
-    await logImport(config, dateRange, summary, errors)
+    if (!config.skipImportLog) {
+      await logImport(config, dateRange, summary, errors)
+    }
   }
 
   console.log(JSON.stringify(summary, null, 2))

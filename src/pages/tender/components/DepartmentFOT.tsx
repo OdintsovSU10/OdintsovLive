@@ -3,6 +3,15 @@ import type { EmployeeWithStats, SalaryCalculation } from '../types'
 import { calculateSalary, formatMoney, getSalaryForMonth } from '../utils/salaryCalculator'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
 import { getEmployeeInitials, getEmployeeShortName, getPositionPriority } from '../utils/tenderPresentation'
+import { useLivePayroll } from '../hooks/useLivePayroll'
+import {
+  calculateMonthlyPayrollPlan,
+  formatLiveMoney,
+  getExtraBonusKey,
+  getSavedTransport,
+  parseExtraBonuses,
+  TRANSPORT_KEY
+} from '../utils/livePayroll'
 import './DepartmentFOT.css'
 
 interface Props {
@@ -44,36 +53,10 @@ interface DepartmentPayrollGroup {
   }
 }
 
-const TRANSPORT_KEY = 'fot_base_transport'
-const DEFAULT_TRANSPORT = 2730
-const EXTRA_BONUS_PREFIX = 'fot_extra_bonuses'
-
 const DEPT_COLORS = ['#a78bfa', '#38bdf8', '#6ee7b7', '#fbbf24', '#f472b6', '#fb923c', '#818cf8', '#34d399']
 const WORK_PAY_COLOR = '#818cf8'
 const WEEKEND_PAY_COLOR = '#f472b6'
 const TRANSPORT_PAY_COLOR = '#38bdf8'
-
-function getExtraBonusKey(year: number, month: number): string {
-  return `${EXTRA_BONUS_PREFIX}_${year}_${month}`
-}
-
-function parseExtraBonuses(raw: string | null): Record<number, number> {
-  if (!raw) return {}
-  try {
-    const parsed = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object') return {}
-    return Object.entries(parsed).reduce<Record<number, number>>((acc, [id, value]) => {
-      const employeeId = Number(id)
-      const bonus = Number(value)
-      if (Number.isFinite(employeeId) && Number.isFinite(bonus)) {
-        acc[employeeId] = bonus
-      }
-      return acc
-    }, {})
-  } catch {
-    return {}
-  }
-}
 
 function pct(part: number, total: number): number {
   if (total <= 0) return 0
@@ -123,10 +106,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
   const workDaysNorm = getWorkDaysNorm(year, month - 1)
   const weekendsNorm = new Date(year, month, 0).getDate() - workDaysNorm
 
-  const [baseTransport, setBaseTransport] = useState(() => {
-    const saved = Number(localStorage.getItem(TRANSPORT_KEY))
-    return Number.isFinite(saved) && saved > 0 ? saved : DEFAULT_TRANSPORT
-  })
+  const [baseTransport, setBaseTransport] = useState(getSavedTransport)
 
   const [extraBonuses, setExtraBonuses] = useState<Record<number, number>>(() => (
     parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month)))
@@ -136,6 +116,12 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
   useEffect(() => {
     setExtraBonuses(parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month))))
   }, [year, month])
+
+  const plannedMonthlyFOT = useMemo(
+    () => calculateMonthlyPayrollPlan(employees, year, month, baseTransport, extraBonuses),
+    [baseTransport, employees, extraBonuses, month, year]
+  )
+  const livePayroll = useLivePayroll(plannedMonthlyFOT, year, month)
 
   const payrollData = useMemo(() => {
     const managers: EmployeePayrollRow[] = []
@@ -378,12 +364,29 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
         </div>
 
         <div className="fot-summary-right">
-          <span>Итого ФОТ</span>
-          <strong className={`fot-total ${growthTone}`}>{formatMoney(payrollData.totals.final)}</strong>
-          <small>Базовый ФОТ: {formatMoney(payrollData.baseFot)}</small>
+          <span>{livePayroll.isLive ? 'Начислено сейчас' : 'Итого ФОТ'}</span>
+          <strong className={`fot-total ${livePayroll.isLive ? 'live' : growthTone}`}>
+            {livePayroll.isLive ? formatLiveMoney(livePayroll.accrued) : formatMoney(payrollData.totals.final)}
+          </strong>
+          <small>
+            {livePayroll.isLive
+              ? `План месяца: ${formatMoney(livePayroll.planned)}`
+              : `Базовый ФОТ: ${formatMoney(payrollData.baseFot)}`}
+          </small>
+          {livePayroll.isLive && (
+            <div className={`fot-live-rate${livePayroll.isAccruing ? '' : ' paused'}`}>
+              {livePayroll.isAccruing
+                ? `● +${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
+                : '● Начисление на паузе'}
+            </div>
+          )}
           <div className={`fot-growth ${growthTone}`}>
             {payrollData.growthAbsolute > 0 ? '▲' : payrollData.growthAbsolute < 0 ? '▼' : '•'} {Math.abs(payrollData.growthPercent).toFixed(1)}%
-            <span>{formatMoney(payrollData.growthAbsolute)}</span>
+            <span>
+              {livePayroll.isLive
+                ? `По табелю: ${formatMoney(payrollData.totals.final)}`
+                : formatMoney(payrollData.growthAbsolute)}
+            </span>
           </div>
         </div>
       </section>

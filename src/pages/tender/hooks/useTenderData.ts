@@ -31,9 +31,11 @@ export function useTenderData() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
 
-  const loadEmployees = useCallback(async (year?: number, month?: number, showArchived = false) => {
-    setLoading(true)
-    setError(null)
+  const loadEmployees = useCallback(async (year?: number, month?: number, showArchived = false, silent = false) => {
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
 
     const targetYear = year ?? selectedYear
     const targetMonth = month ?? selectedMonth
@@ -165,9 +167,13 @@ export function useTenderData() {
       setEmployees(enriched)
     } catch (err) {
       console.error('Error loading employees:', err)
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
+      }
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [selectedYear, selectedMonth])
 
@@ -227,6 +233,20 @@ export function useTenderData() {
   useEffect(() => {
     loadEmployees()
   }, [loadEmployees])
+
+  useEffect(() => {
+    const now = new Date()
+    const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth() + 1
+    if (!isCurrentMonth) return undefined
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadEmployees(selectedYear, selectedMonth, false, true)
+      }
+    }, 30_000)
+
+    return () => window.clearInterval(interval)
+  }, [loadEmployees, selectedMonth, selectedYear])
 
   return {
     employees,

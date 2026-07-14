@@ -1,0 +1,14 @@
+[Unit]
+Description=Synchronize OdintsovLive timesheet from FOT
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/opt/sites/fot-token-api/sync.env
+ExecStart=/opt/sites/fot-token-api/run-fot-timesheet-sync.sh
+TimeoutStartSec=55
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

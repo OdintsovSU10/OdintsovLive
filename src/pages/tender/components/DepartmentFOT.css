@@ -147,6 +147,22 @@
   color: #cbd5e1;
 }
 
+.fot-total.live {
+  color: #22d3ee;
+  text-shadow: 0 0 24px rgba(34, 211, 238, 0.22);
+}
+
+.fot-live-rate {
+  color: #22d3ee;
+  font-size: 0.73rem;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+}
+
+.fot-live-rate.paused {
+  color: #64748b;
+}
+
 .fot-summary-right > small {
   color: #94a3b8;
   font-size: 0.75rem;

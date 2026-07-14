@@ -1,0 +1,12 @@
+[Unit]
+Description=Run OdintsovLive FOT timesheet synchronization every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Persistent=true
+Unit=fot-timesheet-sync.service
+
+[Install]
+WantedBy=timers.target
