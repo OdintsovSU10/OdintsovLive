@@ -737,6 +737,7 @@ export function EmployeeDetail({
       normHours: 0,
       overtime: 0,
       earned: 0,
+      timesheetEarned: 0,
       statusCounts: createEmptyTimesheetStatusCounts()
     }
 
@@ -839,6 +840,7 @@ export function EmployeeDetail({
       normHours: Math.round(normHours),
       overtime: Math.round(overtime),
       earned: salaryCalc.final_salary,
+      timesheetEarned: salaryCalc.calculated_salary,
       statusCounts
     }
   }, [
@@ -1071,7 +1073,7 @@ export function EmployeeDetail({
           </div>
           <div className="tender-detail-live-metric">
             <small>По табелю</small>
-            <strong>{Math.round(selectedMonthStats.earned).toLocaleString('ru-RU')} ₽</strong>
+            <strong>{Math.round(selectedMonthStats.timesheetEarned).toLocaleString('ru-RU')} ₽</strong>
           </div>
         </div>
         <div
@@ -1122,7 +1124,7 @@ export function EmployeeDetail({
         </article>
         <article className="tender-detail-kpi-card">
           <small>По табелю</small>
-          <strong style={{ color: '#a5b4fc' }}>{Math.round(selectedMonthStats.earned).toLocaleString('ru-RU')} ₽</strong>
+          <strong style={{ color: '#a5b4fc' }}>{Math.round(selectedMonthStats.timesheetEarned).toLocaleString('ru-RU')} ₽</strong>
         </article>
       </div>
 

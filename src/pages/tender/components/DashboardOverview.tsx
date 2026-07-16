@@ -46,6 +46,7 @@ interface EmployeeTrendPoint {
   weekendDays: number
   earnedPlan: number
   earned: number
+  timesheetEarned: number
 }
 
 interface EmployeeTrend {
@@ -88,7 +89,7 @@ const MONTHS_WINDOW = 5
 
 const SORT_OPTIONS: Array<{ key: SortBy; label: string; color: string }> = [
   { key: 'hours', label: 'Часы', color: '#818cf8' },
-  { key: 'earned', label: 'Начисления', color: '#34d399' }
+  { key: 'earned', label: 'По табелю', color: '#34d399' }
 ]
 const DEPARTMENT_METRIC_OPTIONS: Array<{ key: DepartmentMetric; label: string; color: string }> = [
   { key: 'earned', label: 'Начисления', color: '#34d399' },
@@ -548,7 +549,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
             overtime: 0,
             weekendDays: 0,
             earnedPlan: 0,
-            earned: 0
+            earned: 0,
+            timesheetEarned: 0
           }
         }
 
@@ -579,7 +581,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
           overtime,
           weekendDays,
           earnedPlan: baseEarnedPlan,
-          earned: salaryCalc.final_salary
+          earned: salaryCalc.final_salary,
+          timesheetEarned: salaryCalc.calculated_salary
         }
       })
 
@@ -595,7 +598,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
         overtime: 0,
         weekendDays: 0,
         earnedPlan: 0,
-        earned: 0
+        earned: 0,
+        timesheetEarned: 0
       }
 
       const calculatedPoints = points.filter(point => point.hasTimesheet)
@@ -624,13 +628,14 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
       if (hasTimesheetDiff !== 0) return hasTimesheetDiff
 
       if (sortBy === 'earned') {
-        return right.latest.earned - left.latest.earned
+        return right.latest.timesheetEarned - left.latest.timesheetEarned
       }
       return right.latest.hours - left.latest.hours
     })
 
     const latestOvertime = dashboardEmployeeTrends.reduce((sum, trend) => sum + trend.latest.overtime, 0)
     const latestEarned = dashboardEmployeeTrends.reduce((sum, trend) => sum + trend.latest.earned, 0)
+    const latestTimesheetEarned = dashboardEmployeeTrends.reduce((sum, trend) => sum + trend.latest.timesheetEarned, 0)
     const latestHours = dashboardEmployeeTrends.reduce((sum, trend) => sum + trend.latest.hours, 0)
     const latestWeekendDays = dashboardEmployeeTrends.reduce((sum, trend) => sum + trend.latest.weekendDays, 0)
     const latestBaseFOT = dashboardEmployeeTrends.reduce((sum, trend) => sum + trend.latest.earnedPlan, 0)
@@ -700,6 +705,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
       maxDepartmentOvertime,
       latestOvertime,
       latestEarned,
+      latestTimesheetEarned,
       latestBaseFOT,
       latestFOTGrowthPct,
       latestFOTDelta,
@@ -812,7 +818,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                         ? `+${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
                         : getLivePayrollPauseLabel(livePayroll.accrualState)}
                     </span>
-                    <span>По табелю: {formatNumber(analytics.latestEarned)} ₽</span>
+                    <span>По табелю: {formatNumber(analytics.latestTimesheetEarned)} ₽</span>
                   </span>
                 ) : (
                   <span className="dash-kpi-sub-lines">
@@ -899,8 +905,8 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                     const hoursExceeded = trend.latest.hours > trend.latest.normHoursWeekdays
                     const employeePlan = payrollPlanning.byEmployee.get(trend.employee.id) || 0
                     const employeeTimedAccrual = employeePlan * livePayroll.progress
-                    const employeeActualProgress = employeePlan > 0 && trend.latest.hasTimesheet
-                      ? Math.max(0, (trend.latest.earned / employeePlan) * 100)
+                    const employeeTimesheetProgress = trend.latest.salary > 0 && trend.latest.hasTimesheet
+                      ? Math.max(0, (trend.latest.timesheetEarned / trend.latest.salary) * 100)
                       : 0
                     const employeeHoursProgress = trend.latest.normHoursWeekdays > 0
                       ? Math.max(0, (trend.latest.hours / trend.latest.normHoursWeekdays) * 100)
@@ -908,12 +914,12 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                     const employeeRatePerSecond = livePayroll.planned > 0 && livePayroll.isAccruing
                       ? livePayroll.ratePerSecond * (employeePlan / livePayroll.planned)
                       : 0
-                    const earnedExceeded = trend.latest.hasTimesheet && trend.latest.earned > employeePlan
+                    const earnedExceeded = trend.latest.hasTimesheet && trend.latest.timesheetEarned > trend.latest.salary
                     const isMetricExceeded = sortBy === 'earned' ? earnedExceeded : hoursExceeded
 
                     const sparkData = trend.points.map(point => {
                       const value = point.hasTimesheet
-                        ? (sortBy === 'earned' ? point.earned : point.hours)
+                        ? (sortBy === 'earned' ? point.timesheetEarned : point.hours)
                         : null
                       return { label: point.monthLabel, value }
                     })
@@ -942,13 +948,13 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                                 <span className="dash-ranking-label">По табелю</span>
                                 <span className={`dash-ranking-value ${isMetricExceeded ? 'alert' : ''}`}>
                                   {trend.latest.hasTimesheet
-                                    ? `${formatNumber(trend.latest.earned)} ₽`
+                                    ? `${formatNumber(trend.latest.timesheetEarned)} ₽`
                                     : 'Нет данных'}
                                 </span>
                               </span>
                               <span className="dash-ranking-sub dash-ranking-payroll-plan">
-                                План месяца: {formatNumber(employeePlan)} ₽
-                                {trend.latest.hasTimesheet && ` · исполнено ${employeeActualProgress.toFixed(1)}%`}
+                                Оклад месяца: {formatNumber(trend.latest.salary)} ₽
+                                {trend.latest.hasTimesheet && ` · исполнено ${employeeTimesheetProgress.toFixed(1)}%`}
                               </span>
                               {livePayroll.isLive && (
                                 <>
