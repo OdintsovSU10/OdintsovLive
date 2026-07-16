@@ -4,6 +4,7 @@ import { useLivePayroll } from './hooks/useLivePayroll'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
 import { DashboardOverview } from './components/DashboardOverview'
+import { ManagementAgent } from './components/ManagementAgent'
 import { EmployeeSkudEvents } from './components/EmployeeSkudEvents'
 import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
@@ -44,6 +45,7 @@ const monthNames = [
 ]
 
 const tabsOrder: Array<{ key: TenderTab; label: string }> = [
+  { key: 'agent', label: 'Агент' },
   { key: 'dashboard', label: 'Дашборд' },
   { key: 'timesheet', label: 'Табель' },
   { key: 'fot', label: 'ФОТ' }
@@ -1393,7 +1395,7 @@ export default function TenderPage() {
   const [filterDept, setFilterDept] = useState('all')
   const [filterSubdiv, setFilterSubdiv] = useState('all')
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
-  const [activeTab, setActiveTab] = useState<TenderTab>('dashboard')
+  const [activeTab, setActiveTab] = useState<TenderTab>('agent')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
   const departments = useMemo(
@@ -1523,6 +1525,15 @@ export default function TenderPage() {
           />
         ) : (
           <>
+            {activeTab === 'agent' && (
+              <ManagementAgent
+                employees={employees}
+                year={selectedYear}
+                month={selectedMonth}
+                onSelectEmployee={setSelectedEmployee}
+              />
+            )}
+
             {activeTab === 'dashboard' && (
               <DashboardOverview
                 employees={employees}

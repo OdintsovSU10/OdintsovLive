@@ -218,7 +218,7 @@ export interface ParsedTimesheetRow {
   days: ParsedTimesheetDay[]
 }
 
-export type TenderTab = 'dashboard' | 'employees' | 'timesheet' | 'fot'
+export type TenderTab = 'agent' | 'dashboard' | 'employees' | 'timesheet' | 'fot'
 
 export interface ParsedSalaryEntry {
   employee_name: string
