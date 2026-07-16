@@ -8,7 +8,7 @@ import { EmployeeSkudEvents } from './components/EmployeeSkudEvents'
 import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { getWorkDaysNorm } from '../../lib/workNorms'
-import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from './utils/salaryCalculator'
+import { calculateSalary, getDailyHoursNorm, getRemoteFullDayHours, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from './utils/salaryCalculator'
 import {
   calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
@@ -157,13 +157,8 @@ function resolveTimesheetWorkedHours(entry: TimesheetEntry, date: Date): number 
     return roundTimesheetHours(entry.hours_worked) || expectedHours
   }
 
-  if (
-    entry.status === 'remote'
-    && !isWeekendOrHoliday(date)
-    && entry.hours_worked === 8
-    && !entry.is_correction
-  ) {
-    return expectedHours
+  if (entry.status === 'remote') {
+    return getRemoteFullDayHours(entry.hours_worked, date)
   }
 
   return roundTimesheetHours(entry.hours_worked, expectedHours)

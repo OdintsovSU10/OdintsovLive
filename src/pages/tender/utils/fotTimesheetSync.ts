@@ -1,6 +1,6 @@
 import { supabase } from '../../../lib/supabase'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
-import { roundTimesheetHours } from './salaryCalculator'
+import { getRemoteFullDayHours, roundTimesheetHours } from './salaryCalculator'
 import { normalizeFotHours } from './fotTimeNormalization'
 import type { Employee, TimesheetStatus } from '../types'
 
@@ -19,6 +19,26 @@ interface FotTimesheetDay {
   hours?: string | number | null
   corrected?: boolean | null
   hours_overridden?: boolean | null
+  correction?: {
+    reason?: string | null
+    corrected_by_name?: string | null
+    corrected_at?: string | null
+    approval_status?: string | null
+    source_type?: string | null
+  } | null
+}
+
+interface FotWorkPlanDay {
+  schedule_id?: string | null
+  schedule_name?: string | null
+  schedule_type?: string | null
+  schedule_source?: string | null
+  is_working_day?: boolean | null
+  planned_hours?: string | number | null
+  full_day_threshold_hours?: string | number | null
+  work_start?: string | null
+  work_end?: string | null
+  lunch_minutes?: string | number | null
 }
 
 interface FotTimesheetEmployee {
@@ -27,6 +47,7 @@ interface FotTimesheetEmployee {
   tab_number?: string | number | null
   sigur_employee_id?: string | number | null
   days?: Record<string, FotTimesheetDay | null>
+  plans?: Record<string, FotWorkPlanDay | null>
 }
 
 interface FotTimesheetDepartment {
@@ -43,6 +64,27 @@ interface TimesheetRow {
   status: TimesheetStatus
   hours_worked: number | null
   is_correction: boolean
+  correction_reason: string | null
+  correction_author: string | null
+  correction_at: string | null
+  correction_approval_status: string | null
+  correction_source_type: string | null
+}
+
+interface WorkPlanRow {
+  employee_id: number
+  work_date: string
+  schedule_id: string
+  schedule_name: string | null
+  schedule_type: string
+  schedule_source: string
+  is_working_day: boolean
+  planned_hours: number
+  full_day_threshold_hours: number
+  work_start: string | null
+  work_end: string | null
+  lunch_minutes: number
+  updated_at: string
 }
 
 export interface FotTimesheetSyncResult {
@@ -277,7 +319,9 @@ function calculateStats(rows: Array<Pick<TimesheetRow, 'employee_id' | 'work_dat
 
     const date = new Date(`${row.work_date}T12:00:00`)
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const hours = roundTimesheetHours(row.hours_worked)
+    const hours = row.status === 'remote'
+      ? getRemoteFullDayHours(row.hours_worked, date)
+      : roundTimesheetHours(row.hours_worked)
 
     if (row.status === 'work' || row.status === 'remote' || row.status === 'sick_worked') {
       if (isWeekend) {
@@ -333,6 +377,7 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
   const payload = await fetchJson(url.toString()) as FotTimesheetPayload
   const indexes = createEmployeeIndexes(activeEmployees)
   const rowsToUpsert: TimesheetRow[] = []
+  const plansToUpsert: WorkPlanRow[] = []
   let total = 0
   let failed = 0
   let ignoredUnmatched = 0
@@ -341,6 +386,7 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
     for (const fotEmployee of department.employees || []) {
       const localEmployee = resolveEmployee(fotEmployee, indexes)
       const days = fotEmployee.days || {}
+      const plans = fotEmployee.plans || {}
 
       for (const [workDate, day] of Object.entries(days)) {
         if (!day || typeof day !== 'object') continue
@@ -369,8 +415,37 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
           work_date: workDate,
           status,
           hours_worked: hours,
-          is_correction: isCorrection
+          is_correction: isCorrection,
+          correction_reason: stringValue(day.correction?.reason) || null,
+          correction_author: stringValue(day.correction?.corrected_by_name) || null,
+          correction_at: stringValue(day.correction?.corrected_at) || null,
+          correction_approval_status: stringValue(day.correction?.approval_status) || null,
+          correction_source_type: stringValue(day.correction?.source_type) || null
         })
+      }
+
+      if (localEmployee) {
+        for (const [workDate, plan] of Object.entries(plans)) {
+          if (!plan || typeof plan !== 'object') continue
+          const scheduleId = stringValue(plan.schedule_id)
+          if (!scheduleId) continue
+
+          plansToUpsert.push({
+            employee_id: localEmployee.id,
+            work_date: workDate,
+            schedule_id: scheduleId,
+            schedule_name: stringValue(plan.schedule_name) || null,
+            schedule_type: stringValue(plan.schedule_type) || 'office',
+            schedule_source: stringValue(plan.schedule_source) || 'default',
+            is_working_day: Boolean(plan.is_working_day),
+            planned_hours: parseHours(plan.planned_hours) || 0,
+            full_day_threshold_hours: parseHours(plan.full_day_threshold_hours) || 0,
+            work_start: stringValue(plan.work_start) || null,
+            work_end: stringValue(plan.work_end) || null,
+            lunch_minutes: Math.max(0, Math.round(parseHours(plan.lunch_minutes) || 0)),
+            updated_at: new Date().toISOString()
+          })
+        }
       }
     }
   }
@@ -384,6 +459,14 @@ export async function syncFotTimesheetMonth(year: number, month: number, employe
 
     const employeeIds = Array.from(new Set(rowsToUpsert.map(row => row.employee_id)))
     await recalculateMonthStats(year, month, employeeIds)
+  }
+
+  if (plansToUpsert.length > 0) {
+    const { error } = await supabase
+      .from('tender_work_plans')
+      .upsert(plansToUpsert, { onConflict: 'employee_id,work_date' })
+
+    if (error) throw createDatabaseError(error, 'Не удалось записать графики FOT')
   }
 
   const { error: importError } = await supabase.from('tender_imports').insert({
