@@ -436,7 +436,7 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
         employee: item.employee,
         kind: 'frequent_exits',
         severity: item.frequentExitDays >= 4 ? 'high' : 'medium',
-        title: `Частые выходы в ${pluralize(item.frequentExitDays, 'день', 'дня', 'дней')}`,
+        title: `Частые выходы за ${pluralize(item.frequentExitDays, 'день', 'дня', 'дней')}`,
         evidence: `${pluralize(item.totalBreaks, 'перерыв', 'перерыва', 'перерывов')} вне объекта за период`,
         action: 'Уточните контекст: встречи, выезды или незапланированные перерывы',
         metrics: item
@@ -882,8 +882,14 @@ export function ManagementAgent({ employees, year, month, onSelectEmployee }: Pr
                       </span>
                     </span>
                     <strong>{signal.title}</strong>
-                    <small>{signal.evidence}</small>
-                    <em>{signal.action}</em>
+                    <span className="management-agent-signal-fact">
+                      <span className="management-agent-signal-note-label">Факт</span>
+                      <span className="management-agent-signal-note-value">{signal.evidence}</span>
+                    </span>
+                    <span className="management-agent-signal-action">
+                      <span className="management-agent-signal-note-label">Проверить</span>
+                      <span className="management-agent-signal-note-value">{signal.action}</span>
+                    </span>
                   </span>
                   <ChevronRight size={19} />
                 </button>

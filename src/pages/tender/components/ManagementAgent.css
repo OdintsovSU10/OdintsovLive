@@ -218,7 +218,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.8fr);
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .management-agent-focus,
@@ -234,6 +234,22 @@
 .management-agent-live,
 .management-agent-observations {
   padding: 17px;
+}
+
+.management-agent-focus,
+.management-agent-live {
+  height: clamp(520px, calc(100vh - 250px), 680px);
+  display: flex;
+  flex-direction: column;
+}
+
+.management-agent-focus .management-agent-signals,
+.management-agent-live .management-agent-live-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 3px;
+  scrollbar-width: thin;
 }
 
 .management-agent-section-head {
@@ -318,8 +334,8 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 11px;
-  padding: 12px;
+  gap: 12px;
+  padding: 14px;
   border: 1px solid rgba(100, 116, 139, 0.13);
   border-left: 3px solid #64748b;
   border-radius: 11px;
@@ -385,7 +401,7 @@
 .management-agent-signal-topline > b {
   overflow: hidden;
   color: #e2e8f0;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -396,7 +412,7 @@
   align-items: center;
   gap: 4px;
   color: #64748b;
-  font-size: 0.61rem;
+  font-size: 0.66rem;
   white-space: nowrap;
 }
 
@@ -418,22 +434,57 @@
 }
 
 .management-agent-signal-copy > strong {
+  margin-top: 2px;
   color: #f8fafc;
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   line-height: 1.35;
 }
 
-.management-agent-signal-copy > small {
-  margin-top: 2px;
-  color: #64748b;
-  font-size: 0.68rem;
+.management-agent-signal-fact,
+.management-agent-signal-action {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border-radius: 8px;
 }
 
-.management-agent-signal-copy > em {
+.management-agent-signal-fact {
+  margin-top: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  background: rgba(14, 116, 144, 0.08);
+}
+
+.management-agent-signal-action {
   margin-top: 6px;
+  padding: 7px 10px;
+  background: rgba(100, 116, 139, 0.07);
+}
+
+.management-agent-signal-note-label {
+  padding-top: 1px;
+  color: #64748b;
+  font-size: 0.59rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.management-agent-signal-fact .management-agent-signal-note-label {
+  color: #38bdf8;
+}
+
+.management-agent-signal-note-value {
   color: #94a3b8;
-  font-size: 0.68rem;
-  font-style: normal;
+  font-size: 0.74rem;
+  line-height: 1.42;
+}
+
+.management-agent-signal-fact .management-agent-signal-note-value {
+  color: #dbeafe;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .management-agent-signal > svg {
@@ -844,26 +895,39 @@
   overflow-x: auto;
 }
 
+.management-agent-observations .management-agent-section-head {
+  margin-bottom: 16px;
+}
+
+.management-agent-observations .management-agent-section-head h3 {
+  font-size: 1.1rem;
+}
+
+.management-agent-observations .management-agent-section-head > div:first-child > span,
+.management-agent-observations .management-agent-section-head > small {
+  font-size: 0.72rem;
+}
+
 .management-agent-observations table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 760px;
+  min-width: 900px;
 }
 
 .management-agent-observations th {
-  padding: 8px 10px;
+  padding: 11px 13px;
   border-bottom: 1px solid rgba(100, 116, 139, 0.14);
-  color: #475569;
-  font-size: 0.63rem;
-  font-weight: 600;
+  color: #64748b;
+  font-size: 0.73rem;
+  font-weight: 700;
   text-align: left;
 }
 
 .management-agent-observations td {
-  padding: 9px 10px;
+  padding: 12px 13px;
   border-bottom: 1px solid rgba(100, 116, 139, 0.08);
-  color: #94a3b8;
-  font-size: 0.72rem;
+  color: #cbd5e1;
+  font-size: 0.84rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -882,10 +946,17 @@
 }
 
 .management-agent-table-person {
-  min-width: 210px;
+  min-width: 245px;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
+}
+
+.management-agent-table-person .management-agent-avatar.small {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 0.7rem;
 }
 
 .management-agent-table-person > span:last-child {
@@ -895,14 +966,15 @@
 }
 
 .management-agent-table-person b {
-  color: #cbd5e1;
-  font-size: 0.72rem;
-  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .management-agent-table-person small {
-  color: #475569;
-  font-size: 0.62rem;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.7rem;
 }
 
 .management-agent-rules {
@@ -973,6 +1045,17 @@
 @media (max-width: 1100px) {
   .management-agent-layout {
     grid-template-columns: 1fr;
+  }
+
+  .management-agent-focus,
+  .management-agent-live {
+    height: auto;
+  }
+
+  .management-agent-focus .management-agent-signals,
+  .management-agent-live .management-agent-live-list {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .management-agent-live-list {
