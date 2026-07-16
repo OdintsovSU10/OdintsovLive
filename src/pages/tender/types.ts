@@ -80,6 +80,27 @@ export interface TimesheetEntry {
   status: TimesheetStatus
   hours_worked: number | null
   is_correction: boolean
+  correction_reason?: string | null
+  correction_author?: string | null
+  correction_at?: string | null
+  correction_approval_status?: string | null
+  correction_source_type?: string | null
+}
+
+export interface WorkPlan {
+  id: number
+  employee_id: number
+  work_date: string
+  schedule_id: string
+  schedule_name: string | null
+  schedule_type: string
+  schedule_source: string
+  is_working_day: boolean
+  planned_hours: number
+  full_day_threshold_hours: number
+  work_start: string | null
+  work_end: string | null
+  lunch_minutes: number
 }
 
 export interface AttendanceStats {
@@ -102,6 +123,7 @@ export interface EmployeeWithStats extends Employee {
   attendance: AttendanceStats
   history: HistoryItem[]
   timesheet?: TimesheetEntry[]
+  workPlans?: WorkPlan[]
   salaryHistory?: SalaryHistory[]
 }
 

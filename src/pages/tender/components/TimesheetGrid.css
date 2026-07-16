@@ -416,6 +416,13 @@
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
 }
 
+.ts-plan-only {
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.06);
+  color: #64748b;
+}
+
 .ts-state-low {
   border-color: rgba(251, 191, 36, 0.5);
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.24);
@@ -509,12 +516,27 @@
 
 .ts-correction-dot {
   position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 5px;
-  height: 5px;
+  top: -5px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #fbbf24;
+  color: #422006;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.45rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ts-legend-correction {
+  position: static;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
 }
 
 .ts-summary-cell {
