@@ -1,6 +1,6 @@
 import { supabase } from '../../../lib/supabase'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
-import { roundTimesheetHours } from './salaryCalculator'
+import { getRemoteFullDayHours, roundTimesheetHours } from './salaryCalculator'
 import { normalizeFotHours } from './fotTimeNormalization'
 import type { Employee, TimesheetStatus } from '../types'
 
@@ -277,7 +277,9 @@ function calculateStats(rows: Array<Pick<TimesheetRow, 'employee_id' | 'work_dat
 
     const date = new Date(`${row.work_date}T12:00:00`)
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const hours = roundTimesheetHours(row.hours_worked)
+    const hours = row.status === 'remote'
+      ? getRemoteFullDayHours(row.hours_worked, date)
+      : roundTimesheetHours(row.hours_worked)
 
     if (row.status === 'work' || row.status === 'remote' || row.status === 'sick_worked') {
       if (isWeekend) {

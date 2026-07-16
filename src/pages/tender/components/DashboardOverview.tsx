@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { supabase } from '../../../lib/supabase'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
-import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
+import { calculateSalary, getDailyHoursNorm, getRemoteFullDayHours, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import { useLivePayroll } from '../hooks/useLivePayroll'
 import {
   calculateEmployeeMonthlyPayrollPlan,
@@ -430,18 +430,9 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
           const entryDate = new Date(`${entry.work_date}T12:00:00`)
           const weekendOrHoliday = isWeekendOrHoliday(entryDate)
           const expectedHours = getDailyHoursNorm(entryDate)
-          let workedHours = roundTimesheetHours(entry.hours_worked, expectedHours)
-
-          // Импорт "У" проставляет 8 часов. Для удалёнки в будни считаем это полной нормой дня (9/8),
-          // иначе факт по часам занижается даже при полностью отработанном месяце.
-          if (
-            entry.status === 'remote'
-            && !weekendOrHoliday
-            && entry.hours_worked === 8
-            && !entry.is_correction
-          ) {
-            workedHours = expectedHours
-          }
+          const workedHours = entry.status === 'remote'
+            ? getRemoteFullDayHours(entry.hours_worked, entryDate)
+            : roundTimesheetHours(entry.hours_worked, expectedHours)
 
           hours += workedHours
           overtime += Math.max(0, workedHours - expectedHours)

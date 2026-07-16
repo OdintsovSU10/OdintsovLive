@@ -410,7 +410,10 @@ function normalizeStatus(value, hours) {
   return null
 }
 
-function normalizeFotHours(hours, _status, _workDate, _hoursOverridden) {
+function normalizeFotHours(hours, status, _workDate, _hoursOverridden) {
+  if (status === 'remote') {
+    return Math.max(9, Math.round(hours || 0))
+  }
   if (hours === null) return null
 
   // FOT API уже вычел обеденную квоту. Округляем готовое нетто-время,
@@ -779,7 +782,12 @@ function calculateStats(rows) {
 
     const date = new Date(`${row.work_date}T12:00:00`)
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const hours = Number(row.hours_worked || 0)
+    const hours = Number(normalizeFotHours(
+      row.hours_worked == null ? null : Number(row.hours_worked),
+      row.status,
+      row.work_date,
+      false
+    ) || 0)
 
     if (row.status === 'work' || row.status === 'remote' || row.status === 'sick_worked') {
       if (isWeekend) {

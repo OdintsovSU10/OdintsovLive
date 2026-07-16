@@ -145,7 +145,7 @@ export function parseTimesheetCell(value: string): { status: TimesheetStatus; ho
 
   // Удалёнка (обозначение FOT)
   if (upper === 'УУ' || upper === 'УД') {
-    return { status: 'remote', hours: 8, is_correction: false }
+    return { status: 'remote', hours: null, is_correction: false }
   }
 
   // Отпуск

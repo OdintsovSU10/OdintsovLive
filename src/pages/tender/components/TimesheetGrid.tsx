@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
-import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
+import { getDailyHoursNorm, getRemoteFullDayHours, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import { TIMESHEET_STATUS_META } from '../utils/timesheetStatus'
 import './TimesheetGrid.css'
 
@@ -66,20 +66,11 @@ const getWorkedHours = (entry: TimesheetEntry, date: Date): number => {
     return roundTimesheetHours(entry.hours_worked) || expectedHours
   }
 
-  const weekendOrHoliday = isWeekendOrHoliday(date)
-  const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
-
-  // Импорт "У" подставляет 8ч по умолчанию. В будни считаем это полной нормой дня (9/8),
-  // чтобы суммарные часы и факт/план не занижались.
-  if (
-    entry.status === 'remote'
-    && !weekendOrHoliday
-    && entry.hours_worked === 8
-    && !entry.is_correction
-  ) {
-    return expectedHours
+  if (entry.status === 'remote') {
+    return getRemoteFullDayHours(entry.hours_worked, date)
   }
 
+  const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
   return roundTimesheetHours(rawHours)
 }
 

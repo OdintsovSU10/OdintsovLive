@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
+import { getRemoteFullDayHours, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import type { Employee, SalaryHistory, TimesheetEntry, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
 
 const getAvatar = (fullName: string): string => {
@@ -130,7 +130,10 @@ export function useTenderData() {
           work_weekday: workWeekday,
           remote_weekday: remoteWeekday,
           weekend_work: weekendWork,
-          total_hours: timesheet.reduce((sum, t) => sum + (t.hours_worked || 0), 0)
+          total_hours: timesheet.reduce((sum, t) => {
+            if (t.status !== 'remote') return sum + (t.hours_worked || 0)
+            return sum + getRemoteFullDayHours(t.hours_worked, new Date(`${t.work_date}T12:00:00`))
+          }, 0)
         }
 
         // Формируем историю изменений оклада с разницей и сроком
