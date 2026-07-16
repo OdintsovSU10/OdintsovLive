@@ -76,14 +76,19 @@ interface DonutSegment {
   color: string
 }
 
+interface SparklinePoint {
+  label: string
+  value: number | null
+}
+
 const MONTHS_WINDOW = 5
 
 const SORT_OPTIONS: Array<{ key: SortBy; label: string; color: string }> = [
   { key: 'hours', label: 'Часы', color: '#818cf8' },
-  { key: 'earned', label: 'Заработок', color: '#34d399' }
+  { key: 'earned', label: 'Начисления', color: '#34d399' }
 ]
 const DEPARTMENT_METRIC_OPTIONS: Array<{ key: DepartmentMetric; label: string; color: string }> = [
-  { key: 'earned', label: 'Заработок', color: '#34d399' },
+  { key: 'earned', label: 'Начисления', color: '#34d399' },
   { key: 'hours', label: 'Часы', color: '#818cf8' }
 ]
 
@@ -232,49 +237,107 @@ function AnimatedNumber({
 function Sparkline({
   data,
   color,
+  unit,
   width = 126,
   height = 34
 }: {
-  data: number[]
+  data: SparklinePoint[]
   color: string
+  unit: '₽' | 'ч'
   width?: number
   height?: number
 }) {
-  if (data.length < 2) {
+  const availableValues = data.flatMap(point => point.value == null ? [] : [point.value])
+
+  if (data.length === 0 || availableValues.length === 0) {
     return <span className="dash-sparkline-empty">—</span>
   }
 
-  const max = Math.max(...data)
-  const min = Math.min(...data)
-  const range = max - min || 1
+  const max = Math.max(...availableValues)
+  const min = Math.min(...availableValues)
+  const range = max - min
+  const formatValue = (value: number) => (
+    unit === '₽' ? `${formatNumber(value)} ₽` : `${formatDecimal(value)} ч`
+  )
+  const accessibleSummary = data
+    .map(point => `${point.label}: ${point.value == null ? 'нет данных' : formatValue(point.value)}`)
+    .join('; ')
 
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * (width - 4) + 2
-    const y = height - ((value - min) / range) * (height - 6) - 3
-    return `${x},${y}`
+  const positionedPoints = data.map((point, index) => {
+    const x = data.length === 1
+      ? width / 2
+      : (index / (data.length - 1)) * (width - 16) + 8
+    const value = point.value
+    if (value == null) return null
+
+    const y = range === 0
+      ? height / 2
+      : height - ((value - min) / range) * (height - 16) - 8
+
+    return { label: point.label, value, index, x, y }
   })
 
-  const lastPoint = points[points.length - 1].split(',')
-  const lastX = Number(lastPoint[0])
-  const lastY = Number(lastPoint[1])
+  const segments: Array<Array<NonNullable<(typeof positionedPoints)[number]>>> = []
+  let currentSegment: Array<NonNullable<(typeof positionedPoints)[number]>> = []
+
+  positionedPoints.forEach(point => {
+    if (point) {
+      currentSegment.push(point)
+      return
+    }
+
+    if (currentSegment.length > 0) {
+      segments.push(currentSegment)
+      currentSegment = []
+    }
+  })
+
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment)
+  }
 
   return (
     <svg
       width={width}
       height={height}
       className="dash-sparkline"
-      aria-hidden="true"
+      role="img"
+      aria-label={`Динамика за ${MONTHS_WINDOW} месяцев. ${accessibleSummary}`}
       focusable="false"
     >
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points.join(' ')}
-      />
-      <circle cx={lastX} cy={lastY} r="2.8" fill={color} />
+      {segments.map((segment, segmentIndex) => (
+        segment.length > 1 && (
+          <polyline
+            key={`${segment[0].index}-${segmentIndex}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={segment.map(point => `${point.x},${point.y}`).join(' ')}
+          />
+        )
+      ))}
+      {positionedPoints.map(point => point && (
+        <g key={point.index}>
+          <circle
+            className="dash-spark-point-hit"
+            cx={point.x}
+            cy={point.y}
+            r="7"
+            fill="transparent"
+          >
+            <title>{point.label}: {formatValue(point.value)}</title>
+          </circle>
+          <circle
+            className="dash-spark-point"
+            cx={point.x}
+            cy={point.y}
+            r={point.index === data.length - 1 ? 2.8 : 2.1}
+            fill={color}
+          />
+        </g>
+      ))}
     </svg>
   )
 }
@@ -530,11 +593,10 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
     const dashboardEmployeeTrends = employeeTrends.filter(trend => trend.latest.hasTimesheet)
 
     const sortedEmployees = [...employeeTrends].sort((left, right) => {
+      const hasTimesheetDiff = Number(right.latest.hasTimesheet) - Number(left.latest.hasTimesheet)
+      if (hasTimesheetDiff !== 0) return hasTimesheetDiff
+
       if (sortBy === 'earned') {
-        if (livePayroll.isLive) {
-          return (payrollPlanning.byEmployee.get(right.employee.id) || 0)
-            - (payrollPlanning.byEmployee.get(left.employee.id) || 0)
-        }
         return right.latest.earned - left.latest.earned
       }
       return right.latest.hours - left.latest.hours
@@ -611,7 +673,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
       latestWeekendDays,
       totalEmployees: employeeTrends.length
     }
-  }, [employees, historyEntries, livePayroll.isLive, monthSlots, month, payrollPlanning, sortBy, year])
+  }, [employees, historyEntries, monthSlots, month, payrollPlanning, sortBy, year])
 
   if (employees.length === 0) {
     return (
@@ -661,7 +723,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 formatter: formatNumber
               },
               {
-                label: 'Переработки',
+                label: 'Сверх дневной нормы',
                 icon: '⏱',
                 value: analytics.latestOvertime,
                 suffix: ' ч',
@@ -670,7 +732,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                 formatter: formatNumber
               },
               {
-                label: livePayroll.isLive ? 'Начислено сейчас' : 'Фонд выплат',
+                label: livePayroll.isLive ? 'Условно по времени' : 'Фонд выплат',
                 icon: '💰',
                 value: livePayroll.isLive ? livePayroll.accrued : analytics.latestEarned,
                 suffix: ' ₽',
@@ -744,7 +806,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
             <div className="dash-stack">
               <section className="dash-card">
                 <div className="dash-card-title-row">
-                  <h3 className="dash-card-title">Рейтинг сотрудников</h3>
+                  <h3 className="dash-card-title">Сотрудники по начислениям и часам</h3>
                   <div className="dash-sort">
                     {SORT_OPTIONS.map(option => (
                       <button
@@ -759,26 +821,25 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                     ))}
                   </div>
                 </div>
+                <div className="dash-ranking-help">
+                  Сортировка — по данным табеля за {latestPeriodLabel}. Линия справа — {MONTHS_WINDOW} месяцев в собственной шкале; наведите на точку.
+                </div>
 
                 <div className="dash-ranking-list">
-                  {analytics.sortedEmployees.length === 0 && (
+                  {analytics.dashboardEmployeeTrends.length === 0 && (
                     <div className="dash-no-data">
-                      Нет рассчитанных табелей за {latestPeriodLabel}
+                      За {latestPeriodLabel} нет табелей; сотрудники показаны без ранжирования.
                     </div>
                   )}
 
                   {analytics.sortedEmployees.map((trend, index) => {
                     const selectedMetricColor = SORT_OPTIONS.find(option => option.key === sortBy)?.color || '#818cf8'
-                    const baseColor = sortBy === 'earned' && livePayroll.isLive
-                      ? livePayrollColor
-                      : selectedMetricColor
+                    const baseColor = selectedMetricColor
                     const hoursExceeded = trend.latest.hours > trend.latest.normHoursWeekdays
                     const employeePlan = payrollPlanning.byEmployee.get(trend.employee.id) || 0
-                    const employeeFact = livePayroll.isLive
-                      ? employeePlan * livePayroll.progress
-                      : trend.latest.earned
-                    const employeeProgress = employeePlan > 0
-                      ? Math.min(100, Math.max(0, (employeeFact / employeePlan) * 100))
+                    const employeeTimedAccrual = employeePlan * livePayroll.progress
+                    const employeeActualProgress = employeePlan > 0 && trend.latest.hasTimesheet
+                      ? Math.max(0, (trend.latest.earned / employeePlan) * 100)
                       : 0
                     const employeeHoursProgress = trend.latest.normHoursWeekdays > 0
                       ? Math.max(0, (trend.latest.hours / trend.latest.normHoursWeekdays) * 100)
@@ -786,12 +847,14 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                     const employeeRatePerSecond = livePayroll.planned > 0 && livePayroll.isAccruing
                       ? livePayroll.ratePerSecond * (employeePlan / livePayroll.planned)
                       : 0
-                    const earnedExceeded = employeeFact > employeePlan
+                    const earnedExceeded = trend.latest.hasTimesheet && trend.latest.earned > employeePlan
                     const isMetricExceeded = sortBy === 'earned' ? earnedExceeded : hoursExceeded
 
                     const sparkData = trend.points.map(point => {
-                      if (sortBy === 'earned') return point.earned
-                      return point.hours
+                      const value = point.hasTimesheet
+                        ? (sortBy === 'earned' ? point.earned : point.hours)
+                        : null
+                      return { label: point.monthLabel, value }
                     })
 
                     const departmentName = trend.employee.subdivision || trend.employee.department || 'Без подразделения'
@@ -803,7 +866,9 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                         className="dash-ranking-row"
                         onClick={() => onSelectEmployee(trend.employee)}
                       >
-                        <span className={`dash-rank ${index < 3 ? 'top' : ''}`}>{getRankLabel(index)}</span>
+                        <span className={`dash-rank ${trend.latest.hasTimesheet && index < 3 ? 'top' : ''}`}>
+                          {trend.latest.hasTimesheet ? getRankLabel(index) : '—'}
+                        </span>
                         <span className="dash-avatar">{trend.employee.avatar}</span>
                         <span className="dash-employee">
                           <span className="dash-employee-name">{trend.employee.full_name}</span>
@@ -813,35 +878,54 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                           {sortBy === 'earned' ? (
                             <>
                               <span className="dash-ranking-main dash-ranking-payroll" style={{ color: baseColor }}>
-                                <span className="dash-ranking-label">Начислено</span>
-                                <span className="dash-ranking-value">{formatLiveNumber(employeeFact)} ₽</span>
+                                <span className="dash-ranking-label">По табелю</span>
+                                <span className={`dash-ranking-value ${isMetricExceeded ? 'alert' : ''}`}>
+                                  {trend.latest.hasTimesheet
+                                    ? `${formatNumber(trend.latest.earned)} ₽`
+                                    : 'Нет данных'}
+                                </span>
                               </span>
                               <span className="dash-ranking-sub dash-ranking-payroll-plan">
-                                План месяца: {formatNumber(employeePlan)} ₽ · {employeeProgress.toFixed(1)}%
+                                План месяца: {formatNumber(employeePlan)} ₽
+                                {trend.latest.hasTimesheet && ` · исполнено ${employeeActualProgress.toFixed(1)}%`}
                               </span>
-                              <span className="dash-ranking-sub dash-ranking-sub-salary">
-                                {livePayroll.isLive
-                                  ? (livePayroll.isAccruing
+                              {livePayroll.isLive && (
+                                <>
+                                  <span
+                                    className="dash-ranking-sub dash-ranking-live-accrual"
+                                    title="Плановая оценка: план месяца × доля прошедшего нормативного рабочего времени"
+                                  >
+                                    Условно по времени: {' '}
+                                    <strong style={{ color: livePayrollColor }}>{formatLiveNumber(employeeTimedAccrual)} ₽</strong>
+                                    {' · '}{(livePayroll.progress * 100).toFixed(1)}%
+                                  </span>
+                                  <span className="dash-ranking-sub dash-ranking-live-state">
+                                    {livePayroll.isAccruing
                                       ? `+${formatLiveMoney(employeeRatePerSecond)} / сек`
-                                      : getLivePayrollPauseLabel(livePayroll.accrualState))
-                                  : 'Расчётный месяц завершён'}
-                                {' · '}Табель: {formatNumber(trend.latest.earned)} ₽
-                              </span>
+                                      : getLivePayrollPauseLabel(livePayroll.accrualState)}
+                                  </span>
+                                </>
+                              )}
                             </>
                           ) : (
                             <>
                               <span className="dash-ranking-main" style={{ color: baseColor }}>
                                 <span className="dash-ranking-label">Отработано</span>
                                 <span className={`dash-ranking-value dash-fact-value ${isMetricExceeded ? 'alert' : ''}`}>
-                                  {formatNumber(trend.latest.hours)} ч
+                                  {trend.latest.hasTimesheet
+                                    ? `${formatNumber(trend.latest.hours)} ч`
+                                    : 'Нет данных'}
                                 </span>
                               </span>
                               <span className="dash-ranking-sub dash-ranking-hours-plan">
-                                Норма месяца: {formatNumber(trend.latest.normHoursWeekdays)} ч · {employeeHoursProgress.toFixed(1)}%
+                                Норма месяца: {formatNumber(trend.latest.normHoursWeekdays)} ч
+                                {trend.latest.hasTimesheet && ` · ${employeeHoursProgress.toFixed(1)}%`}
                               </span>
-                              <span className={`dash-ranking-sub dash-ranking-hours-extra ${isMetricExceeded ? 'alert' : ''}`}>
-                                Сверх нормы: +{formatDecimal(trend.latest.overtime)} ч
-                              </span>
+                              {trend.latest.hasTimesheet && (
+                                <span className={`dash-ranking-sub dash-ranking-hours-extra ${isMetricExceeded ? 'alert' : ''}`}>
+                                  Сверх дневной нормы: +{formatDecimal(trend.latest.overtime)} ч
+                                </span>
+                              )}
                             </>
                           )}
                         </span>
@@ -849,7 +933,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                           className="dash-ranking-trend"
                           aria-label={`Динамика за ${MONTHS_WINDOW} месяцев`}
                         >
-                          <Sparkline data={sparkData} color={baseColor} />
+                          <Sparkline data={sparkData} color={baseColor} unit={sortBy === 'earned' ? '₽' : 'ч'} />
                         </span>
                       </button>
                     )
@@ -876,6 +960,9 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                       </button>
                     ))}
                   </div>
+                </div>
+                <div className="dash-ranking-help">
+                  Доля начислений или часов по данным табеля за {latestPeriodLabel}; сотрудники без табеля не включены.
                 </div>
                 <div className="dash-donut-wrap">
                   <DepartmentDonut
@@ -906,11 +993,13 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
               </section>
 
               <section className="dash-card">
-                <h3 className="dash-card-title">Переработки по подразделениям</h3>
-                <div className="dash-card-subtitle">За {latestPeriodLabel}</div>
+                <h3 className="dash-card-title">Часы сверх дневной нормы по подразделениям</h3>
+                <div className="dash-card-subtitle">
+                  За {latestPeriodLabel}; полная полоса означает максимум среди подразделений.
+                </div>
                 <div className="dash-overtime-list">
                   {analytics.departmentOvertimeLeaders.length === 0 && (
-                    <div className="dash-no-data">Нет данных по переработкам за {latestPeriodLabel}</div>
+                    <div className="dash-no-data">Нет данных о часах сверх нормы за {latestPeriodLabel}</div>
                   )}
                   {analytics.departmentOvertimeLeaders.map((department, index) => {
                     const pct = analytics.maxDepartmentOvertime > 0

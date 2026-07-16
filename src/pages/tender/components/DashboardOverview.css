@@ -163,7 +163,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+}
+
+.dash-ranking-help {
+  margin: -2px 0 10px;
+  color: var(--dash-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .dash-sort {
@@ -205,7 +212,7 @@
   border-bottom: 1px solid rgba(100, 116, 139, 0.16);
   padding: 10px 2px;
   display: grid;
-  grid-template-columns: 32px 38px minmax(220px, 1fr) minmax(270px, 310px) 150px;
+  grid-template-columns: 32px 38px minmax(220px, 1fr) minmax(290px, 350px) 150px;
   gap: 10px;
   align-items: center;
   text-align: left;
@@ -303,6 +310,10 @@
   min-width: 0;
 }
 
+.dash-ranking-value.alert {
+  color: #ef4444;
+}
+
 .dash-ranking-sub {
   display: block;
   margin-top: 1px;
@@ -314,9 +325,19 @@
   color: #ef4444;
 }
 
-.dash-ranking-sub.dash-ranking-sub-salary {
+.dash-ranking-live-accrual {
   margin-top: 2px;
   color: #93c5fd;
+  font-family: 'DM Mono', monospace;
+}
+
+.dash-ranking-live-accrual strong {
+  font-weight: 700;
+  transition: color 1s linear;
+}
+
+.dash-ranking-live-state {
+  color: var(--dash-text-muted);
   font-family: 'DM Mono', monospace;
 }
 
@@ -359,6 +380,15 @@
 .dash-sparkline {
   display: block;
   flex: 0 0 auto;
+  overflow: visible;
+}
+
+.dash-spark-point-hit {
+  cursor: help;
+}
+
+.dash-spark-point {
+  pointer-events: none;
 }
 
 .dash-sparkline-empty {
