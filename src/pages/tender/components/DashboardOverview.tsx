@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../../lib/supabase'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
 import { calculateSalary, getDailyHoursNorm, getRemoteFullDayHours, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
@@ -62,6 +63,8 @@ interface EmployeeTrend {
 interface DepartmentTrend {
   name: string
   employeesCount: number
+  employeesWithTimesheet: number
+  monthlyPlan: number
   latestEarned: number
   latestHours: number
   latestOvertime: number
@@ -247,6 +250,12 @@ function Sparkline({
   width?: number
   height?: number
 }) {
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    label: string
+    value: number
+    x: number
+    y: number
+  } | null>(null)
   const availableValues = data.flatMap(point => point.value == null ? [] : [point.value])
 
   if (data.length === 0 || availableValues.length === 0) {
@@ -297,48 +306,66 @@ function Sparkline({
   }
 
   return (
-    <svg
-      width={width}
-      height={height}
-      className="dash-sparkline"
-      role="img"
-      aria-label={`Динамика за ${MONTHS_WINDOW} месяцев. ${accessibleSummary}`}
-      focusable="false"
+    <span
+      className={`dash-sparkline-wrap ${hoveredPoint ? 'has-tooltip' : ''}`}
+      style={{ width, height }}
+      onMouseLeave={() => setHoveredPoint(null)}
+      onClick={event => event.stopPropagation()}
     >
-      {segments.map((segment, segmentIndex) => (
-        segment.length > 1 && (
-          <polyline
-            key={`${segment[0].index}-${segmentIndex}`}
-            fill="none"
-            stroke={color}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={segment.map(point => `${point.x},${point.y}`).join(' ')}
-          />
-        )
-      ))}
-      {positionedPoints.map(point => point && (
-        <g key={point.index}>
-          <circle
-            className="dash-spark-point-hit"
-            cx={point.x}
-            cy={point.y}
-            r="7"
-            fill="transparent"
-          >
-            <title>{point.label}: {formatValue(point.value)}</title>
-          </circle>
-          <circle
-            className="dash-spark-point"
-            cx={point.x}
-            cy={point.y}
-            r={point.index === data.length - 1 ? 2.8 : 2.1}
-            fill={color}
-          />
-        </g>
-      ))}
-    </svg>
+      <svg
+        width={width}
+        height={height}
+        className="dash-sparkline"
+        role="img"
+        aria-label={`Динамика за ${MONTHS_WINDOW} месяцев. ${accessibleSummary}`}
+        focusable="false"
+      >
+        {segments.map((segment, segmentIndex) => (
+          segment.length > 1 && (
+            <polyline
+              key={`${segment[0].index}-${segmentIndex}`}
+              fill="none"
+              stroke={color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={segment.map(point => `${point.x},${point.y}`).join(' ')}
+            />
+          )
+        ))}
+        {positionedPoints.map(point => point && (
+          <g key={point.index}>
+            <circle
+              className="dash-spark-point-hit"
+              cx={point.x}
+              cy={point.y}
+              r="8"
+              fill="transparent"
+              onMouseEnter={() => setHoveredPoint(point)}
+            >
+              <title>{point.label}: {formatValue(point.value)}</title>
+            </circle>
+            <circle
+              className="dash-spark-point"
+              cx={point.x}
+              cy={point.y}
+              r={point.index === data.length - 1 ? 2.8 : 2.1}
+              fill={color}
+            />
+          </g>
+        ))}
+      </svg>
+      {hoveredPoint && (
+        <span
+          className="dash-spark-tooltip"
+          role="tooltip"
+          style={{ left: Math.min(width - 48, Math.max(48, hoveredPoint.x)) }}
+        >
+          <strong>{hoveredPoint.label}</strong>
+          <span>{formatValue(hoveredPoint.value)}</span>
+        </span>
+      )}
+    </span>
   )
 }
 
@@ -348,7 +375,7 @@ function DepartmentDonut({
   centerLabel
 }: {
   segments: DonutSegment[]
-  centerValue: string
+  centerValue: ReactNode
   centerLabel: string
 }) {
   const total = segments.reduce((sum, segment) => sum + segment.value, 0)
@@ -614,16 +641,20 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
 
     const departmentMap = new Map<string, Omit<DepartmentTrend, 'name'>>()
 
-    for (const trend of dashboardEmployeeTrends) {
+    for (const trend of employeeTrends) {
       const department = trend.employee.subdivision || trend.employee.department || 'Без подразделения'
       const existing = departmentMap.get(department)
+      const hasTimesheet = trend.latest.hasTimesheet
+      const monthlyPlan = payrollPlanning.byEmployee.get(trend.employee.id) || 0
 
       if (!existing) {
         departmentMap.set(department, {
           employeesCount: 1,
-          latestEarned: trend.latest.earned,
-          latestHours: trend.latest.hours,
-          latestOvertime: trend.latest.overtime,
+          employeesWithTimesheet: hasTimesheet ? 1 : 0,
+          monthlyPlan,
+          latestEarned: hasTimesheet ? trend.latest.earned : 0,
+          latestHours: hasTimesheet ? trend.latest.hours : 0,
+          latestOvertime: hasTimesheet ? trend.latest.overtime : 0,
           totalEarned: trend.totalEarned,
           totalHours: trend.totalHours,
           totalOvertime: trend.totalOvertime
@@ -632,9 +663,11 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
       }
 
       existing.employeesCount += 1
-      existing.latestEarned += trend.latest.earned
-      existing.latestHours += trend.latest.hours
-      existing.latestOvertime += trend.latest.overtime
+      existing.employeesWithTimesheet += hasTimesheet ? 1 : 0
+      existing.monthlyPlan += monthlyPlan
+      existing.latestEarned += hasTimesheet ? trend.latest.earned : 0
+      existing.latestHours += hasTimesheet ? trend.latest.hours : 0
+      existing.latestOvertime += hasTimesheet ? trend.latest.overtime : 0
       existing.totalEarned += trend.totalEarned
       existing.totalHours += trend.totalHours
       existing.totalOvertime += trend.totalOvertime
@@ -653,6 +686,7 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
     })
 
     const departmentOvertimeLeaders = [...departmentTrends]
+      .filter(department => department.employeesWithTimesheet > 0)
       .sort((left, right) => right.latestOvertime - left.latestOvertime)
     const maxDepartmentOvertime = Math.max(...departmentOvertimeLeaders.map(department => department.latestOvertime), 1)
 
@@ -687,25 +721,52 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
 
   const latestPeriodLabel = monthSlots[monthSlots.length - 1]?.label || ''
   const departmentMetricUnit = departmentMetric === 'earned' ? '₽' : 'ч'
+  const usesLiveDepartmentAccrual = departmentMetric === 'earned' && livePayroll.isLive
+  const getDepartmentMetricValue = (department: DepartmentTrend) => (
+    departmentMetric === 'earned'
+      ? usesLiveDepartmentAccrual
+        ? department.monthlyPlan * livePayroll.progress
+        : department.latestEarned
+      : department.latestHours
+  )
   const departmentMetricTrends = [...analytics.departmentTrends]
-    .sort((left, right) => (
-      departmentMetric === 'earned'
-        ? right.latestEarned - left.latestEarned
-        : right.latestHours - left.latestHours
-    ))
+    .filter(department => usesLiveDepartmentAccrual || department.employeesWithTimesheet > 0)
+    .sort((left, right) => getDepartmentMetricValue(right) - getDepartmentMetricValue(left))
   const departmentMetricSegments: DonutSegment[] = departmentMetricTrends.map(department => ({
     label: department.name,
-    value: departmentMetric === 'earned' ? department.latestEarned : department.latestHours,
+    value: getDepartmentMetricValue(department),
     color: analytics.departmentColors.get(department.name) || '#6ee7b7'
   }))
-  const departmentMetricTotal = departmentMetricSegments.reduce((sum, segment) => sum + segment.value, 0)
+  const departmentMetricTotal = usesLiveDepartmentAccrual
+    ? livePayroll.accrued
+    : departmentMetricSegments.reduce((sum, segment) => sum + segment.value, 0)
+  const formatDepartmentMetricValue = (value: number) => {
+    if (usesLiveDepartmentAccrual) return formatLiveNumber(value)
+    if (departmentMetric === 'hours') return formatDecimal(value)
+    return formatNumber(value)
+  }
+  const tabStatusTarget = typeof document === 'undefined'
+    ? null
+    : document.getElementById('tender-tab-status')
+  const refreshIndicator = (
+    <span
+      className="dash-refresh-indicator"
+      role="status"
+      aria-label={`Обновляем аналитику за последние ${MONTHS_WINDOW} месяцев`}
+      title={`Обновляем аналитику за последние ${MONTHS_WINDOW} месяцев`}
+    >
+      <span className="dash-refresh-spinner" aria-hidden="true" />
+    </span>
+  )
 
   return (
     <div className="dashboard-overview">
+      {historyLoading && (
+        tabStatusTarget
+          ? createPortal(refreshIndicator, tabStatusTarget)
+          : <span className="dash-refresh-fallback">{refreshIndicator}</span>
+      )}
       <div className="dashboard-surface">
-        {historyLoading && (
-          <div className="dash-loading">Обновляем аналитику за последние {MONTHS_WINDOW} месяцев…</div>
-        )}
         {historyError && (
           <div className="dash-error">Часть данных недоступна: {historyError}</div>
         )}
@@ -962,26 +1023,33 @@ export function DashboardOverview({ employees, year, month, onSelectEmployee }: 
                   </div>
                 </div>
                 <div className="dash-ranking-help">
-                  Доля начислений или часов по данным табеля за {latestPeriodLabel}; сотрудники без табеля не включены.
+                  {usesLiveDepartmentAccrual
+                    ? 'Условные начисления по доле прошедшего рабочего времени; сумма совпадает с показателем «Условно по времени».'
+                    : `Доля начислений или часов по данным табеля за ${latestPeriodLabel}; сотрудники без табеля не включены.`}
                 </div>
                 <div className="dash-donut-wrap">
                   <DepartmentDonut
                     segments={departmentMetricSegments}
-                    centerValue={formatNumber(departmentMetricTotal)}
+                    centerValue={(
+                      <AnimatedNumber
+                        value={departmentMetricTotal}
+                        formatter={formatDepartmentMetricValue}
+                      />
+                    )}
                     centerLabel={departmentMetricUnit}
                   />
                 </div>
                 <div className="dash-legend">
                   {departmentMetricTrends.map(department => {
                     const color = analytics.departmentColors.get(department.name) || '#6ee7b7'
-                    const value = departmentMetric === 'earned' ? department.latestEarned : department.latestHours
+                    const value = getDepartmentMetricValue(department)
                     const share = departmentMetricTotal > 0 ? (value / departmentMetricTotal) * 100 : 0
                     return (
                       <div key={department.name} className="dash-legend-row">
                         <span className="dash-legend-color" style={{ background: color }} />
                         <span className="dash-legend-name">{department.name}</span>
                         <span className="dash-legend-value">
-                          {formatNumber(value)} {departmentMetricUnit}
+                          {formatDepartmentMetricValue(value)} {departmentMetricUnit}
                         </span>
                         <span className="dash-legend-share">
                           {share.toFixed(1)}%

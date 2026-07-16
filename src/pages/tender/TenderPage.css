@@ -107,7 +107,18 @@
 
 .tender-shell-tabs {
   display: flex;
+  align-items: center;
   gap: 2px;
+}
+
+.tender-shell-status {
+  min-width: 30px;
+  min-height: 30px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .tender-shell-tab {

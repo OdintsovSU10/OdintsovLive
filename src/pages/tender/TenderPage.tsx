@@ -1512,6 +1512,7 @@ export default function TenderPage() {
               {tab.label}
             </button>
           ))}
+          <div id="tender-tab-status" className="tender-shell-status" />
         </nav>
       </header>
 
