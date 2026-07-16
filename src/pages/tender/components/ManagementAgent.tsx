@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   Activity,
   AlertTriangle,
+  ArrowLeft,
   Bot,
   ChevronRight,
   Clock3,
@@ -37,10 +38,12 @@ interface AgentSignal {
   title: string
   evidence: string
   action: string
+  metrics: EmployeeAgentMetrics
 }
 
 interface EmployeeAgentMetrics {
   employee: EmployeeWithStats
+  days: EmployeeAgentDay[]
   trackedDays: number
   lateStayDays: number
   totalBreaks: number
@@ -55,9 +58,36 @@ interface EmployeeAgentMetrics {
   currentContinuousSeconds: number
 }
 
+interface EmployeeAgentDay {
+  date: string
+  lateStay: boolean
+  lastExitTime: string | null
+  breaks: number
+  maxContinuousSeconds: number
+}
+
 interface CachedEvents {
   events: FotEmployeeEvent[]
   expiresAt: number
+}
+
+interface SignalDetailStat {
+  label: string
+  value: string
+  caption: string
+}
+
+interface SignalExplanation {
+  stats: SignalDetailStat[]
+  rule: string
+  source: string
+  rows: SignalEvidenceRow[]
+}
+
+interface SignalEvidenceRow {
+  date: string
+  label: string
+  value: string
 }
 
 const LATE_STAY_AFTER_SECONDS = 20 * 60 * 60
@@ -128,6 +158,114 @@ function pluralize(value: number, one: string, few: string, many: string): strin
   if (mod10 === 1) return `${value} ${one}`
   if (mod10 >= 2 && mod10 <= 4) return `${value} ${few}`
   return `${value} ${many}`
+}
+
+function formatDate(value: string): string {
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function getSignalExplanation(signal: AgentSignal): SignalExplanation {
+  const item = signal.metrics
+
+  if (signal.kind === 'late_stay') {
+    const share = item.trackedDays > 0 ? Math.round((item.lateStayDays / item.trackedDays) * 100) : 0
+    return {
+      stats: [
+        { label: 'Поздних уходов', value: String(item.lateStayDays), caption: 'после 20:00' },
+        { label: 'Дней со СКУД', value: String(item.trackedDays), caption: 'в выбранном месяце' },
+        { label: 'Доля дней', value: `${share}%`, caption: 'от дней с событиями' }
+      ],
+      rule: `Сигнал появляется от двух дней, когда последний выход зафиксирован после 20:00. Здесь таких дней: ${item.lateStayDays}.`,
+      source: 'События входа и выхода FOT/СКУД за выбранный месяц.',
+      rows: item.days
+        .filter(day => day.lateStay)
+        .map(day => ({
+          date: day.date,
+          label: 'Последний выход',
+          value: day.lastExitTime ? formatTime(day.lastExitTime) : 'ещё на объекте'
+        }))
+    }
+  }
+
+  if (signal.kind === 'frequent_exits') {
+    const average = item.trackedDays > 0 ? item.totalBreaks / item.trackedDays : 0
+    return {
+      stats: [
+        { label: 'Всего выходов', value: String(item.totalBreaks), caption: 'между входами' },
+        { label: 'Дней с 3+', value: String(item.frequentExitDays), caption: 'с частыми выходами' },
+        { label: 'В среднем', value: average.toLocaleString('ru-RU', { maximumFractionDigits: 1 }), caption: 'выхода в день' }
+      ],
+      rule: `Сигнал появляется, если три и более выхода случились минимум в два дня. Здесь условие выполнено в ${pluralize(item.frequentExitDays, 'день', 'дня', 'дней')}.`,
+      source: 'Закрытые последовательности «выход → следующий вход» из FOT/СКУД.',
+      rows: item.days
+        .filter(day => day.breaks >= FREQUENT_BREAKS_PER_DAY)
+        .map(day => ({
+          date: day.date,
+          label: 'Выходы вне объекта',
+          value: pluralize(day.breaks, 'выход', 'выхода', 'выходов')
+        }))
+    }
+  }
+
+  if (signal.kind === 'long_session') {
+    return {
+      stats: [
+        { label: 'Максимум', value: item.maxContinuousSeconds > 0 ? formatSkudDuration(item.maxContinuousSeconds) : '—', caption: 'без выхода' },
+        { label: 'Дней с 4ч+', value: String(item.longSessionDays), caption: 'длинных сессий' },
+        { label: 'Прямо сейчас', value: item.currentContinuousSeconds > 0 ? formatSkudDuration(item.currentContinuousSeconds) : '—', caption: 'текущая сессия' }
+      ],
+      rule: 'Длинной считается непрерывная пара «вход → выход» от четырёх часов. Для повторяющегося сигнала такие сессии должны встречаться минимум в половине наблюдаемых дней.',
+      source: 'Рассчитанные пары присутствия FOT/СКУД за выбранный месяц.',
+      rows: item.days
+        .filter(day => day.maxContinuousSeconds >= LONG_SESSION_SECONDS)
+        .map(day => ({
+          date: day.date,
+          label: 'Непрерывное присутствие',
+          value: formatSkudDuration(day.maxContinuousSeconds)
+        }))
+    }
+  }
+
+  if (signal.kind === 'timesheet') {
+    return {
+      stats: [
+        { label: 'Отсутствий', value: String(item.absentDays), caption: 'неявка или без содержания' },
+        { label: 'Записей табеля', value: String(item.employee.timesheet?.length || 0), caption: 'за выбранный месяц' },
+        { label: 'Дней со СКУД', value: String(item.trackedDays), caption: 'для сверки' }
+      ],
+      rule: `Сигнал появляется от двух дней со статусом «неявка» или «без содержания». Здесь найдено: ${item.absentDays}.`,
+      source: 'Табель сотрудника за выбранный месяц; больничные не считаются нарушением.',
+      rows: (item.employee.timesheet || [])
+        .filter(entry => entry.status === 'absent' || entry.status === 'unpaid')
+        .sort((left, right) => right.work_date.localeCompare(left.work_date))
+        .map(entry => ({
+          date: entry.work_date,
+          label: 'Статус табеля',
+          value: entry.status === 'absent' ? 'Неявка' : 'Без содержания'
+        }))
+    }
+  }
+
+  return {
+    stats: [
+      { label: 'Без повышения', value: formatMonthsSinceRaise(item.noRaiseMonths), caption: 'на сегодняшний день' },
+      { label: 'Текущий оклад', value: `${item.employee.current_salary.toLocaleString('ru-RU')} ₽`, caption: 'по карточке сотрудника' },
+      { label: 'Принят', value: formatDate(item.employee.hire_date), caption: `${item.employee.salaryHistory?.length || 0} записей оклада` }
+    ],
+    rule: `Сигнал появляется через ${SALARY_REVIEW_MONTHS} месяцев после последнего зафиксированного повышения. Критичный уровень — ${SALARY_CRITICAL_MONTHS} месяцев.`,
+    source: 'История окладов и дата приёма сотрудника.',
+    rows: item.employee.salaryHistory && item.employee.salaryHistory.length > 0
+      ? [...item.employee.salaryHistory]
+        .sort((left, right) => right.effective_date.localeCompare(left.effective_date))
+        .map(entry => ({
+          date: entry.effective_date,
+          label: entry.note || 'Запись оклада',
+          value: `${entry.salary.toLocaleString('ru-RU')} ₽`
+        }))
+      : [{ date: item.employee.hire_date, label: 'Дата приёма', value: 'Начало отсчёта' }]
+  }
 }
 
 function isCurrentMonth(year: number, month: number, now: Date): boolean {
@@ -220,6 +358,7 @@ function buildMetrics(
   let frequentExitDays = 0
   let longSessionDays = 0
   let maxContinuousSeconds = 0
+  const days: EmployeeAgentDay[] = []
 
   for (const [date, dayEvents] of eventsByDate) {
     const calculation = calculateFotSkudDay(dayEvents, date, now)
@@ -238,6 +377,13 @@ function buildMetrics(
     )
     maxContinuousSeconds = Math.max(maxContinuousSeconds, longestPair)
     if (longestPair >= LONG_SESSION_SECONDS) longSessionDays += 1
+    days.push({
+      date,
+      lateStay: lastExitSeconds >= LATE_STAY_AFTER_SECONDS || openLateStay,
+      lastExitTime: openLateStay ? null : calculation.lastExit?.event_time || null,
+      breaks: calculation.breaks.length,
+      maxContinuousSeconds: longestPair
+    })
   }
 
   const absentDays = (employee.timesheet || []).filter(entry => (
@@ -254,6 +400,7 @@ function buildMetrics(
 
   return {
     employee,
+    days: days.sort((left, right) => right.date.localeCompare(left.date)),
     trackedDays: eventsByDate.size,
     lateStayDays,
     totalBreaks,
@@ -278,7 +425,8 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
         severity: item.lateStayDays >= 4 ? 'high' : 'medium',
         title: `${pluralize(item.lateStayDays, 'поздний уход', 'поздних ухода', 'поздних уходов')} после 20:00`,
         evidence: 'Повторяющийся паттерн в выбранном месяце',
-        action: 'Проверьте нагрузку, сроки и необходимость переработок'
+        action: 'Проверьте нагрузку, сроки и необходимость переработок',
+        metrics: item
       })
     }
 
@@ -290,7 +438,8 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
         severity: item.frequentExitDays >= 4 ? 'high' : 'medium',
         title: `Частые выходы в ${pluralize(item.frequentExitDays, 'день', 'дня', 'дней')}`,
         evidence: `${pluralize(item.totalBreaks, 'перерыв', 'перерыва', 'перерывов')} вне объекта за период`,
-        action: 'Уточните контекст: встречи, выезды или незапланированные перерывы'
+        action: 'Уточните контекст: встречи, выезды или незапланированные перерывы',
+        metrics: item
       })
     }
 
@@ -306,7 +455,8 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
           ? `Сейчас без выхода ${formatSkudDuration(item.currentContinuousSeconds)}`
           : `Длинные сессии в ${pluralize(item.longSessionDays, 'день', 'дня', 'дней')}`,
         evidence: `Максимум без выхода: ${formatSkudDuration(item.maxContinuousSeconds)}`,
-        action: 'Проверьте самочувствие и напомните сделать перерыв'
+        action: 'Проверьте самочувствие и напомните сделать перерыв',
+        metrics: item
       })
     }
 
@@ -318,7 +468,8 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
         severity: item.absentDays >= 4 ? 'high' : 'medium',
         title: `${pluralize(item.absentDays, 'день', 'дня', 'дней')} отсутствия по табелю`,
         evidence: 'Учтены статусы «неявка» и «без содержания»',
-        action: 'Проверьте причины и актуальность статусов табеля'
+        action: 'Проверьте причины и актуальность статусов табеля',
+        metrics: item
       })
     }
 
@@ -330,7 +481,8 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
         severity: item.noRaiseMonths >= SALARY_CRITICAL_MONTHS ? 'high' : 'medium',
         title: `Оклад без повышения ${formatMonthsSinceRaise(item.noRaiseMonths)}`,
         evidence: `Текущий оклад ${item.employee.current_salary.toLocaleString('ru-RU')} ₽`,
-        action: 'Сверьте роль, результат и рыночный уровень перед пересмотром'
+        action: 'Сверьте роль, результат и рыночный уровень перед пересмотром',
+        metrics: item
       })
     }
   }
@@ -340,6 +492,102 @@ function buildSignals(metrics: EmployeeAgentMetrics[]): AgentSignal[] {
     severityOrder[left.severity] - severityOrder[right.severity]
       || left.employee.full_name.localeCompare(right.employee.full_name)
   ))
+}
+
+function SignalDetail({
+  signal,
+  onBack,
+  onOpenEmployee
+}: {
+  signal: AgentSignal
+  onBack: () => void
+  onOpenEmployee: () => void
+}) {
+  const explanation = getSignalExplanation(signal)
+  const group = signal.employee.subdivision || signal.employee.department || 'Без подразделения'
+
+  return (
+    <div className="management-agent-signal-detail">
+      <div className="management-agent-detail-person">
+        <span className="management-agent-avatar large">{getInitials(signal.employee)}</span>
+        <div>
+          <span className={`management-agent-signal-kind ${signal.kind}`}>
+            {signalMeta[signal.kind].icon}
+            {signalMeta[signal.kind].label}
+          </span>
+          <h4>{signal.employee.full_name}</h4>
+          <p>{signal.employee.position} · {group}</p>
+        </div>
+        <span className={`management-agent-detail-severity ${signal.severity}`}>
+          {signal.severity === 'high' ? 'Высокий приоритет' : signal.severity === 'medium' ? 'Обратить внимание' : 'Наблюдение'}
+        </span>
+      </div>
+
+      <div className="management-agent-detail-summary">
+        <span>Почему появился сигнал</span>
+        <strong>{signal.title}</strong>
+        <p>{signal.evidence}</p>
+      </div>
+
+      <div className="management-agent-detail-stats">
+        {explanation.stats.map(stat => (
+          <div key={stat.label}>
+            <span>{stat.label}</span>
+            <strong>{stat.value}</strong>
+            <small>{stat.caption}</small>
+          </div>
+        ))}
+      </div>
+
+      {explanation.rows.length > 0 && (
+        <div className="management-agent-detail-breakdown">
+          <div className="management-agent-detail-breakdown-head">
+            <span>Из чего собран сигнал</span>
+            <small>{pluralize(explanation.rows.length, 'событие', 'события', 'событий')}</small>
+          </div>
+          <div className="management-agent-detail-breakdown-list">
+            {explanation.rows.slice(0, 8).map((row, index) => (
+              <div key={`${row.date}-${row.label}-${index}`}>
+                <time>{formatDate(row.date)}</time>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+              </div>
+            ))}
+          </div>
+          {explanation.rows.length > 8 && (
+            <small className="management-agent-detail-more">
+              Ещё {explanation.rows.length - 8} событий скрыто
+            </small>
+          )}
+        </div>
+      )}
+
+      <div className="management-agent-detail-explanation">
+        <div>
+          <Info size={17} />
+          <span><b>Как сработало правило</b>{explanation.rule}</span>
+        </div>
+        <div>
+          <Activity size={17} />
+          <span><b>Источник данных</b>{explanation.source}</span>
+        </div>
+      </div>
+
+      <div className="management-agent-detail-action">
+        <span>Что стоит сделать</span>
+        <p>{signal.action}</p>
+      </div>
+
+      <div className="management-agent-detail-buttons">
+        <button type="button" className="back" onClick={onBack}>
+          <ArrowLeft size={16} /> Назад к приоритетам
+        </button>
+        <button type="button" className="open" onClick={onOpenEmployee}>
+          Открыть карточку сотрудника <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function matchesFilter(signal: AgentSignal, filter: SignalFilter): boolean {
@@ -374,6 +622,7 @@ export function ManagementAgent({ employees, year, month, onSelectEmployee }: Pr
   const [loadedCount, setLoadedCount] = useState(0)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [filter, setFilter] = useState<SignalFilter>('all')
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const abortRef = useRef<AbortController | null>(null)
   const periodKey = `${year}-${String(month).padStart(2, '0')}`
@@ -486,6 +735,14 @@ export function ManagementAgent({ employees, year, month, onSelectEmployee }: Pr
     () => signals.filter(signal => matchesFilter(signal, filter)),
     [filter, signals]
   )
+  const selectedSignal = useMemo(
+    () => signals.find(signal => signal.id === selectedSignalId) || null,
+    [selectedSignalId, signals]
+  )
+
+  useEffect(() => {
+    if (selectedSignalId && !selectedSignal) setSelectedSignalId(null)
+  }, [selectedSignal, selectedSignalId])
   const highPriorityCount = signals.filter(signal => signal.severity === 'high').length
   const attentionPeople = new Set(signals.map(signal => signal.employee.id)).size
   const onSiteCount = metrics.filter(item => item.liveStatus === 'on_site').length
@@ -572,24 +829,36 @@ export function ManagementAgent({ employees, year, month, onSelectEmployee }: Pr
           <div className="management-agent-section-head">
             <div>
               <span>Приоритеты</span>
-              <h3>Куда обратить внимание</h3>
+              <h3>{selectedSignal ? 'Расшифровка сигнала' : 'Куда обратить внимание'}</h3>
             </div>
-            <div className="management-agent-filters" aria-label="Фильтр сигналов">
-              {filterOptions.map(option => (
-                <button
-                  key={option.key}
-                  type="button"
-                  className={filter === option.key ? 'active' : ''}
-                  onClick={() => setFilter(option.key)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            {selectedSignal ? (
+              <button type="button" className="management-agent-focus-back" onClick={() => setSelectedSignalId(null)}>
+                <ArrowLeft size={15} /> Назад
+              </button>
+            ) : (
+              <div className="management-agent-filters" aria-label="Фильтр сигналов">
+                {filterOptions.map(option => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className={filter === option.key ? 'active' : ''}
+                    onClick={() => setFilter(option.key)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="management-agent-signals">
-            {filteredSignals.length === 0 ? (
+            {selectedSignal ? (
+              <SignalDetail
+                signal={selectedSignal}
+                onBack={() => setSelectedSignalId(null)}
+                onOpenEmployee={() => onSelectEmployee(selectedSignal.employee)}
+              />
+            ) : filteredSignals.length === 0 ? (
               <div className="management-agent-empty">
                 <Activity size={24} />
                 <strong>По этому фильтру сигналов нет</strong>
@@ -601,7 +870,7 @@ export function ManagementAgent({ employees, year, month, onSelectEmployee }: Pr
                   key={signal.id}
                   type="button"
                   className={`management-agent-signal ${signal.severity}`}
-                  onClick={() => onSelectEmployee(signal.employee)}
+                  onClick={() => setSelectedSignalId(signal.id)}
                 >
                   <span className="management-agent-avatar">{getInitials(signal.employee)}</span>
                   <span className="management-agent-signal-copy">
@@ -639,19 +908,20 @@ export function ManagementAgent({ employees, year, month, onSelectEmployee }: Pr
               liveMetrics.slice(0, 12).map(item => (
                 <button type="button" key={item.employee.id} onClick={() => onSelectEmployee(item.employee)}>
                   <span className={`management-agent-live-dot ${item.liveStatus}`} />
-                  <span>
+                  <span className="management-agent-live-copy">
                     <b>{item.employee.full_name}</b>
-                    <small>
+                    <span className="management-agent-live-time">
+                      <Clock3 size={14} />
                       {currentPeriod
                         ? item.liveDetail
                         : `${pluralize(item.trackedDays, 'день', 'дня', 'дней')} со СКУД · ${pluralize(item.totalBreaks, 'выход', 'выхода', 'выходов')}`}
-                    </small>
+                    </span>
                   </span>
-                  <em>
+                  <span className={`management-agent-live-status ${item.liveStatus}`}>
                     {currentPeriod
                       ? item.liveStatusLabel
                       : `${pluralize(item.lateStayDays, 'уход', 'ухода', 'уходов')} после 20:00`}
-                  </em>
+                  </span>
                 </button>
               ))
             )}
