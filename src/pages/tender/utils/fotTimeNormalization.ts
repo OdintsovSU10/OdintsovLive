@@ -11,7 +11,7 @@ export function normalizeFotHours(
   workDate: string,
   _hoursOverridden: boolean
 ): number | null {
-  if (status === 'remote') {
+  if (status === 'remote' && hours == null) {
     return getRemoteFullDayHours(hours, new Date(`${workDate}T12:00:00`))
   }
   if (hours == null) return null

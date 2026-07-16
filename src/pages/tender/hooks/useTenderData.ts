@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { getRemoteFullDayHours, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
-import type { Employee, SalaryHistory, TimesheetEntry, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
+import type { Employee, SalaryHistory, TimesheetEntry, WorkPlan, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
 
 const getAvatar = (fullName: string): string => {
   const parts = fullName.trim().split(' ')
@@ -75,6 +75,17 @@ export function useTenderData() {
         .gte('work_date', startOfMonth)
         .lte('work_date', endOfMonth)
 
+      const { data: workPlanData, error: workPlanError } = await supabase
+        .from('tender_work_plans')
+        .select('*')
+        .in('employee_id', employeeIds)
+        .gte('work_date', startOfMonth)
+        .lte('work_date', endOfMonth)
+
+      if (workPlanError) {
+        console.warn('Work plans are not available:', workPlanError.message)
+      }
+
       const roundedTimesheetData = (timesheetData || []).map(entry => ({
         ...entry,
         hours_worked: entry.hours_worked == null ? null : roundTimesheetHours(entry.hours_worked)
@@ -102,9 +113,22 @@ export function useTenderData() {
         timesheetByEmployee.set(t.employee_id, list)
       })
 
+      const workPlansByEmployee = new Map<number, WorkPlan[]>()
+      for (const plan of workPlanData || []) {
+        const list = workPlansByEmployee.get(plan.employee_id) || []
+        list.push({
+          ...plan,
+          planned_hours: Number(plan.planned_hours) || 0,
+          full_day_threshold_hours: Number(plan.full_day_threshold_hours) || 0,
+          lunch_minutes: Number(plan.lunch_minutes) || 0
+        } as WorkPlan)
+        workPlansByEmployee.set(plan.employee_id, list)
+      }
+
       const enriched: EmployeeWithStats[] = employeesData.map((emp: Employee) => {
         const timesheet = timesheetByEmployee.get(emp.id) || []
         const salaries = salaryByEmployee.get(emp.id) || []
+        const workPlans = workPlansByEmployee.get(emp.id) || []
 
         // Проверка выходного/праздничного дня
         const isHoliday = (dateStr: string) => {
@@ -173,6 +197,7 @@ export function useTenderData() {
           attendance,
           history,
           timesheet,
+          workPlans,
           salaryHistory: salaries
         }
       })
