@@ -1,4 +1,4 @@
-import type { JournalFilter, PeriodPreset, RecordKind } from './types'
+import type { JournalFilter, PeriodPreset, PhotoFrame, RecordKind } from './types'
 
 export const FUEL_TYPES = ['АИ-95', 'АИ-100']
 
@@ -71,5 +71,8 @@ export const MIN_CONSUMPTION_INTERVALS = 3
 export const MAX_MONTH_BUCKETS = 24
 
 export const UNDO_DURATION_MS = 5000
+
+export const DEFAULT_PHOTO_FRAME: PhotoFrame = { x: 0.5, y: 0.7, zoom: 1 }
+export const MAX_PHOTO_ZOOM = 3
 
 export const EMPTY_JOURNAL_FILTER: JournalFilter = { kind: 'all', range: null, group: null, query: '' }

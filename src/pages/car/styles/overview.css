@@ -28,12 +28,72 @@
   animation: car-fade-in 0.2s ease-out both;
 }
 
-.car-cover img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 70%;
+.car-cover-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Режим «Кадр»: фото тащится пальцем или мышью, страница при этом не скроллится */
+.car-cover.editing {
+  cursor: grab;
+  touch-action: none;
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.car-cover.editing:active {
+  cursor: grabbing;
+}
+
+.car-cover-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--photo-scrim);
+  color: var(--on-photo);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.car-cover-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.car-cover-zoom {
+  flex: 1 1 220px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--text-secondary);
+}
+
+.car-cover-zoom input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--primary);
+}
+
+.car-cover-tools-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .car-cover-scrim {
@@ -46,7 +106,7 @@
 .car-cover-info {
   position: absolute;
   left: 16px;
-  right: 72px;
+  right: 120px;
   bottom: 14px;
   color: var(--on-photo);
 }
@@ -63,10 +123,16 @@
   opacity: 0.9;
 }
 
-.car-cover-btn {
+.car-cover-actions {
   position: absolute;
   right: 12px;
   bottom: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.car-cover-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -79,6 +145,11 @@
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   transition: transform 0.15s ease-out;
+}
+
+.car-cover-btn:focus-visible {
+  outline: 2px solid var(--on-photo);
+  outline-offset: 2px;
 }
 
 .car-cover-btn:active {
@@ -436,7 +507,7 @@
 /* Широкий экран: следующее ТО — пятой карточкой в ряду KPI */
 @media (min-width: 1280px) {
   .car-cover {
-    height: 320px;
+    height: 360px;
   }
 
   .car-kpi-grid {

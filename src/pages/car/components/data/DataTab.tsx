@@ -1,4 +1,4 @@
-import type { CarType, JournalEntry, PartType } from '../../types'
+import type { CarPhoto, CarType, JournalEntry, PartType } from '../../types'
 import { CarCard } from './CarCard'
 import { PartsCatalog } from './PartsCatalog'
 
@@ -6,7 +6,7 @@ interface Props {
   car: CarType
   entries: JournalEntry[]
   parts: PartType[]
-  photo: string | null
+  photo: CarPhoto | null
   photoUploading: boolean
   onUploadPhoto: (file: File) => void
   onRemovePhoto: () => void

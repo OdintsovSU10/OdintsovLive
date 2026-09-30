@@ -18,7 +18,7 @@ import { useCarStats } from './hooks/useCarStats'
 import { useCars } from './hooks/useCars'
 import { useJournalEntries } from './hooks/useJournalEntries'
 import type {
-  CarRecord, CarTab, CarType, JournalFilter, PartType, PeriodPreset, RecordKind, RecordPayload
+  CarRecord, CarTab, CarType, JournalFilter, PartType, PeriodPreset, PhotoFrame, RecordKind, RecordPayload
 } from './types'
 import { consumptionForFill } from './utils/consumption'
 import { formatL100 } from './utils/format'
@@ -114,6 +114,13 @@ export default function CarPage() {
     showToast({ message: 'Фото обновлено' })
   }
 
+  const handleSaveFrame = async (frame: PhotoFrame): Promise<boolean> => {
+    const ok = await photo.saveFrame(frame)
+    if (ok) showToast({ message: 'Кадр сохранён' })
+    else failToast('Не удалось сохранить кадр')
+    return ok
+  }
+
   const handleRemovePhoto = async () => {
     const ok = await photo.removePhoto()
     if (!ok) return failToast('Не удалось удалить фото')
@@ -189,6 +196,7 @@ export default function CarPage() {
                 loading={photo.loading}
                 uploading={photo.uploading}
                 onUpload={file => void handleUploadPhoto(file)}
+                onSaveFrame={handleSaveFrame}
               />
               {records.loading || !stats ? (
                 <div className="car-skeleton" aria-busy="true" />

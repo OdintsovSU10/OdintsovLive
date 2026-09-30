@@ -51,6 +51,18 @@ export interface PartType {
   notes: string | null
 }
 
+// Кадр обложки: точка фокуса в долях фото (0–1) и масштаб (1 — фото целиком по меньшей стороне)
+export interface PhotoFrame {
+  x: number
+  y: number
+  zoom: number
+}
+
+export interface CarPhoto {
+  image: string
+  frame: PhotoFrame
+}
+
 export type CarTab = 'overview' | 'journal' | 'data'
 export type RecordKind = 'maintenance' | 'fuel' | 'expense'
 export type PeriodPreset = '3m' | '6m' | 'year' | 'all'

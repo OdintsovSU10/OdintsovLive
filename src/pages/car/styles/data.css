@@ -50,13 +50,11 @@
   gap: 10px;
 }
 
-.car-info-photo img {
-  display: block;
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
-  object-position: center 70%;
+.car-info-photo-frame {
+  height: 200px;
+  overflow: hidden;
   border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
 }
 
 .car-info-photo-actions {

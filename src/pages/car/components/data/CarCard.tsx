@@ -2,14 +2,15 @@ import type { ChangeEvent } from 'react'
 import { Camera, ImageOff, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { MONTHS } from '../../../../lib/constants'
 import { calcAge } from '../../../../lib/dateUtils'
-import type { CarType } from '../../types'
+import type { CarPhoto, CarType } from '../../types'
 import { formatDate } from '../../utils/dates'
 import { formatMileage, formatRub } from '../../utils/format'
+import { FramedPhoto } from '../FramedPhoto'
 
 interface Props {
   car: CarType
   spentTotal: number
-  photo: string | null
+  photo: CarPhoto | null
   photoUploading: boolean
   onUploadPhoto: (file: File) => void
   onRemovePhoto: () => void
@@ -53,7 +54,11 @@ export function CarCard({ car, spentTotal, photo, photoUploading, onUploadPhoto,
         </div>
       </div>
       <div className="car-info-photo">
-        {photo && <img src={photo} alt={`${car.brand} ${car.model}`} />}
+        {photo && (
+          <div className="car-info-photo-frame">
+            <FramedPhoto src={photo.image} alt={`${car.brand} ${car.model}`} frame={photo.frame} />
+          </div>
+        )}
         <div className="car-info-photo-actions">
           <label className={`car-btn ghost car-file-btn ${photoUploading ? 'busy' : ''}`}>
             {photoUploading ? <Loader2 size={18} className="car-spin" /> : <Camera size={18} />}
