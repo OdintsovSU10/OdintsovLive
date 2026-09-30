@@ -13,6 +13,9 @@ interface BotSettingsStatus {
   bot_username: string | null
   last_seen_at: string | null
   last_error: string | null
+  denied_count: number
+  last_denied_at: string | null
+  last_denied_user: string | null
 }
 
 // Бот отмечается раз в минуту, между отметками висит long polling до 50 с
@@ -140,6 +143,11 @@ export default function BotSettings() {
             <div>
               <strong>{statusTitle}</strong>
               <span>{status.last_error || `Последний сигнал: ${formatSeen(status.last_seen_at)}`}</span>
+              <span>
+                {status.denied_count > 0
+                  ? `Чужих попыток: ${status.denied_count}, последняя — ${status.last_denied_user} (${formatSeen(status.last_denied_at)})`
+                  : 'Чужих попыток не было'}
+              </span>
             </div>
           </div>
         ) : (
@@ -236,6 +244,7 @@ export default function BotSettings() {
 
         <p className="fot-token-help">
           Токен выдаёт @BotFather. Записи бота привязываются к аккаунту, который сохранил настройки.
+          Бот работает только в личке с владельцем: чужим не отвечает, из групп выходит.
           Ключи в браузер не возвращаются — видно только, что они заданы. Пустая модель — <code>{DEFAULT_MODEL}</code>.
         </p>
       </div>

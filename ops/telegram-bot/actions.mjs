@@ -288,10 +288,13 @@ const HANDLERS = {
   add_body_params: addBodyParams
 }
 
-export const createEntry = async (rest, { userId, chatId, messageId, inputText }) => {
+// messageIds — все сообщения диалога записи (реплики и уточнения): при отмене их удаляем
+export const createEntry = async (rest, { userId, chatId, messageId, messageIds, inputText }) => {
   const [entry] = await rest('telegram_bot_entries', {
     method: 'POST',
-    body: JSON.stringify({ user_id: userId, chat_id: chatId, message_id: messageId, input_text: inputText })
+    body: JSON.stringify({
+      user_id: userId, chat_id: chatId, message_id: messageId, message_ids: messageIds, input_text: inputText
+    })
   })
   return entry
 }
@@ -326,7 +329,9 @@ export const executeTools = async (rest, ctx, entryId, toolCalls) => {
 
 export const undoEntry = async (rest, userId, entryId) => {
   if (!UUID_RE.test(entryId || '')) return { ok: false, text: 'Неверная запись' }
-  const [entry] = await rest(`telegram_bot_entries?id=eq.${entryId}&user_id=eq.${userId}&select=id,created_rows,undone`)
+  const [entry] = await rest(
+    `telegram_bot_entries?id=eq.${entryId}&user_id=eq.${userId}&select=id,created_rows,undone,message_id,message_ids`
+  )
   if (!entry) return { ok: false, text: 'Запись не найдена' }
   if (entry.undone) return { ok: false, text: 'Уже отменено' }
 
@@ -341,5 +346,5 @@ export const undoEntry = async (rest, userId, entryId) => {
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ undone: true })
   })
-  return { ok: true, text: 'Отменено' }
+  return { ok: true, text: 'Отменено', messageIds: [...new Set([...(entry.message_ids || []), entry.message_id])] }
 }

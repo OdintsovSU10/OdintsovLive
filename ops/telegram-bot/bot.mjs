@@ -119,7 +119,7 @@ const createBot = config => {
   const getChat = chatId => {
     const chat = chats.get(chatId)
     if (chat && Date.now() - chat.updatedAt < HISTORY_TTL_MS) return chat
-    const fresh = { history: [], photo: null, updatedAt: Date.now() }
+    const fresh = { history: [], messageIds: [], photo: null, updatedAt: Date.now() }
     chats.set(chatId, fresh)
     return fresh
   }
@@ -131,10 +131,28 @@ const createBot = config => {
     ...extra
   })
 
+  // Чужая попытка — в портал (Админка → Telegram-бот), чтобы было видно, что бота нашли
+  const noteDenied = async from => {
+    const user = `${from?.id}${from?.username ? ` @${from.username}` : ''}`
+    log(`отказ: ${user}`)
+    await rest('rpc/note_bot_denied', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ p_user: user })
+    }).catch(err => log('попытка не записана:', err.message))
+  }
+
   const handleMessage = async msg => {
+    // Только личка: в группе записи и ответы увидят посторонние
+    if (msg.chat?.type !== 'private') {
+      log(`выход из чата ${msg.chat?.id} (${msg.chat?.type})`)
+      await tg('leaveChat', { chat_id: msg.chat.id }).catch(() => {})
+      return
+    }
     if (String(msg.from?.id) !== config.ownerTelegramId) {
-      log(`отказ: telegram id ${msg.from?.id}`)
-      await reply(msg, `Нет доступа. Твой Telegram id: ${msg.from?.id}`)
+      await noteDenied(msg.from)
+      // пока владелец не задан — подсказываем id для настройки, потом чужим не отвечаем вовсе
+      if (!config.ownerTelegramId) await reply(msg, `Нет доступа. Твой Telegram id: ${msg.from?.id}`)
       return
     }
     if (msg.text === '/start' || msg.text === '/help') {
@@ -155,6 +173,7 @@ const createBot = config => {
     }
 
     chat.history.push({ role: 'user', content })
+    chat.messageIds.push(msg.message_id)
     chat.updatedAt = Date.now()
     await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
 
@@ -167,7 +186,8 @@ const createBot = config => {
       chat.history = chat.history.slice(-HISTORY_LIMIT)
       // диалог для модели должен начинаться с реплики пользователя
       while (chat.history[0]?.role === 'assistant') chat.history.shift()
-      await reply(msg, answer)
+      const sent = await reply(msg, answer)
+      chat.messageIds.push(sent.message_id)
       return
     }
 
@@ -175,6 +195,7 @@ const createBot = config => {
       userId: config.userId,
       chatId: msg.chat.id,
       messageId: msg.message_id,
+      messageIds: chat.messageIds,
       inputText: chat.history.filter(m => m.role === 'user').map(m => messageText(m.content)).join('\n')
     })
     const { lines, rows } = await executeTools(rest, ctx, entry.id, toolCalls)
@@ -195,7 +216,8 @@ const createBot = config => {
 
   const handleCallback = async cb => {
     if (String(cb.from.id) !== config.ownerTelegramId) {
-      await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Нет доступа' })
+      await noteDenied(cb.from)
+      await tg('answerCallbackQuery', { callback_query_id: cb.id })
       return
     }
     const [action, entryId] = (cb.data || '').split(':')
@@ -206,12 +228,18 @@ const createBot = config => {
     const result = await undoEntry(rest, config.userId, entryId)
     await tg('answerCallbackQuery', { callback_query_id: cb.id, text: result.text })
     if (result.ok && cb.message) {
-      // без reply_markup кнопка пропадает
-      await tg('editMessageText', {
-        chat_id: cb.message.chat.id,
-        message_id: cb.message.message_id,
-        text: `${cb.message.text}\n\n↩️ Отменено`
-      })
+      const chatId = cb.message.chat.id
+      try {
+        // в личке бот удаляет и свои, и твои сообщения, если им меньше 48 часов
+        await tg('deleteMessages', { chat_id: chatId, message_ids: [...result.messageIds, cb.message.message_id] })
+      } catch (err) {
+        log(`entry ${entryId}: сообщения не удалены (${err.message}), помечаем`)
+        await tg('editMessageText', {
+          chat_id: chatId,
+          message_id: cb.message.message_id,
+          text: `${cb.message.text}\n\n↩️ Отменено`
+        })
+      }
       log(`entry ${entryId} отменена`)
     }
   }
