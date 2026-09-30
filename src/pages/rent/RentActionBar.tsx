@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Camera, Check, Share } from 'lucide-react'
+import { Camera, Check, Copy, Share } from 'lucide-react'
 import type { RentStage } from './readings'
 import './RentActionBar.css'
+
+// Сенсорный экран — телефон или планшет: там есть нормальное меню «Поделиться»
+const canShare = typeof navigator.share === 'function' && window.matchMedia('(pointer: coarse)').matches
 
 interface RentActionBarProps {
   stage: RentStage
@@ -41,13 +44,21 @@ export default function RentActionBar({
     return () => clearTimeout(timer)
   }, [copied])
 
+  const copyMessage = () => {
+    navigator.clipboard.writeText(message).then(() => setCopied(true))
+  }
+
+  // Меню «Поделиться» — только на телефоне/планшете; на компьютере (Windows) оно бесполезно,
+  // там текст копируется для вставки в мессенджер.
   // navigator.share вызываем сразу в обработчике тапа, иначе iOS откажет
   const handleSend = () => {
-    if (typeof navigator.share === 'function') {
-      navigator.share({ text: message }).catch(() => {})
+    if (!canShare) {
+      copyMessage()
       return
     }
-    navigator.clipboard.writeText(message).then(() => setCopied(true))
+    navigator.share({ text: message }).catch((err: unknown) => {
+      if (!(err instanceof DOMException && err.name === 'AbortError')) copyMessage()
+    })
   }
 
   const photoButton = (label: string, primary: boolean) => (
@@ -77,8 +88,8 @@ export default function RentActionBar({
   let actions = (
     <>
       <button className="action-btn is-primary" onClick={handleSend}>
-        <Share size={18} />
-        <span>{copied ? 'Скопировано' : 'Отправить'}</span>
+        {canShare ? <Share size={18} /> : <Copy size={18} />}
+        <span>{copied ? 'Скопировано' : canShare ? 'Отправить' : 'Скопировать'}</span>
       </button>
       {paidButton}
     </>
