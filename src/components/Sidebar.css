@@ -360,12 +360,6 @@
     background: var(--bg-tertiary);
   }
 
-  .mobile-menu-btn.menu-open {
-    background: var(--sidebar-bg);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: var(--sidebar-text);
-  }
-
   .mobile-logo {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);

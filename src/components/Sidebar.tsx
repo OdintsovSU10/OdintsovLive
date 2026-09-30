@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
@@ -127,16 +127,15 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
     <>
       {isMobile && (
         <>
-          <button
-            className={`mobile-menu-btn ${!mobileHidden ? 'menu-open' : ''}`}
-            onClick={() => setMobileHidden(!mobileHidden)}
-          >
-            {mobileHidden ? <Menu size={20} /> : <X size={20} />}
-          </button>
           {mobileHidden && (
-            <Link to="/" className="mobile-logo">
-              <Logo size={24} showText={false} />
-            </Link>
+            <>
+              <button className="mobile-menu-btn" onClick={() => setMobileHidden(false)}>
+                <Menu size={20} />
+              </button>
+              <Link to="/" className="mobile-logo">
+                <Logo size={24} showText={false} />
+              </Link>
+            </>
           )}
           <div
             className={`sidebar-overlay ${!mobileHidden ? 'visible' : ''}`}
