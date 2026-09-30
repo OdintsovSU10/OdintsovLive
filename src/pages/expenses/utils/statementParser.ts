@@ -17,6 +17,8 @@ type ColumnKey =
   | 'bonuses'
   | 'roundUp'
   | 'operationWithRounding'
+  | 'userCategory'
+  | 'includeInAnalytics'
 
 interface ColumnConfig {
   key: ColumnKey
@@ -44,6 +46,7 @@ interface ParsedDraftRow {
   round_up_amount: number
   operation_with_rounding_amount: number | null
   flow_direction: 'in' | 'out' | 'zero'
+  include_in_analytics: boolean
   mapped_category_id: string | null
 }
 
@@ -54,15 +57,17 @@ const COLUMN_CONFIG: ColumnConfig[] = [
   { key: 'status', title: 'Статус', aliases: ['Статус'] },
   { key: 'operationAmount', title: 'Сумма операции', aliases: ['Сумма операции'] },
   { key: 'operationCurrency', title: 'Валюта операции', aliases: ['Валюта операции'] },
-  { key: 'paymentAmount', title: 'Сумма платежа', required: true, aliases: ['Сумма платежа'] },
-  { key: 'paymentCurrency', title: 'Валюта платежа', aliases: ['Валюта платежа'] },
+  { key: 'paymentAmount', title: 'Сумма платежа', required: true, aliases: ['Сумма платежа', 'Сумма в валюте счёта', 'Сумма в валюте счета'] },
+  { key: 'paymentCurrency', title: 'Валюта платежа', aliases: ['Валюта платежа', 'Валюта счёта', 'Валюта счета'] },
   { key: 'cashback', title: 'Кэшбэк', aliases: ['Кэшбэк'] },
-  { key: 'category', title: 'Категория', aliases: ['Категория'] },
+  { key: 'category', title: 'Категория', aliases: ['Категория', 'Категория по-умолчанию', 'Категория по умолчанию'] },
+  { key: 'userCategory', title: 'Ваша категория', aliases: ['Ваша категория'] },
   { key: 'mcc', title: 'MCC', aliases: ['MCC'] },
   { key: 'description', title: 'Описание', aliases: ['Описание'] },
   { key: 'bonuses', title: 'Бонусы (включая кэшбэк)', aliases: ['Бонусы (включая кэшбэк)', 'Бонусы'] },
-  { key: 'roundUp', title: 'Округление на инвесткопилку', aliases: ['Округление на инвесткопилку'] },
-  { key: 'operationWithRounding', title: 'Сумма операции с округлением', aliases: ['Сумма операции с округлением'] }
+  { key: 'roundUp', title: 'Округление на инвесткопилку', aliases: ['Округление на инвесткопилку', 'Округление'] },
+  { key: 'operationWithRounding', title: 'Сумма операции с округлением', aliases: ['Сумма операции с округлением'] },
+  { key: 'includeInAnalytics', title: 'Учёт в аналитике', aliases: ['Учёт в аналитике', 'Учет в аналитике'] }
 ]
 
 const ALIAS_TO_KEY = new Map<string, ColumnKey>()
@@ -203,6 +208,22 @@ function parseDateTime(value: unknown): Date | null {
   return null
 }
 
+function decodeText(buffer: ArrayBuffer): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer).replace(/^\uFEFF/, '')
+  } catch {
+    return new TextDecoder('windows-1251').decode(buffer)
+  }
+}
+
+function readWorkbook(file: File, buffer: ArrayBuffer): XLSX.WorkBook {
+  if (/\.csv$/i.test(file.name) || file.type === 'text/csv') {
+    // raw: даты и суммы остаются строками — их разбирают parseDateTime/parseNumber
+    return XLSX.read(decodeText(buffer), { type: 'string', raw: true })
+  }
+  return XLSX.read(buffer, { type: 'array' })
+}
+
 async function sha256Hex(value: string | ArrayBuffer): Promise<string> {
   if (!crypto?.subtle) {
     throw new Error('Web Crypto API недоступен в этом браузере')
@@ -262,7 +283,7 @@ export async function parseStatementFile(
   const arrayBuffer = await file.arrayBuffer()
   const fileHash = await sha256Hex(arrayBuffer)
 
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+  const workbook = readWorkbook(file, arrayBuffer)
   const firstSheetName = workbook.SheetNames[0]
   const sheet = workbook.Sheets[firstSheetName]
 
@@ -282,7 +303,7 @@ export async function parseStatementFile(
 
   const headerMeta = findHeaderRow(rows)
   if (!headerMeta) {
-    throw new Error('Не найдены обязательные колонки: "Дата операции" и "Сумма платежа"')
+    throw new Error('Не найдены обязательные колонки: "Дата операции" и "Сумма платежа" / "Сумма в валюте счёта"')
   }
 
   const { rowIndex: headerRowIndex, columns } = headerMeta
@@ -328,7 +349,8 @@ export async function parseStatementFile(
       })
     }
 
-    const bankCategory = toCellText(getCell(row, columns.category)) || null
+    const bankCategory =
+      toCellText(getCell(row, columns.userCategory)) || toCellText(getCell(row, columns.category)) || null
     const mappedCategoryId = bankCategory
       ? categoryMappingByBankCategory.get(normalizeCategoryKey(bankCategory)) || null
       : null
@@ -355,6 +377,7 @@ export async function parseStatementFile(
       round_up_amount: parseNumber(getCell(row, columns.roundUp)) || 0,
       operation_with_rounding_amount: parseNumber(getCell(row, columns.operationWithRounding)),
       flow_direction: flowDirection,
+      include_in_analytics: toCellText(getCell(row, columns.includeInAnalytics)).toLowerCase() !== 'нет',
       mapped_category_id: mappedCategoryId
     })
   }

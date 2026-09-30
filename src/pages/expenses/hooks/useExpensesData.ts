@@ -9,8 +9,10 @@ import type {
   ExpenseUserCategory,
   PreparedExpenseTransaction
 } from '../types'
+import { buildInsights } from '../utils/analysis'
 import { normalizeCategoryKey, parseStatementFile } from '../utils/statementParser'
 
+const LOAD_PAGE_SIZE = 1000
 const IMPORT_CHUNK_SIZE = 500
 const IMPORT_ERROR_LIMIT = 200
 const MAX_DEDUPE_KEYS_QUERY_LENGTH = 2000
@@ -94,7 +96,6 @@ export function useExpensesData() {
   const [allTransactions, setAllTransactions] = useState<ExpenseTransaction[]>([])
   const [categories, setCategories] = useState<ExpenseUserCategory[]>([])
   const [mappings, setMappings] = useState<ExpenseCategoryMapping[]>([])
-  const [bankCategories, setBankCategories] = useState<string[]>([])
 
   const [filters, setFilters] = useState<ExpenseFilters>(getDefaultFilters)
   const [lastImportSummary, setLastImportSummary] = useState<ExpenseImportSummary | null>(null)
@@ -135,27 +136,7 @@ export function useExpensesData() {
     setMappings((data || []) as ExpenseCategoryMapping[])
   }, [userId])
 
-  const loadBankCategories = useCallback(async () => {
-    if (!userId) return
-
-    const { data, error: queryError } = await supabase
-      .from('expense_transactions')
-      .select('bank_category')
-      .eq('user_id', userId)
-      .not('bank_category', 'is', null)
-      .order('bank_category', { ascending: true })
-
-    if (queryError) throw queryError
-
-    const unique = new Set<string>()
-    for (const item of data || []) {
-      const category = (item.bank_category || '').trim()
-      if (category) unique.add(category)
-    }
-
-    setBankCategories(Array.from(unique))
-  }, [userId])
-
+  // Грузим всю историю: анализу подписок нужны месяцы, фильтры применяются на клиенте
   const loadTransactions = useCallback(async () => {
     if (!userId) return
 
@@ -163,51 +144,69 @@ export function useExpensesData() {
     setError(null)
 
     try {
-      let query = supabase
-        .from('expense_transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('operation_at', { ascending: false })
+      const rows: ExpenseTransaction[] = []
 
-      if (filters.dateFrom) {
-        query = query.gte('operation_date', filters.dateFrom)
+      for (let from = 0; ; from += LOAD_PAGE_SIZE) {
+        const { data, error: queryError } = await supabase
+          .from('expense_transactions')
+          .select('*')
+          .eq('user_id', userId)
+          .order('operation_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(from, from + LOAD_PAGE_SIZE - 1)
+
+        if (queryError) throw queryError
+        rows.push(...((data || []) as ExpenseTransaction[]))
+        if (!data || data.length < LOAD_PAGE_SIZE) break
       }
 
-      if (filters.dateTo) {
-        query = query.lte('operation_date', filters.dateTo)
-      }
-
-      if (filters.flow !== 'all') {
-        query = query.eq('flow_direction', filters.flow)
-      }
-
-      const { data, error: queryError } = await query
-      if (queryError) throw queryError
-
-      setAllTransactions((data || []) as ExpenseTransaction[])
+      setAllTransactions(rows)
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
-  }, [filters.dateFrom, filters.dateTo, filters.flow, userId])
+  }, [userId])
 
   useEffect(() => {
     if (!userId) return
 
-    Promise.all([loadCategories(), loadMappings(), loadBankCategories()])
+    Promise.all([loadCategories(), loadMappings()])
       .catch(err => setError(getErrorMessage(err)))
-  }, [loadBankCategories, loadCategories, loadMappings, userId])
+  }, [loadCategories, loadMappings, userId])
 
   useEffect(() => {
     if (!userId) return
     void loadTransactions()
   }, [loadTransactions, userId])
 
+  const bankCategories = useMemo(() => {
+    const unique = new Set<string>()
+    for (const transaction of allTransactions) {
+      const category = (transaction.bank_category || '').trim()
+      if (category) unique.add(category)
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b, 'ru'))
+  }, [allTransactions])
+
+  const insights = useMemo(() => buildInsights(allTransactions), [allTransactions])
+
   const transactions = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
 
     return allTransactions.filter(transaction => {
+      if (filters.dateFrom && transaction.operation_date < filters.dateFrom) {
+        return false
+      }
+
+      if (filters.dateTo && transaction.operation_date > filters.dateTo) {
+        return false
+      }
+
+      if (filters.flow !== 'all' && transaction.flow_direction !== filters.flow) {
+        return false
+      }
+
       if (filters.bankCategory && transaction.bank_category !== filters.bankCategory) {
         return false
       }
@@ -233,7 +232,7 @@ export function useExpensesData() {
 
       return haystack.includes(search)
     })
-  }, [allTransactions, filters.bankCategory, filters.mappedCategoryId, filters.search])
+  }, [allTransactions, filters])
 
   const updateFilters = useCallback((patch: Partial<ExpenseFilters>) => {
     setFilters(prev => ({ ...prev, ...patch }))
@@ -508,7 +507,7 @@ export function useExpensesData() {
       }
 
       setLastImportSummary(summary)
-      await Promise.all([loadTransactions(), loadBankCategories()])
+      await loadTransactions()
       return summary
     } catch (err) {
       const message = getErrorMessage(err)
@@ -529,7 +528,7 @@ export function useExpensesData() {
     } finally {
       setImporting(false)
     }
-  }, [loadBankCategories, loadTransactions, mappings, userId])
+  }, [loadTransactions, mappings, userId])
 
   return {
     userId,
@@ -542,6 +541,7 @@ export function useExpensesData() {
     categories,
     mappings,
     bankCategories,
+    insights,
     lastImportSummary,
     updateFilters,
     resetFilters,

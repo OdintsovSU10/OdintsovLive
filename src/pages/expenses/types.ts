@@ -25,6 +25,7 @@ export interface ExpenseTransaction {
   round_up_amount: number
   operation_with_rounding_amount: number | null
   flow_direction: FlowDirection
+  include_in_analytics: boolean
   mapped_category_id: string | null
   created_at: string
   updated_at: string
@@ -97,6 +98,7 @@ export interface PreparedExpenseTransaction {
   round_up_amount: number
   operation_with_rounding_amount: number | null
   flow_direction: FlowDirection
+  include_in_analytics: boolean
   mapped_category_id: string | null
 }
 
@@ -106,4 +108,82 @@ export interface ParsedStatementResult {
   totalRows: number
   parsedRows: PreparedExpenseTransaction[]
   errors: ExpenseImportError[]
+}
+
+export type SubscriptionPeriod = 'weekly' | 'monthly' | 'quarterly' | 'irregular'
+
+export interface SubscriptionInsight {
+  key: string
+  name: string
+  category: string | null
+  amount: number
+  count: number
+  period: SubscriptionPeriod
+  lastDate: string
+  nextDate: string | null
+  active: boolean
+  monthlyCost: number
+  yearlyCost: number
+}
+
+export type FindingKind = 'duplicate' | 'micro' | 'intermediary' | 'tips' | 'insurance' | 'failed'
+
+export interface FindingInsight {
+  key: string
+  kind: FindingKind
+  name: string
+  total: number
+  count: number
+  firstDate: string
+  lastDate: string
+}
+
+export interface SpendGroupInsight {
+  key: string
+  name: string
+  total: number
+  count: number
+  avgCheck: number
+  monthly: number
+  share: number
+}
+
+export interface HabitInsight {
+  key: string
+  name: string
+  category: string | null
+  total: number
+  count: number
+  avgCheck: number
+  perWeek: number
+  monthly: number
+}
+
+export interface LargePurchaseInsight {
+  id: string
+  name: string
+  category: string | null
+  amount: number
+  date: string
+}
+
+export interface ExpenseInsights {
+  windowFrom: string
+  windowTo: string
+  months: number
+  purchasesTotal: number
+  purchasesMonthly: number
+  subscriptions: SubscriptionInsight[]
+  subscriptionsMonthly: number
+  findings: FindingInsight[]
+  suspiciousTotal: number
+  suspiciousMonthly: number
+  discretionary: SpendGroupInsight[]
+  discretionaryMonthly: number
+  habits: HabitInsight[]
+  largePurchases: LargePurchaseInsight[]
+  roundUpTotal: number
+  internalCount: number
+  failedCount: number
+  potentialMonthlySavings: number
 }
