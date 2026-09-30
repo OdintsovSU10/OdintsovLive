@@ -1,88 +1,21 @@
-import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { ArrowLeft } from 'lucide-react'
 import { MONTHS } from '../lib/constants'
-import { parseNumber } from '../lib/formatUtils'
-import ElectricitySection from './rent/ElectricitySection'
-import MeterPhotoUpload from './rent/MeterPhotoUpload'
-import PaymentsSection, { type AmountKey, type PaymentRow } from './rent/PaymentsSection'
+import Collapsible from './rent/Collapsible'
+import OcrJobList from './rent/OcrJobList'
+import PaymentsSection, { type PaymentRow } from './rent/PaymentsSection'
+import ReadingsSection, { readingInputId, type ReadingsNotice } from './rent/ReadingsSection'
+import RentActionBar from './rent/RentActionBar'
 import RentMessageSection from './rent/RentMessageSection'
+import RentTotals, { type TotalRow } from './rent/RentTotals'
 import TariffsSection from './rent/TariffsSection'
-import {
-  applyElectricity,
-  assignWaterReadings,
-  buildRentMessage,
-  calcElectricityTotal,
-  calcWaterBill,
-  hasAllTariffs,
-  type ElectricityMeter,
-  type ElectricityTariffs,
-  type RecognizedMeter,
-  type WaterTariffs
-} from './rent/rentUtils'
+import { getRentStage } from './rent/readings'
+import { useMeterOcrJobs } from './rent/useMeterOcrJobs'
+import { AMOUNT_FIELDS, AMOUNT_KEYS, useRentMonth } from './rent/useRentMonth'
 import './RentMonthPage.css'
 
-interface RentRecord {
-  rent_amount: number
-  water_amount: number
-  electricity_amount: number
-  rent_manual: boolean
-  water_manual: boolean
-  electricity_manual: boolean
-  cold_water: number
-  hot_water: number
-  electricity: ElectricityMeter[]
-  paid: boolean
-  notes: string
-}
-
-interface PrevRecord {
-  rent_amount: number
-  cold_water: number
-  hot_water: number
-  electricity: ElectricityMeter[]
-}
-
-type SaveValue = number | boolean | string | ElectricityMeter[] | ElectricityTariffs
-
-const AMOUNT_FIELDS = {
-  rent: { label: 'Аренда', amount: 'rent_amount', manual: 'rent_manual' },
-  water: { label: 'Вода', amount: 'water_amount', manual: 'water_manual' },
-  electricity: { label: 'Электричество', amount: 'electricity_amount', manual: 'electricity_manual' }
-} as const
-
-const AMOUNT_KEYS: AmountKey[] = ['rent', 'water', 'electricity']
-
-const EMPTY_RECORD: RentRecord = {
-  rent_amount: 0,
-  water_amount: 0,
-  electricity_amount: 0,
-  rent_manual: false,
-  water_manual: false,
-  electricity_manual: false,
-  cold_water: 0,
-  hot_water: 0,
-  electricity: [],
-  paid: false,
-  notes: ''
-}
-
-const toWaterTariffs = (
-  data: { cold_water_tariff?: unknown; hot_water_tariff?: unknown; drainage_tariff?: unknown } | null
-): WaterTariffs => ({
-  cold: Number(data?.cold_water_tariff) || 0,
-  hot: Number(data?.hot_water_tariff) || 0,
-  drainage: Number(data?.drainage_tariff) || 0
-})
-
-const waterTariffFields = (t: WaterTariffs) => ({
-  cold_water_tariff: t.cold,
-  hot_water_tariff: t.hot,
-  drainage_tariff: t.drainage
-})
-
-const hasAnyValue = (values: object) => Object.values(values).some(v => Number(v) > 0)
+const PHOTO_INPUT_ID = 'meter-photo-input'
+const PHOTO_HINT = 'Каждый тариф электросчётчика (T1, T2, T3) — отдельным фото, оба водомера — одним. Распознаёт домашний ПК, около 1,5 минуты на фото.'
 
 export default function RentMonthPage() {
   const { year: yearParam, month: monthParam } = useParams()
@@ -90,377 +23,150 @@ export default function RentMonthPage() {
   const year = Number(yearParam)
   const month = Number(monthParam)
 
-  const [userId, setUserId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [record, setRecord] = useState<RentRecord>(EMPTY_RECORD)
-  const [prevRecord, setPrevRecord] = useState<PrevRecord | null>(null)
-  const [tariffs, setTariffs] = useState<WaterTariffs>({ cold: 0, hot: 0, drainage: 0 })
-  const [electricityTariffs, setElectricityTariffs] = useState<ElectricityTariffs>({})
-  const [inputs, setInputs] = useState({ coldWater: '', hotWater: '', notes: '' })
+  const rent = useRentMonth(year, month)
+  // Задания распознавания подключаем после загрузки месяца: результат применяется к загруженным данным
+  const ocr = useMeterOcrJobs({
+    userId: rent.loading ? null : rent.userId,
+    year,
+    month,
+    onRecognized: rent.applyRecognized
+  })
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-        loadData(user.id)
-      }
-    })
-  }, [year, month])
+  const stage = getRentStage({
+    paid: rent.record.paid,
+    activeJobs: ocr.activeCount,
+    rows: rent.rows,
+    missing: rent.missing
+  })
 
-  const upsertFields = (uid: string, fields: Record<string, SaveValue>) =>
-    supabase.from('rent_records').upsert(
-      {
-        user_id: uid,
-        year,
-        month,
-        ...fields,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: 'user_id,year,month' }
-    )
+  const header = (
+    <div className="month-header">
+      <button className="back-btn" onClick={() => navigate(`/rent?year=${year}`)}>
+        <ArrowLeft size={20} />
+        <span>Назад</span>
+      </button>
+      <h1>{MONTHS[month]} {year}</h1>
+    </div>
+  )
 
-  const loadData = async (uid: string) => {
-    setLoading(true)
-
-    const prevMonth = month === 0 ? 11 : month - 1
-    const prevYear = month === 0 ? year - 1 : year
-
-    const [currentResult, prevResult] = await Promise.all([
-      supabase
-        .from('rent_records')
-        .select('*')
-        .eq('user_id', uid)
-        .eq('year', year)
-        .eq('month', month)
-        .maybeSingle(),
-      supabase
-        .from('rent_records')
-        .select('rent_amount, cold_water, hot_water, electricity, cold_water_tariff, hot_water_tariff, drainage_tariff, electricity_tariffs')
-        .eq('user_id', uid)
-        .eq('year', prevYear)
-        .eq('month', prevMonth)
-        .maybeSingle()
-    ])
-
-    const data = currentResult.data
-    const prev = prevResult.data
-    const prevElectricity: ElectricityMeter[] = prev?.electricity || []
-
-    setPrevRecord(prev
-      ? {
-          rent_amount: Number(prev.rent_amount) || 0,
-          cold_water: prev.cold_water || 0,
-          hot_water: prev.hot_water || 0,
-          electricity: prevElectricity
-        }
-      : null)
-
-    // Тарифы берём свои, иначе из прошлого месяца — и сразу сохраняем, чтобы шли дальше по цепочке
-    const inherited: Record<string, SaveValue> = {}
-    const ownWaterTariffs = toWaterTariffs(data)
-    const prevWaterTariffs = toWaterTariffs(prev)
-    if (hasAnyValue(ownWaterTariffs)) {
-      setTariffs(ownWaterTariffs)
-    } else {
-      setTariffs(prevWaterTariffs)
-      if (hasAnyValue(prevWaterTariffs)) Object.assign(inherited, waterTariffFields(prevWaterTariffs))
-    }
-
-    const ownElectricityTariffs: ElectricityTariffs = data?.electricity_tariffs || {}
-    const prevElectricityTariffs: ElectricityTariffs = prev?.electricity_tariffs || {}
-    if (hasAnyValue(ownElectricityTariffs)) {
-      setElectricityTariffs(ownElectricityTariffs)
-    } else {
-      setElectricityTariffs(prevElectricityTariffs)
-      if (hasAnyValue(prevElectricityTariffs)) inherited.electricity_tariffs = prevElectricityTariffs
-    }
-
-    if (data) {
-      setRecord({
-        rent_amount: Number(data.rent_amount) || 0,
-        water_amount: Number(data.water_amount) || 0,
-        electricity_amount: Number(data.electricity_amount) || 0,
-        rent_manual: Boolean(data.rent_manual),
-        water_manual: Boolean(data.water_manual),
-        electricity_manual: Boolean(data.electricity_manual),
-        cold_water: data.cold_water || 0,
-        hot_water: data.hot_water || 0,
-        electricity: data.electricity || [],
-        paid: data.paid || false,
-        notes: data.notes || ''
-      })
-      setInputs({
-        coldWater: data.cold_water > 0 ? String(data.cold_water) : '',
-        hotWater: data.hot_water > 0 ? String(data.hot_water) : '',
-        notes: data.notes || ''
-      })
-    } else {
-      // Автокопирование счётчиков из предыдущего месяца
-      const emptyMeters = prevElectricity.map(m => ({ name: m.name, value: 0 }))
-      setRecord({ ...EMPTY_RECORD, electricity: emptyMeters })
-      setInputs({ coldWater: '', hotWater: '', notes: '' })
-      if (emptyMeters.length > 0) inherited.electricity = emptyMeters
-    }
-
-    if (Object.keys(inherited).length > 0) await upsertFields(uid, inherited)
-    setLoading(false)
-  }
-
-  const saveFields = async (fields: Record<string, SaveValue>) => {
-    if (!userId) return
-    await upsertFields(userId, fields)
-  }
-
-  const saveField = (field: string, value: SaveValue) => saveFields({ [field]: value })
-
-  const prevWater = prevRecord && { cold: prevRecord.cold_water, hot: prevRecord.hot_water }
-  const waterBill = calcWaterBill(prevWater, { cold: record.cold_water, hot: record.hot_water }, tariffs)
-
-  const autoAmounts: Record<AmountKey, number | null> = {
-    rent: prevRecord && prevRecord.rent_amount > 0 ? prevRecord.rent_amount : null,
-    water: waterBill && hasAllTariffs(tariffs) ? waterBill.total : null,
-    electricity: calcElectricityTotal(prevRecord?.electricity ?? null, record.electricity, electricityTariffs)
-  }
-
-  // Пока сумма не введена вручную, она равна авторасчёту (0, если данных не хватает)
-  const amountOf = (key: AmountKey) => {
-    const { amount, manual } = AMOUNT_FIELDS[key]
-    return record[manual] ? record[amount] : autoAmounts[key] ?? 0
-  }
-
-  const amounts: Record<AmountKey, number> = {
-    rent: amountOf('rent'),
-    water: amountOf('water'),
-    electricity: amountOf('electricity')
-  }
-
-  // Авторасчётные суммы сохраняем, чтобы список месяцев и итоги видели актуальные значения
-  useEffect(() => {
-    if (loading || !userId) return
-    const changed: Record<string, number> = {}
-    for (const key of AMOUNT_KEYS) {
-      const { amount, manual } = AMOUNT_FIELDS[key]
-      if (!record[manual] && amounts[key] !== record[amount]) changed[amount] = amounts[key]
-    }
-    if (Object.keys(changed).length === 0) return
-    setRecord(prev => ({ ...prev, ...changed }))
-    saveFields(changed)
-  }, [
-    loading,
-    userId,
-    amounts.rent,
-    amounts.water,
-    amounts.electricity,
-    record.rent_amount,
-    record.water_amount,
-    record.electricity_amount,
-    record.rent_manual,
-    record.water_manual,
-    record.electricity_manual
-  ])
-
-  const handleAmountChange = (key: AmountKey, value: number) => {
-    const { amount, manual } = AMOUNT_FIELDS[key]
-    setRecord(prev => ({ ...prev, [amount]: value, [manual]: true }))
-    saveFields({ [amount]: value, [manual]: true })
-  }
-
-  const handleAmountReset = (key: AmountKey) => {
-    const { manual } = AMOUNT_FIELDS[key]
-    // саму сумму пересчитает и сохранит эффект синхронизации
-    setRecord(prev => ({ ...prev, [manual]: false }))
-    saveField(manual, false)
-  }
-
-  const handleColdWaterBlur = () => {
-    const value = parseNumber(inputs.coldWater)
-    setRecord(prev => ({ ...prev, cold_water: value }))
-    setInputs(prev => ({ ...prev, coldWater: value > 0 ? String(value) : '' }))
-    saveField('cold_water', value)
-  }
-
-  const handleHotWaterBlur = () => {
-    const value = parseNumber(inputs.hotWater)
-    setRecord(prev => ({ ...prev, hot_water: value }))
-    setInputs(prev => ({ ...prev, hotWater: value > 0 ? String(value) : '' }))
-    saveField('hot_water', value)
-  }
-
-  const handleWaterTariffChange = (key: keyof WaterTariffs, value: number) => {
-    const next = { ...tariffs, [key]: value }
-    setTariffs(next)
-    saveFields(waterTariffFields(next))
-  }
-
-  const handleElectricityTariffChange = (name: string, value: number) => {
-    const next = { ...electricityTariffs, [name]: value }
-    setElectricityTariffs(next)
-    saveField('electricity_tariffs', next)
-  }
-
-  const applyRecognized = async (meters: RecognizedMeter[]) => {
-    const electricity = applyElectricity(record.electricity, meters)
-    const water = assignWaterReadings(meters.filter(m => m.kind === 'water').map(m => m.value), prevWater)
-    const cold = water.cold ?? record.cold_water
-    const hot = water.hot ?? record.hot_water
-
-    setRecord(prev => ({ ...prev, electricity, cold_water: cold, hot_water: hot }))
-    setInputs(prev => ({ ...prev, coldWater: cold > 0 ? String(cold) : '', hotWater: hot > 0 ? String(hot) : '' }))
-    await saveFields({ electricity, cold_water: cold, hot_water: hot })
-  }
-
-  const handleNotesBlur = () => {
-    setRecord(prev => ({ ...prev, notes: inputs.notes }))
-    saveField('notes', inputs.notes)
-  }
-
-  const togglePaid = () => {
-    const newPaid = !record.paid
-    setRecord(prev => ({ ...prev, paid: newPaid }))
-    saveField('paid', newPaid)
-  }
-
-  const handleElectricityChange = (updated: ElectricityMeter[]) => {
-    setRecord(prev => ({ ...prev, electricity: updated }))
-    saveField('electricity', updated)
-  }
-
-  const getColdWaterUsage = () => {
-    if (!prevRecord) return null
-    return Math.max(0, Math.floor(record.cold_water) - Math.floor(prevRecord.cold_water))
-  }
-
-  const getHotWaterUsage = () => {
-    if (!prevRecord) return null
-    return Math.max(0, Math.floor(record.hot_water) - Math.floor(prevRecord.hot_water))
-  }
-
-  const getTotalWaterUsage = () => {
-    const cold = getColdWaterUsage()
-    const hot = getHotWaterUsage()
-    if (cold === null && hot === null) return null
-    return (cold || 0) + (hot || 0)
-  }
-
-  const total = amounts.rent + amounts.water + amounts.electricity
-
-  const paymentRows: PaymentRow[] = AMOUNT_KEYS.map(key => ({
-    key,
-    label: AMOUNT_FIELDS[key].label,
-    amount: amounts[key],
-    manual: record[AMOUNT_FIELDS[key].manual],
-    hasAuto: autoAmounts[key] !== null
-  }))
-
-  if (loading) {
+  if (rent.loading) {
     return (
       <div className="rent-month-page">
-        <div className="month-header">
-          <button className="back-btn" onClick={() => navigate(`/rent?year=${year}`)}>
-            <ArrowLeft size={20} />
-            <span>Назад</span>
-          </button>
-          <h1>{MONTHS[month]} {year}</h1>
-        </div>
+        {header}
         <div className="loading">Загрузка...</div>
       </div>
     )
   }
 
+  const handlePhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    ocr.upload(files)
+  }
+
+  const filled = rent.rows.filter(r => r.cur !== null).length
+  const readingsStatus = ocr.uploading
+    ? 'загрузка фото…'
+    : ocr.activeCount > 0
+      ? `распознаю, осталось ${ocr.activeCount}`
+      : `${filled === rent.rows.length ? '✓ ' : ''}${filled} из ${rent.rows.length}`
+
+  const notices: ReadingsNotice[] = []
+  if (ocr.uploadError) notices.push({ level: 'warning', text: `Фото не загружено: ${ocr.uploadError}` })
+  if (ocr.errorCount > 0) {
+    notices.push({ level: 'warning', text: `Не распознано фото: ${ocr.errorCount} — добавьте ещё раз или введите вручную` })
+  }
+  if (ocr.stale) notices.push({ level: 'warning', text: 'Домашний ПК не отвечает — показания можно ввести вручную' })
+  if (ocr.activeCount > 0) {
+    notices.push({ level: 'info', text: 'Страницу можно закрыть: показания подставятся при следующем открытии' })
+  }
+
+  const errorRow = rent.rows.find(r => r.issue?.level === 'error')
+  const warningRow = rent.rows.find(r => r.issue?.level === 'warning')
+
+  const totalRows: TotalRow[] = AMOUNT_KEYS.map(key => {
+    const manual = rent.record[AMOUNT_FIELDS[key].manual]
+    return {
+      key,
+      label: AMOUNT_FIELDS[key].label,
+      amount: rent.amounts[key],
+      note: manual ? null : rent.autoNotes[key],
+      manual,
+      hasValue: manual || rent.autoAmounts[key] !== null
+    }
+  })
+
+  const paymentRows: PaymentRow[] = totalRows.map(row => ({
+    key: row.key,
+    label: row.label,
+    amount: row.amount,
+    manual: row.manual,
+    hasAuto: rent.autoAmounts[row.key] !== null
+  }))
+
+  const messageReady = stage === 'ready' || stage === 'paid'
+
   return (
     <div className="rent-month-page">
-      <div className="month-header">
-        <button className="back-btn" onClick={() => navigate(`/rent?year=${year}`)}>
-          <ArrowLeft size={20} />
-          <span>Назад</span>
-        </button>
-        <h1>{MONTHS[month]} {year}</h1>
-      </div>
+      {header}
+      <input id={PHOTO_INPUT_ID} type="file" accept="image/*" multiple hidden onChange={handlePhotos} />
 
       <div className="month-content">
-        <PaymentsSection rows={paymentRows} onManualChange={handleAmountChange} onReset={handleAmountReset} />
+        <ReadingsSection
+          rows={rent.rows}
+          status={readingsStatus}
+          hint={stage === 'photos' ? PHOTO_HINT : null}
+          notices={notices}
+          onChange={rent.setReading}
+        >
+          {ocr.jobs.length > 0 && <OcrJobList jobs={ocr.jobs} onRemove={ocr.removeJob} />}
+        </ReadingsSection>
 
-        {userId && (
-          <MeterPhotoUpload userId={userId} year={year} month={month} onRecognized={applyRecognized} />
-        )}
+        <RentTotals rows={totalRows} total={rent.total} onReset={rent.resetAmount} />
 
-        <div className="content-section">
-          <div className="section-header">
-            <div className="section-title">Счётчики воды</div>
-            {getTotalWaterUsage() !== null && (
-              <span className="total-usage">всего: {getTotalWaterUsage()?.toFixed(2)} м³</span>
-            )}
-          </div>
-          <div className="input-row">
-            <span>ХВС (холодная)</span>
-            <div className="meter-input">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={inputs.coldWater}
-                placeholder="0"
-                onChange={e => setInputs(prev => ({ ...prev, coldWater: e.target.value }))}
-                onBlur={handleColdWaterBlur}
-              />
-              {getColdWaterUsage() !== null && (
-                <span className="usage">расход: {getColdWaterUsage()?.toFixed(2)} м³</span>
-              )}
-            </div>
-          </div>
-          <div className="input-row">
-            <span>ГВС (горячая)</span>
-            <div className="meter-input">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={inputs.hotWater}
-                placeholder="0"
-                onChange={e => setInputs(prev => ({ ...prev, hotWater: e.target.value }))}
-                onBlur={handleHotWaterBlur}
-              />
-              {getHotWaterUsage() !== null && (
-                <span className="usage">расход: {getHotWaterUsage()?.toFixed(2)} м³</span>
-              )}
-            </div>
-          </div>
-        </div>
+        <Collapsible title="Текст сообщения" note={messageReady ? 'готов' : 'не хватает данных'}>
+          <RentMessageSection message={rent.message} />
+        </Collapsible>
 
-        <ElectricitySection
-          meters={record.electricity}
-          prevMeters={prevRecord?.electricity ?? null}
-          onChange={handleElectricityChange}
-        />
-
-        <TariffsSection
-          water={tariffs}
-          electricity={electricityTariffs}
-          meterNames={record.electricity.map(m => m.name)}
-          onWaterChange={handleWaterTariffChange}
-          onElectricityChange={handleElectricityTariffChange}
-        />
-
-        <RentMessageSection message={buildRentMessage(record.electricity, waterBill, tariffs)} />
-
-        <div className="content-section">
-          <div className="section-title">Заметки</div>
-          <textarea
-            value={inputs.notes}
-            placeholder="Комментарии..."
-            onChange={e => setInputs(prev => ({ ...prev, notes: e.target.value }))}
-            onBlur={handleNotesBlur}
+        <Collapsible
+          title="Тарифы"
+          note={rent.hasWaterTariffs ? undefined : 'нужно заполнить'}
+          defaultOpen={!rent.hasWaterTariffs && stage !== 'photos'}
+        >
+          <TariffsSection
+            water={rent.tariffs}
+            electricity={rent.electricityTariffs}
+            meterNames={rent.rows.filter(r => r.kind === 'electricity').map(r => r.id)}
+            onWaterChange={rent.setWaterTariff}
+            onElectricityChange={rent.setElectricityTariff}
           />
-        </div>
+        </Collapsible>
 
-        <div className="summary-section">
-          <div className="summary-row">
-            <span>Итого</span>
-            <span className="total-amount">{Math.round(total).toLocaleString('ru-RU')} ₽</span>
-          </div>
-          <button className={`paid-btn ${record.paid ? 'is-paid' : ''}`} onClick={togglePaid}>
-            <Check size={18} />
-            <span>{record.paid ? 'Оплачено' : 'Отметить оплаченным'}</span>
-          </button>
-        </div>
+        <Collapsible title="Суммы вручную" note={totalRows.some(r => r.manual) ? 'есть ручные' : undefined}>
+          <PaymentsSection rows={paymentRows} onManualChange={rent.setAmountManual} onReset={rent.resetAmount} />
+        </Collapsible>
+
+        <Collapsible title="Заметка" note={rent.record.notes.split('\n')[0] || undefined}>
+          <textarea
+            defaultValue={rent.record.notes}
+            placeholder="Комментарии..."
+            onBlur={e => rent.saveNotes(e.target.value)}
+          />
+        </Collapsible>
+
+        <RentActionBar
+          stage={stage}
+          photoInputId={PHOTO_INPUT_ID}
+          uploading={ocr.uploading}
+          activeJobs={ocr.activeCount}
+          etaSeconds={ocr.etaSeconds}
+          missing={rent.missing}
+          error={errorRow?.issue ? { text: errorRow.issue.text, inputId: readingInputId(errorRow.id) } : null}
+          warning={warningRow?.issue?.text ?? null}
+          total={rent.total}
+          message={rent.message}
+          onTogglePaid={rent.togglePaid}
+        />
       </div>
     </div>
   )

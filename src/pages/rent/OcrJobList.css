@@ -1,50 +1,29 @@
-.photo-upload-btn {
+.ocr-history {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.ocr-history summary {
   display: flex;
   align-items: center;
-  gap: 8px;
   min-height: 44px;
-  padding: 8px 14px;
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-sm);
-  color: var(--primary);
-  cursor: pointer;
-  transition: var(--transition);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.photo-upload-btn:hover {
-  background: var(--bg-tertiary);
-}
-
-.photo-upload-btn.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.photo-hint {
-  margin: 0 0 12px;
   font-size: 0.85rem;
   color: var(--text-muted);
-}
-
-.photo-error {
-  margin-bottom: 12px;
-  font-size: 0.9rem;
-  color: var(--danger, #ef4444);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .ocr-jobs {
-  list-style: none;
   margin: 0;
   padding: 0;
+  list-style: none;
 }
 
 .ocr-job {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 4px 0;
   border-top: 1px solid var(--border);
 }
 
@@ -65,7 +44,7 @@
 
 .ocr-job.is-error .ocr-job-status,
 .ocr-job.is-error .ocr-job-result {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
 }
 
 .ocr-job-result {
@@ -76,15 +55,29 @@
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 430px) {
-  .content-section .section-header:has(.photo-upload-btn) {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
+.ocr-job-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
 
+.ocr-job-delete:hover {
+  color: var(--danger);
+  background: var(--bg-tertiary);
+}
+
+@media (max-width: 430px) {
   .ocr-job {
     flex-wrap: wrap;
-    gap: 4px 12px;
+    gap: 0 12px;
   }
 
   .ocr-job-status {
@@ -94,5 +87,10 @@
   .ocr-job-result {
     order: 3;
     flex-basis: 100%;
+    padding-bottom: 8px;
+  }
+
+  .ocr-job-delete {
+    margin-left: auto;
   }
 }

@@ -163,7 +163,7 @@ export const buildRentMessage = (
   tariffs: WaterTariffs
 ): string => {
   const lines = ['Привет.']
-  electricity.forEach(m => lines.push(`${m.name} ${money(m.value)}`))
+  electricity.filter(m => m.value > 0).forEach(m => lines.push(`${m.name} ${money(m.value)}`))
 
   if (bill) {
     lines.push(

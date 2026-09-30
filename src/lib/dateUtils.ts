@@ -5,6 +5,11 @@ export function isCurrentMonth(year: number, month: number): boolean {
   return now.getFullYear() === year && now.getMonth() === month
 }
 
+export function isFutureMonth(year: number, month: number): boolean {
+  const now = new Date()
+  return year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth())
+}
+
 export function isToday(year: number, month: number, day: number): boolean {
   const today = new Date()
   return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day

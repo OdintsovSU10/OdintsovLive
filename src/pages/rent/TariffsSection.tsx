@@ -66,8 +66,7 @@ export default function TariffsSection({
   }
 
   return (
-    <div className="content-section">
-      <div className="section-title">Тарифы</div>
+    <>
       {rows.map(row => (
         <div key={row.id} className="input-row">
           <span>{row.label}</span>
@@ -84,6 +83,6 @@ export default function TariffsSection({
           </div>
         </div>
       ))}
-    </div>
+    </>
   )
 }

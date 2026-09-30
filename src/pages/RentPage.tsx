@@ -5,8 +5,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { MONTHS, YEARS } from '../lib/constants'
-import { isCurrentMonth } from '../lib/dateUtils'
+import { isCurrentMonth, isFutureMonth } from '../lib/dateUtils'
 import { parseNumber } from '../lib/formatUtils'
+import CurrentMonthCard from './rent/CurrentMonthCard'
 import './RentPage.css'
 
 interface RentRecord {
@@ -47,11 +48,11 @@ export default function RentPage() {
     if (!userId) return
     const { data } = await supabase
       .from('rent_records')
-      .select('rent_amount, water_amount, electricity_amount')
+      .select('year, month, rent_amount, water_amount, electricity_amount')
       .eq('user_id', userId)
 
     if (data) {
-      const totals = data.reduce(
+      const totals = data.filter(r => !isFutureMonth(r.year, r.month)).reduce(
         (acc, r) => {
           acc.total += (r.rent_amount || 0) + (r.water_amount || 0) + (r.electricity_amount || 0)
           acc.water += r.water_amount || 0
@@ -76,7 +77,7 @@ export default function RentPage() {
       .order('month')
 
     if (data) {
-      setRecords(data)
+      setRecords(data.filter(r => !isFutureMonth(r.year, r.month)))
     }
     setLoading(false)
   }
@@ -187,12 +188,9 @@ export default function RentPage() {
         >
           <ChevronRight size={20} />
         </button>
-        <label className="import-btn">
-          <Upload size={18} />
-          <span>Импорт</span>
-          <input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} hidden />
-        </label>
       </div>
+
+      {userId && <CurrentMonthCard userId={userId} />}
 
       {loading ? (
         <div className="loading">Загрузка...</div>
@@ -201,6 +199,7 @@ export default function RentPage() {
           <div className="rent-content">
             <div className="months-list">
               {MONTHS.map((monthName, i) => {
+                if (isFutureMonth(year, i)) return null
                 const record = getRecord(i)
                 const rent = record?.rent_amount || 0
                 const water = record?.water_amount || 0
@@ -291,6 +290,12 @@ export default function RentPage() {
               </div>
             </div>
           </div>
+
+          <label className="import-btn">
+            <Upload size={18} />
+            <span>Импорт из Excel</span>
+            <input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} hidden />
+          </label>
         </>
       )}
     </div>

@@ -23,6 +23,7 @@
   --status-work: rgba(251, 191, 36, 0.85);
   --status-worked: rgba(34, 197, 94, 0.85);
   --status-vacation: rgba(59, 130, 246, 0.85);
+  --danger: #DC2626;
 
   --border: #E8E4DE;
   --border-light: rgba(0, 0, 0, 0.04);
@@ -64,6 +65,8 @@
   --text-primary: #F5F5F5;
   --text-secondary: #8A8A8A;
   --text-muted: #6B6B6B;
+
+  --danger: #F87171;
 
   --border: #2A2A2A;
   --border-light: rgba(255, 255, 255, 0.04);

@@ -1,0 +1,117 @@
+.readings-status {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.readings-hint {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.readings-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.readings-head,
+.readings-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.readings-head {
+  padding-bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.readings-row {
+  min-height: 52px;
+  border-top: 1px solid var(--border);
+}
+
+.readings-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.readings-prev,
+.readings-usage {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.readings-prev {
+  color: var(--text-muted);
+}
+
+.readings-usage {
+  color: var(--text-secondary);
+}
+
+.readings-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  transition: border-color var(--transition);
+}
+
+.readings-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.readings-mark {
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+.readings-row.has-warning .readings-mark,
+.readings-row.has-warning .readings-usage {
+  color: var(--status-work);
+}
+
+.readings-row.has-error .readings-mark,
+.readings-row.has-error .readings-usage {
+  color: var(--danger);
+}
+
+.readings-row.has-error .readings-input {
+  border-color: var(--danger);
+}
+
+.readings-issues {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.readings-issues li + li {
+  margin-top: 4px;
+}
+
+.readings-issues .is-error {
+  color: var(--danger);
+}
+
+.readings-issues .is-warning {
+  color: var(--status-work);
+}
+
+.readings-issues .is-info {
+  color: var(--text-muted);
+}

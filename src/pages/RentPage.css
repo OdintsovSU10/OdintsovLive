@@ -43,8 +43,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   transition: all var(--transition);
@@ -60,23 +60,20 @@
   cursor: not-allowed;
 }
 
-.rent-header .import-btn {
-  display: flex;
+.rent-page .import-btn {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  font-weight: 500;
+  min-height: 44px;
+  margin-top: 24px;
+  padding: 0 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all var(--transition);
-  margin-left: 16px;
+  transition: color var(--transition);
 }
 
-.rent-header .import-btn:hover {
-  background: var(--surface-hover);
+.rent-page .import-btn:hover {
   color: var(--text-primary);
 }
 
@@ -375,15 +372,6 @@
     padding: 72px 16px 16px;
   }
 
-  .rent-header .import-btn span {
-    display: none;
-  }
-
-  .rent-header .import-btn {
-    padding: 10px;
-    margin-left: 8px;
-  }
-
   .rent-content {
     display: flex;
     flex-direction: column;
@@ -392,12 +380,12 @@
   }
 
   .rent-page .chart-column {
-    order: 1;
+    order: 2;
     width: 100%;
   }
 
   .rent-page .months-list {
-    order: 2;
+    order: 1;
     width: 100%;
   }
 
@@ -409,11 +397,15 @@
 
   .month-row {
     width: 100%;
+    min-height: 52px;
   }
 
-  .month-amounts,
-  .month-status {
+  .month-amounts {
     display: none;
+  }
+
+  .month-status {
+    min-width: 28px;
   }
 
   .month-total {

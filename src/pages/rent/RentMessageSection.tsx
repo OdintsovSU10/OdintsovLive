@@ -21,13 +21,12 @@ export default function RentMessageSection({ message }: RentMessageSectionProps)
   }
 
   return (
-    <div className="content-section">
-      <div className="section-title">Сообщение</div>
-      <textarea className="rent-message" value={message} readOnly rows={message.split('\n').length} />
+    <>
+      <pre className="rent-message">{message}</pre>
       <button className="copy-btn" onClick={copyMessage}>
         {copied ? <Check size={18} /> : <Copy size={18} />}
         <span>{copied ? 'Скопировано' : 'Скопировать'}</span>
       </button>
-    </div>
+    </>
   )
 }

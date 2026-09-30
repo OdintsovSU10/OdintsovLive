@@ -46,8 +46,7 @@ export default function PaymentsSection({ rows, onManualChange, onReset }: Payme
   }
 
   return (
-    <div className="content-section">
-      <div className="section-title">Платежи</div>
+    <>
       {rows.map(row => (
         <div key={row.key} className="input-row">
           <span>{row.label}</span>
@@ -76,6 +75,6 @@ export default function PaymentsSection({ rows, onManualChange, onReset }: Payme
           </div>
         </div>
       ))}
-    </div>
+    </>
   )
 }
