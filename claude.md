@@ -35,6 +35,8 @@ src/
 - `calendar_days` — дни календаря (date, status)
 - `salary_settings` — настройки зарплаты по месяцам
 - `salary_calculations` — расчёты зарплаты
+- `rent_records` — аренда по месяцам: суммы, показания, тарифы воды
+- `meter_ocr_jobs` — очередь распознавания фото счётчиков (воркер на home: `ops/meter-ocr-worker/`)
 
 RLS отключен (персональный проект).
 

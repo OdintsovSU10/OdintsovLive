@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, Check } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { MONTHS } from '../lib/constants'
+import ElectricitySection from './rent/ElectricitySection'
+import MeterPhotoUpload from './rent/MeterPhotoUpload'
+import WaterBillSection from './rent/WaterBillSection'
+import {
+  applyElectricity,
+  assignWaterReadings,
+  buildRentMessage,
+  calcWaterBill,
+  hasAllTariffs,
+  type ElectricityMeter,
+  type RecognizedMeter,
+  type WaterTariffs
+} from './rent/rentUtils'
 import './RentMonthPage.css'
-
-interface ElectricityMeter {
-  name: string
-  value: number
-}
 
 interface RentRecord {
   rent_amount: number
@@ -26,6 +34,8 @@ interface PrevRecord {
   hot_water: number
   electricity: ElectricityMeter[]
 }
+
+type SaveValue = number | boolean | string | ElectricityMeter[]
 
 export default function RentMonthPage() {
   const { year: yearParam, month: monthParam } = useParams()
@@ -46,6 +56,7 @@ export default function RentMonthPage() {
     notes: ''
   })
   const [prevRecord, setPrevRecord] = useState<PrevRecord | null>(null)
+  const [tariffs, setTariffs] = useState<WaterTariffs>({ cold: 0, hot: 0, drainage: 0 })
   const [inputs, setInputs] = useState({
     rent: '',
     water: '',
@@ -54,8 +65,6 @@ export default function RentMonthPage() {
     hotWater: '',
     notes: ''
   })
-  const [newMeterName, setNewMeterName] = useState('')
-  const [electricityInputs, setElectricityInputs] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -82,7 +91,7 @@ export default function RentMonthPage() {
         .maybeSingle(),
       supabase
         .from('rent_records')
-        .select('cold_water, hot_water, electricity')
+        .select('cold_water, hot_water, electricity, cold_water_tariff, hot_water_tariff, drainage_tariff')
         .eq('user_id', uid)
         .eq('year', prevYear)
         .eq('month', prevMonth)
@@ -90,6 +99,18 @@ export default function RentMonthPage() {
     ])
 
     const prevElectricity: ElectricityMeter[] = prevResult.data?.electricity || []
+
+    const ownTariffs: WaterTariffs = {
+      cold: Number(currentResult.data?.cold_water_tariff) || 0,
+      hot: Number(currentResult.data?.hot_water_tariff) || 0,
+      drainage: Number(currentResult.data?.drainage_tariff) || 0
+    }
+    const prevTariffs: WaterTariffs = {
+      cold: Number(prevResult.data?.cold_water_tariff) || 0,
+      hot: Number(prevResult.data?.hot_water_tariff) || 0,
+      drainage: Number(prevResult.data?.drainage_tariff) || 0
+    }
+    setTariffs(ownTariffs.cold || ownTariffs.hot || ownTariffs.drainage ? ownTariffs : prevTariffs)
 
     if (prevResult.data) {
       setPrevRecord({
@@ -121,12 +142,6 @@ export default function RentMonthPage() {
         hotWater: data.hot_water > 0 ? String(data.hot_water) : '',
         notes: data.notes || ''
       })
-      // Инициализируем inputs для электричества
-      const elInputs: { [key: string]: string } = {}
-      electricity.forEach(m => {
-        elInputs[m.name] = m.value > 0 ? String(m.value) : ''
-      })
-      setElectricityInputs(elInputs)
     } else if (prevElectricity.length > 0) {
       // Автокопирование счётчиков из предыдущего месяца
       const emptyMeters = prevElectricity.map(m => ({ name: m.name, value: 0 }))
@@ -152,7 +167,7 @@ export default function RentMonthPage() {
     return parseFloat(cleaned) || 0
   }
 
-  const saveField = async (field: string, value: number | boolean | string | ElectricityMeter[]) => {
+  const saveFields = async (fields: Record<string, SaveValue>) => {
     if (!userId) return
 
     await supabase.from('rent_records').upsert(
@@ -160,11 +175,30 @@ export default function RentMonthPage() {
         user_id: userId,
         year,
         month,
-        [field]: value,
+        ...fields,
         updated_at: new Date().toISOString()
       },
       { onConflict: 'user_id,year,month' }
     )
+  }
+
+  const saveField = (field: string, value: SaveValue) => saveFields({ [field]: value })
+
+  const prevWater = prevRecord && { cold: prevRecord.cold_water, hot: prevRecord.hot_water }
+
+  // Сумма «Вода» пересчитывается только по действию пользователя, чтобы не затирать старые месяцы.
+  // Тарифы сохраняем вместе с суммой: подставленные из прошлого месяца тоже должны перейти дальше
+  const waterAmountFields = (cold: number, hot: number, t: WaterTariffs): Record<string, number> => {
+    const bill = calcWaterBill(prevWater, { cold, hot }, t)
+    if (!bill || !hasAllTariffs(t)) return {}
+    setRecord(prev => ({ ...prev, water_amount: bill.total }))
+    setInputs(prev => ({ ...prev, water: Math.round(bill.total).toLocaleString('ru-RU') }))
+    return {
+      water_amount: bill.total,
+      cold_water_tariff: t.cold,
+      hot_water_tariff: t.hot,
+      drainage_tariff: t.drainage
+    }
   }
 
   const handleRentBlur = () => {
@@ -192,14 +226,41 @@ export default function RentMonthPage() {
     const value = parseNumber(inputs.coldWater)
     setRecord(prev => ({ ...prev, cold_water: value }))
     setInputs(prev => ({ ...prev, coldWater: value > 0 ? String(value) : '' }))
-    saveField('cold_water', value)
+    saveFields({ cold_water: value, ...waterAmountFields(value, record.hot_water, tariffs) })
   }
 
   const handleHotWaterBlur = () => {
     const value = parseNumber(inputs.hotWater)
     setRecord(prev => ({ ...prev, hot_water: value }))
     setInputs(prev => ({ ...prev, hotWater: value > 0 ? String(value) : '' }))
-    saveField('hot_water', value)
+    saveFields({ hot_water: value, ...waterAmountFields(record.cold_water, value, tariffs) })
+  }
+
+  const handleTariffChange = (key: keyof WaterTariffs, value: number) => {
+    const next = { ...tariffs, [key]: value }
+    setTariffs(next)
+    saveFields({
+      cold_water_tariff: next.cold,
+      hot_water_tariff: next.hot,
+      drainage_tariff: next.drainage,
+      ...waterAmountFields(record.cold_water, record.hot_water, next)
+    })
+  }
+
+  const applyRecognized = async (meters: RecognizedMeter[]) => {
+    const electricity = applyElectricity(record.electricity, meters)
+    const water = assignWaterReadings(meters.filter(m => m.kind === 'water').map(m => m.value), prevWater)
+    const cold = water.cold ?? record.cold_water
+    const hot = water.hot ?? record.hot_water
+
+    setRecord(prev => ({ ...prev, electricity, cold_water: cold, hot_water: hot }))
+    setInputs(prev => ({ ...prev, coldWater: cold > 0 ? String(cold) : '', hotWater: hot > 0 ? String(hot) : '' }))
+    await saveFields({
+      electricity,
+      cold_water: cold,
+      hot_water: hot,
+      ...waterAmountFields(cold, hot, tariffs)
+    })
   }
 
   const handleNotesBlur = () => {
@@ -213,49 +274,19 @@ export default function RentMonthPage() {
     saveField('paid', newPaid)
   }
 
-  const addElectricityMeter = () => {
-    if (!newMeterName.trim()) return
-    const newMeter: ElectricityMeter = { name: newMeterName.trim(), value: 0 }
-    const updated = [...record.electricity, newMeter]
+  const handleElectricityChange = (updated: ElectricityMeter[]) => {
     setRecord(prev => ({ ...prev, electricity: updated }))
-    saveField('electricity', updated)
-    setNewMeterName('')
-  }
-
-  const handleElectricityChange = (name: string, inputValue: string) => {
-    setElectricityInputs(prev => ({ ...prev, [name]: inputValue }))
-  }
-
-  const handleElectricityBlur = (index: number, name: string) => {
-    const value = parseNumber(electricityInputs[name] || '0')
-    const updated = record.electricity.map((m, i) =>
-      i === index ? { ...m, value } : m
-    )
-    setRecord(prev => ({ ...prev, electricity: updated }))
-    setElectricityInputs(prev => ({ ...prev, [name]: value > 0 ? String(value) : '' }))
-    saveField('electricity', updated)
-  }
-
-  const removeElectricityMeter = (index: number) => {
-    const removed = record.electricity[index]
-    const updated = record.electricity.filter((_, i) => i !== index)
-    setRecord(prev => ({ ...prev, electricity: updated }))
-    setElectricityInputs(prev => {
-      const next = { ...prev }
-      delete next[removed.name]
-      return next
-    })
     saveField('electricity', updated)
   }
 
   const getColdWaterUsage = () => {
     if (!prevRecord) return null
-    return Math.max(0, record.cold_water - prevRecord.cold_water)
+    return Math.max(0, Math.floor(record.cold_water) - Math.floor(prevRecord.cold_water))
   }
 
   const getHotWaterUsage = () => {
     if (!prevRecord) return null
-    return Math.max(0, record.hot_water - prevRecord.hot_water)
+    return Math.max(0, Math.floor(record.hot_water) - Math.floor(prevRecord.hot_water))
   }
 
   const getTotalWaterUsage = () => {
@@ -265,28 +296,8 @@ export default function RentMonthPage() {
     return (cold || 0) + (hot || 0)
   }
 
-  const getElectricityUsage = (meterName: string, currentValue: number) => {
-    if (!prevRecord) return null
-    const prevMeter = prevRecord.electricity.find(m => m.name === meterName)
-    if (!prevMeter) return null
-    return Math.max(0, currentValue - prevMeter.value)
-  }
-
-  const getTotalElectricityUsage = () => {
-    if (!prevRecord || prevRecord.electricity.length === 0) return null
-    let total = 0
-    let hasAnyMatch = false
-    for (const meter of record.electricity) {
-      const prevMeter = prevRecord.electricity.find(m => m.name === meter.name)
-      if (prevMeter) {
-        total += Math.max(0, meter.value - prevMeter.value)
-        hasAnyMatch = true
-      }
-    }
-    return hasAnyMatch ? total : null
-  }
-
   const total = record.rent_amount + record.water_amount + record.electricity_amount
+  const waterBill = calcWaterBill(prevWater, { cold: record.cold_water, hot: record.hot_water }, tariffs)
 
   if (loading) {
     return (
@@ -360,6 +371,10 @@ export default function RentMonthPage() {
           </div>
         </div>
 
+        {userId && (
+          <MeterPhotoUpload userId={userId} year={year} month={month} onRecognized={applyRecognized} />
+        )}
+
         <div className="content-section">
           <div className="section-header">
             <div className="section-title">Счётчики воды</div>
@@ -401,50 +416,18 @@ export default function RentMonthPage() {
           </div>
         </div>
 
-        <div className="content-section">
-          <div className="section-header">
-            <div className="section-title">Электричество</div>
-            {getTotalElectricityUsage() !== null && (
-              <span className="total-usage">всего: {getTotalElectricityUsage()?.toFixed(2)} кВт</span>
-            )}
-          </div>
-          {record.electricity.map((meter, index) => {
-            const usage = getElectricityUsage(meter.name, meter.value)
-            return (
-              <div key={meter.name} className="input-row electricity-row">
-                <span>{meter.name}</span>
-                <div className="meter-input">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={electricityInputs[meter.name] ?? (meter.value > 0 ? String(meter.value) : '')}
-                    placeholder="0"
-                    onChange={e => handleElectricityChange(meter.name, e.target.value)}
-                    onBlur={() => handleElectricityBlur(index, meter.name)}
-                  />
-                  {usage !== null && (
-                    <span className="usage">расход: {usage.toFixed(2)} кВт</span>
-                  )}
-                  <button className="delete-btn" onClick={() => removeElectricityMeter(index)}>
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-          <div className="add-meter">
-            <input
-              type="text"
-              placeholder="Название счётчика"
-              value={newMeterName}
-              onChange={e => setNewMeterName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addElectricityMeter()}
-            />
-            <button onClick={addElectricityMeter} disabled={!newMeterName.trim()}>
-              <Plus size={18} />
-            </button>
-          </div>
-        </div>
+        <ElectricitySection
+          meters={record.electricity}
+          prevMeters={prevRecord?.electricity ?? null}
+          onChange={handleElectricityChange}
+        />
+
+        <WaterBillSection
+          tariffs={tariffs}
+          bill={waterBill}
+          message={buildRentMessage(record.electricity, waterBill, tariffs)}
+          onTariffChange={handleTariffChange}
+        />
 
         <div className="content-section">
           <div className="section-title">Заметки</div>
