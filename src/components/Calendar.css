@@ -339,6 +339,8 @@
   cursor: pointer;
   transition: all var(--transition);
   user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   font-weight: 500;
 }
 
