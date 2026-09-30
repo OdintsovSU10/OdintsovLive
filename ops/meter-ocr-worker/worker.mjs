@@ -10,9 +10,14 @@ import { setTimeout as sleep } from 'node:timers/promises'
 const DIR = path.dirname(fileURLToPath(import.meta.url))
 const ENV_FILE = path.join(DIR, '.env')
 
+// Форматы счётчиков квартиры: Миртек-12-РУ показывает 000633.80 (6+2 знака),
+// водомеры Пульс-15У — 8 барабанов: 5 чёрных (м³) и 3 красных (литры).
+// Цвет барабанов модель различает ненадёжно, поэтому для воды просим все 8 цифр подряд
+// и делим на 1000 сами; точная длина задаётся схемой. Первые два барабана фиксируем нулями
+// (показания < 1000 м³): ноль в блике модель читала как 7 или 5.
 const PROMPT = `You read utility meters on a photo. The photo shows either an electricity meter with an LCD display or one or more water meters with mechanical drum counters.
-Electricity meter: the display shows a tariff label T1, T2 or T3 in its top-left corner and a reading in kWh like 000633.80. Return kind "electricity", tariff = the label, integer = digits before the decimal point, fraction = digits after it.
-Water meter: black drums are cubic meters, red drums are liters. Return kind "water", tariff "none", integer = the black digits, fraction = the red digits.
+Electricity meter: the display shows a tariff label T1, T2 or T3 in its top-left corner and a reading in kWh like 000633.80. Return kind "electricity", the tariff label and the reading exactly as displayed, with the decimal point.
+Water meter: the counter has 8 drums in a row. Return kind "water" and all 8 digits from left to right as one string without spaces, for example 00072208.
 List every meter visible on the photo, ordered from left to right. Copy digits exactly, including leading zeros. If a drum is between two digits, take the lower one.`
 
 const SCHEMA = {
@@ -22,14 +27,25 @@ const SCHEMA = {
       type: 'array',
       maxItems: 4,
       items: {
-        type: 'object',
-        properties: {
-          kind: { type: 'string', enum: ['electricity', 'water'] },
-          tariff: { type: 'string', enum: ['T1', 'T2', 'T3', 'none'] },
-          integer: { type: 'string', pattern: '^[0-9]{1,8}$' },
-          fraction: { type: 'string', pattern: '^[0-9]{0,4}$' }
-        },
-        required: ['kind', 'tariff', 'integer', 'fraction']
+        anyOf: [
+          {
+            type: 'object',
+            properties: {
+              kind: { const: 'electricity' },
+              tariff: { type: 'string', enum: ['T1', 'T2', 'T3'] },
+              reading: { type: 'string', pattern: '^[0-9]{6}\\.[0-9]{2}$' }
+            },
+            required: ['kind', 'tariff', 'reading']
+          },
+          {
+            type: 'object',
+            properties: {
+              kind: { const: 'water' },
+              reading: { type: 'string', pattern: '^00[0-9]{6}$' }
+            },
+            required: ['kind', 'reading']
+          }
+        ]
       }
     }
   },
@@ -100,12 +116,6 @@ const ollamaRequest = (ollamaUrl, method, route, body) => new Promise((resolve, 
   req.end()
 })
 
-const toNumber = (integer, fraction) => {
-  const int = String(integer).replace(/\D/g, '') || '0'
-  const frac = String(fraction).replace(/\D/g, '') || '0'
-  return Number(`${int}.${frac}`)
-}
-
 const recognize = async (config, imageBase64) => {
   const image = imageBase64.replace(/^data:[^,]+,/, '')
   const response = await ollamaRequest(config.ollamaUrl, 'POST', '/api/chat', {
@@ -127,8 +137,9 @@ const recognize = async (config, imageBase64) => {
   }
   return parsed.meters.map(m => ({
     kind: m.kind,
-    tariff: m.kind === 'electricity' && m.tariff !== 'none' ? m.tariff : null,
-    value: toNumber(m.integer, m.fraction)
+    tariff: m.kind === 'electricity' ? m.tariff : null,
+    // вода: последние три цифры — литры
+    value: m.kind === 'water' ? Number(m.reading) / 1000 : Number(m.reading)
   }))
 }
 
