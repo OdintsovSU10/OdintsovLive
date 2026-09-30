@@ -8,7 +8,7 @@ import { TransactionsView } from './components/TransactionsView'
 import { useDashboardStats, type PeriodPreset } from './hooks/useDashboardStats'
 import { useExpensesData } from './hooks/useExpensesData'
 import type { ExpenseUserCategory } from './types'
-import { getMappedCategoryName, toIsoDate } from './utils/format'
+import { formatDate, getMappedCategoryName, toIsoDate } from './utils/format'
 import './ExpensesPage.css'
 import './Insights.css'
 
@@ -56,6 +56,7 @@ export default function ExpensesPage() {
     error,
     filters,
     transactions,
+    allTransactions,
     categories,
     mappings,
     bankCategories,
@@ -93,7 +94,13 @@ export default function ExpensesPage() {
     return transactions.filter(transaction => selectedCategories.includes(getMappedCategoryName(transaction, categoriesById)))
   }, [categoriesById, selectedCategories, transactions])
 
-  const stats = useDashboardStats(displayTransactions, categoriesById, period)
+  // Без фильтра периода: для сравнения с прошлым периодом и помесячного графика
+  const comparisonPool = useMemo(() => {
+    if (selectedCategories.length === 0) return allTransactions
+    return allTransactions.filter(transaction => selectedCategories.includes(getMappedCategoryName(transaction, categoriesById)))
+  }, [allTransactions, categoriesById, selectedCategories])
+
+  const stats = useDashboardStats(displayTransactions, comparisonPool, categoriesById, filters.dateFrom, filters.dateTo)
 
   const applyPeriod = (nextPeriod: PeriodPreset) => {
     const range = getPeriodRange(nextPeriod)
@@ -231,6 +238,9 @@ export default function ExpensesPage() {
           categoriesById={categoriesById}
           insights={insights}
           loading={loading}
+          periodLabel={filters.dateFrom || filters.dateTo
+            ? `${formatDate(filters.dateFrom || null)} — ${formatDate(filters.dateTo || null)}`
+            : 'Всё время'}
           onOpenInsights={() => setView('insights')}
         />
       )}

@@ -1,30 +1,13 @@
 import { useMemo, useState } from 'react'
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts'
 import type { DashboardStats } from '../hooks/useDashboardStats'
 import type { ExpenseInsights, ExpenseTransaction, ExpenseUserCategory } from '../types'
-import { CHART_COLORS, formatAxisTick, formatRub, getMappedCategoryName } from '../utils/format'
-import { DashboardTooltip } from './DashboardTooltip'
+import { formatRub, getMappedCategoryName } from '../utils/format'
+import { GroupBreakdown } from './GroupBreakdown'
 import { InsightsSummary } from './InsightsSummary'
+import { MonthlyChart } from './MonthlyChart'
 import { TransactionRow } from './TransactionRow'
 
-type ChartType = 'area' | 'bar'
-
 const LATEST_LIMIT = 8
-const AXIS_TICK = { fill: 'var(--text-muted)', fontSize: 11 }
 
 interface Props {
   stats: DashboardStats
@@ -32,13 +15,29 @@ interface Props {
   categoriesById: Map<string, ExpenseUserCategory>
   insights: ExpenseInsights | null
   loading: boolean
+  periodLabel: string
   onOpenInsights: () => void
 }
 
-export function OverviewView({ stats, transactions, categoriesById, insights, loading, onOpenInsights }: Props) {
-  const [chartType, setChartType] = useState<ChartType>('area')
-  const { totals, timeSeries, topCategories } = stats
-  const balance = totals.income - totals.expense
+function describeChange(current: number, prev: number | null): { text: string; tone: string } | null {
+  if (prev === null || prev <= 0) return null
+  const change = (current - prev) / prev
+  const percent = Math.round(Math.abs(change) * 100)
+  if (percent === 0) return { text: 'как в прошлом периоде', tone: 'flat' }
+  return change > 0
+    ? { text: `▲ ${percent}% к прошлому периоду`, tone: 'up' }
+    : { text: `▼ ${percent}% к прошлому периоду`, tone: 'down' }
+}
+
+export function OverviewView({ stats, transactions, categoriesById, insights, loading, periodLabel, onOpenInsights }: Props) {
+  const { totals, groups, monthly, monthGroups } = stats
+  const change = describeChange(totals.spent, totals.prevSpent)
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null)
+
+  // Выбранный месяц мог пропасть из графика после смены фильтров
+  const selectedMonth = monthly.find(month => month.key === selectedMonthKey) || null
+  const selectedGroups = selectedMonth ? monthGroups[selectedMonth.key] || [] : groups
+  const hasMonthComparison = selectedGroups.some(group => group.prevValue !== null)
 
   const latest = useMemo(
     () => [...transactions].sort((a, b) => b.operation_at.localeCompare(a.operation_at)).slice(0, LATEST_LIMIT),
@@ -50,17 +49,20 @@ export function OverviewView({ stats, transactions, categoriesById, insights, lo
       {insights && <InsightsSummary insights={insights} onOpen={onOpenInsights} />}
 
       <section className="kpi-grid">
-        <article className="kpi-card income">
-          <div className="kpi-label">Доходы</div>
-          <div className="kpi-value">{formatRub(totals.income)}</div>
-        </article>
         <article className="kpi-card expense">
-          <div className="kpi-label">Расходы</div>
-          <div className="kpi-value">{formatRub(totals.expense)}</div>
+          <div className="kpi-label">Потрачено</div>
+          <div className="kpi-value">{formatRub(totals.spent)}</div>
+          {change && <div className={`kpi-hint ${change.tone}`}>{change.text}</div>}
         </article>
-        <article className="kpi-card balance">
-          <div className="kpi-label">Баланс</div>
-          <div className="kpi-value">{balance >= 0 ? '+' : ''}{formatRub(balance)}</div>
+        <article className="kpi-card purchases">
+          <div className="kpi-label">Покупки</div>
+          <div className="kpi-value">{formatRub(totals.purchases)}</div>
+          <div className="kpi-hint">без переводов людям</div>
+        </article>
+        <article className="kpi-card per-day">
+          <div className="kpi-label">В среднем в день</div>
+          <div className="kpi-value">{formatRub(totals.perDay)}</div>
+          <div className="kpi-hint">за {totals.days} дн.</div>
         </article>
         <article className="kpi-card cashback">
           <div className="kpi-label">Кэшбэк</div>
@@ -69,78 +71,21 @@ export function OverviewView({ stats, transactions, categoriesById, insights, lo
       </section>
 
       <section className="overview-grid">
-        <article className="section-card">
-          <div className="section-header">
-            <h3>Доходы и расходы</h3>
-            <div className="chart-type-toggle">
-              <button className={`pill-btn ${chartType === 'area' ? 'active' : ''}`} onClick={() => setChartType('area')}>Линии</button>
-              <button className={`pill-btn ${chartType === 'bar' ? 'active' : ''}`} onClick={() => setChartType('bar')}>Столбцы</button>
-            </div>
-          </div>
-
-          {timeSeries.length === 0 ? (
-            <div className="empty-state">Нет данных для графика</div>
-          ) : (
-            <div className="chart-box">
-              <ResponsiveContainer width="100%" height="100%">
-                {chartType === 'area' ? (
-                  <AreaChart data={timeSeries}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} />
-                    <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={44} />
-                    <Tooltip content={<DashboardTooltip />} />
-                    <Legend />
-                    <Area type="monotone" dataKey="income" name="Доходы" stroke="var(--fp-income)" fill="var(--fp-income)" fillOpacity={0.12} strokeWidth={2} />
-                    <Area type="monotone" dataKey="expense" name="Расходы" stroke="var(--fp-expense)" fill="var(--fp-expense)" fillOpacity={0.12} strokeWidth={2} />
-                  </AreaChart>
-                ) : (
-                  <BarChart data={timeSeries}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} />
-                    <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={44} />
-                    <Tooltip content={<DashboardTooltip />} />
-                    <Legend />
-                    <Bar dataKey="income" name="Доходы" fill="var(--fp-income)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expense" name="Расходы" fill="var(--fp-expense)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                )}
-              </ResponsiveContainer>
-            </div>
-          )}
-        </article>
-
-        <article className="section-card">
-          <h3>Топ-5 расходов</h3>
-
-          {topCategories.length === 0 ? (
-            <div className="empty-state">Нет данных для графика</div>
-          ) : (
-            <>
-              <div className="pie-wrap">
-                <PieChart width={200} height={200}>
-                  <Pie data={topCategories} cx={100} cy={100} innerRadius={56} outerRadius={90} paddingAngle={3} dataKey="value" stroke="none">
-                    {topCategories.map((entry, index) => (
-                      <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<DashboardTooltip />} />
-                </PieChart>
-              </div>
-
-              <div className="top-categories-list">
-                {topCategories.map((entry, index) => (
-                  <div key={entry.name} className="top-category-row">
-                    <div className="top-category-name">
-                      <span className="dot" style={{ background: CHART_COLORS[index % CHART_COLORS.length] }} />
-                      <span>{entry.name}</span>
-                    </div>
-                    <strong>{formatRub(entry.value)}</strong>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </article>
+        <MonthlyChart months={monthly} selectedKey={selectedMonth?.key ?? null} onSelect={setSelectedMonthKey} />
+        {selectedMonth ? (
+          <GroupBreakdown
+            groups={selectedGroups}
+            periodLabel={selectedMonth.partial ? `${selectedMonth.title} (не полностью)` : selectedMonth.title}
+            comparisonLabel={hasMonthComparison ? 'к прошлому месяцу' : null}
+            onReset={() => setSelectedMonthKey(null)}
+          />
+        ) : (
+          <GroupBreakdown
+            groups={groups}
+            periodLabel={periodLabel}
+            comparisonLabel={totals.prevSpent !== null ? 'к прошлому периоду' : null}
+          />
+        )}
       </section>
 
       <section className="section-card">

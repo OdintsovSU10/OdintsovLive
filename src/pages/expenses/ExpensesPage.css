@@ -302,9 +302,9 @@
   background: var(--surface);
 }
 
-.kpi-card.income { --kpi-color: var(--fp-income); }
 .kpi-card.expense { --kpi-color: var(--fp-expense); }
-.kpi-card.balance { --kpi-color: var(--fp-cat-2); }
+.kpi-card.purchases { --kpi-color: var(--fp-cat-4); }
+.kpi-card.per-day { --kpi-color: var(--fp-cat-2); }
 .kpi-card.cashback { --kpi-color: var(--fp-cat-6); }
 
 .kpi-label {
@@ -319,6 +319,15 @@
   overflow-wrap: anywhere;
 }
 
+.kpi-hint {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.kpi-hint.up { color: var(--fp-expense); }
+.kpi-hint.down { color: var(--fp-income); }
+
 /* Графики */
 
 .overview-grid,
@@ -326,12 +335,12 @@
 .management-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 16px;
 }
 
-.chart-type-toggle {
-  display: flex;
-  gap: 4px;
+.overview-grid {
+  align-items: stretch;
 }
 
 .chart-box {
@@ -339,35 +348,145 @@
   height: 260px;
 }
 
-.chart-box.short {
-  height: 200px;
+.chart-note {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
-.pie-wrap {
-  display: flex;
-  justify-content: center;
+.chart-box.clickable .recharts-surface {
+  cursor: pointer;
 }
 
-.top-categories-list {
+/* Рамка фокуса после клика мышью не нужна, с клавиатуры — остаётся */
+.chart-box :focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Блоки обзора одной высоты: график тянется под список групп */
+.monthly-card,
+.groups-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
 }
 
-.top-category-row {
+.monthly-card .chart-box {
+  flex: 1;
+  min-height: 260px;
+}
+
+.groups-card.selected {
+  border-color: var(--primary);
+}
+
+.group-period {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.group-period strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.group-compare {
+  color: var(--text-muted);
+}
+
+.reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  transition: color 0.2s ease-out, border-color 0.2s ease-out;
+}
+
+.reset-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+.expenses-page .recharts-legend-wrapper {
+  font-size: 0.75rem;
+}
+
+/* Куда уходят деньги */
+
+.group-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+.group-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 0.875rem;
 }
 
-.top-category-name {
-  display: flex;
+.group-name {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
+
+.group-head strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.group-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-foot .share-track {
+  flex: 1;
+}
+
+.group-meta {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 96px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.delta {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.delta.up { color: var(--fp-expense); }
+.delta.down { color: var(--fp-income); }
+.delta.flat { color: var(--text-muted); }
 
 .dot {
   flex: 0 0 auto;
@@ -395,6 +514,12 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.tooltip-total {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
 }
 
 .tooltip-dot {
@@ -554,26 +679,7 @@
   font-size: 16px;
 }
 
-/* Доли */
-
-.share-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-}
-
-.share-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.share-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.85rem;
-}
+/* Полоски долей */
 
 .share-track {
   height: 6px;
@@ -588,11 +694,6 @@
   background: var(--primary);
   transform-origin: left center;
   transition: transform 0.25s ease-out;
-}
-
-.share-value {
-  color: var(--text-muted);
-  font-size: 0.8rem;
 }
 
 /* Категории */
@@ -718,10 +819,6 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .share-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .management-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -748,10 +845,6 @@
 @media (min-width: 1280px) {
   .expenses-page {
     padding: 32px;
-  }
-
-  .share-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
