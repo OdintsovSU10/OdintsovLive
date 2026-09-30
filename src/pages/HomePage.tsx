@@ -1,24 +1,23 @@
-import { Link } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, Scale, Ruler, Car, Users, ReceiptText } from 'lucide-react'
 import Logo from '../components/Logo'
 import WeatherWidget from '../components/WeatherWidget'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
+import { BotFeedCard } from './home/BotFeedCard'
+import { CarSummaryCard } from './home/CarSummaryCard'
+import { ExpensesCard } from './home/ExpensesCard'
+import { RentCard } from './home/RentCard'
+import { SalaryCard } from './home/SalaryCard'
+import { useSalarySummary } from './home/useSalarySummary'
+import { VacationCard } from './home/VacationCard'
+import { WorkDaysCard } from './home/WorkDaysCard'
 import './HomePage.css'
 
-const pages = [
-  { path: '/tender', Icon: Users, title: 'Тендерное управление', desc: 'Персонал и зарплаты' },
-  { path: '/calendar', Icon: Calendar, title: 'Календарь', desc: 'Учёт рабочих дней' },
-  { path: '/salary', Icon: Wallet, title: 'Зарплата', desc: 'Расчёт заработка' },
-  { path: '/vacation-rate', Icon: Umbrella, title: 'Отпускные', desc: 'Расчёт ставки' },
-  { path: '/rent', Icon: Home, title: 'Аренда', desc: 'Платежи за квартиру' },
-  { path: '/expenses', Icon: ReceiptText, title: 'Траты', desc: 'Импорт выписки и аналитика' },
-  { path: '/body/weight', Icon: Scale, title: 'Мой вес', desc: 'Трекер веса' },
-  { path: '/body/params', Icon: Ruler, title: 'Параметры', desc: 'Замеры тела' },
-  { path: '/car', Icon: Car, title: 'Машина', desc: 'Учёт авто' },
-]
+interface Props {
+  userId: string
+}
 
-export default function HomePage() {
+export default function HomePage({ userId }: Props) {
   const dateTime = useMoscowDateTime({ dateFormat: 'long', includeSeconds: true })
+  const salary = useSalarySummary(userId)
 
   return (
     <div className="home-page">
@@ -31,16 +30,14 @@ export default function HomePage() {
 
         <WeatherWidget />
 
-        <div className="quick-links">
-          {pages.map(p => (
-            <Link key={p.path} to={p.path} className="quick-card">
-              <div className="quick-icon">
-                <p.Icon size={28} strokeWidth={1.5} />
-              </div>
-              <span className="quick-title">{p.title}</span>
-              <span className="quick-desc">{p.desc}</span>
-            </Link>
-          ))}
+        <div className="home-grid">
+          <ExpensesCard userId={userId} />
+          <WorkDaysCard summary={salary} />
+          <VacationCard summary={salary} />
+          <SalaryCard summary={salary} />
+          <RentCard userId={userId} />
+          <CarSummaryCard />
+          <BotFeedCard userId={userId} />
         </div>
       </div>
     </div>

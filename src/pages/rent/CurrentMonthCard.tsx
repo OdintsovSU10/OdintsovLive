@@ -11,7 +11,7 @@ interface CurrentMonthCardProps {
   userId: string
 }
 
-interface CardState {
+export interface CardState {
   year: number
   month: number
   status: string
@@ -26,7 +26,7 @@ const CARD_PHOTO_INPUT_ID = 'card-photo-input'
 
 const formatRub = (value: number) => `${Math.round(value).toLocaleString('ru-RU')} ₽`
 
-const loadCardState = async (userId: string): Promise<CardState> => {
+export const loadCardState = async (userId: string): Promise<CardState> => {
   const now = new Date()
   const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 

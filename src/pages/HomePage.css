@@ -1,25 +1,27 @@
+/* Главная: mobile-first (360px), дальше min-width */
+
 .home-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 40px 20px;
+  min-height: 100dvh;
+  padding: 72px 16px calc(24px + env(safe-area-inset-bottom));
 }
 
 .home-content {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
 }
 
 .home-content .logo {
-  margin-bottom: 8px;
+  width: auto !important;
+  justify-content: center !important;
+  margin: 0 auto 8px;
 }
 
-.subtitle {
-  color: var(--text-muted);
-  margin: 0 0 16px;
-  font-size: 1rem;
+.home-content .logo .logo-text {
+  flex: 0 0 auto !important;
 }
 
 .home-datetime {
@@ -27,148 +29,370 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-bottom: 32px;
+  margin-bottom: 12px;
 }
 
 .home-date {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
 .home-time {
   font-family: var(--font-headline);
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 400;
   color: var(--text-primary);
 }
 
-.quick-links {
+/* Сетка карточек: на телефоне 2 колонки, карточки по умолчанию во всю ширину */
+
+.home-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  justify-content: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
 }
 
-.quick-card {
+.home-card {
+  grid-column: span 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 28px 20px;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
   background: var(--surface);
-  backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
 }
 
-.quick-card:hover {
+.home-card.half {
+  grid-column: span 1;
+}
+
+a.home-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  background: var(--surface-hover);
+  box-shadow: var(--shadow-md);
 }
 
-.quick-icon {
-  width: 56px;
-  height: 56px;
+a.home-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.home-card-head {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.home-card-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
   background: var(--primary-light);
   color: var(--primary);
-  border-radius: var(--radius-md);
-  margin-bottom: 16px;
 }
 
-.quick-title {
-  font-size: 1rem;
+.home-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.quick-desc {
-  font-size: 0.85rem;
+.home-card-aside {
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* В полкарточки на телефоне месяц и стрелка не помещаются рядом с заголовком */
+.home-card.half .home-card-aside,
+.home-card.half .home-card-arrow {
+  display: none;
+}
+
+.home-card-arrow {
+  flex-shrink: 0;
   color: var(--text-muted);
 }
 
-@media (max-width: 768px) {
-  .quick-links {
-    grid-template-columns: repeat(2, 1fr);
+.home-card.half {
+  padding: 14px;
+}
+
+.home-card.half .home-card-head {
+  gap: 6px;
+}
+
+.home-card.half .home-card-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.home-card.half .home-card-title {
+  font-size: 0.8rem;
+}
+
+.home-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.home-value.small {
+  font-size: 1.1rem;
+}
+
+.home-value.muted {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.home-value-of {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.home-card.ok .home-value { color: var(--chart-positive); }
+.home-card.warning .home-value { color: var(--chart-warning); }
+.home-card.danger .home-value { color: var(--danger); }
+
+.home-hint {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.home-foot {
+  margin-top: auto;
+}
+
+.home-change.up { color: var(--chart-negative); }
+.home-change.down { color: var(--chart-positive); }
+
+.home-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.home-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.home-row span:first-child {
+  min-width: 0;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-row span:last-child {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.home-share {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-progress,
+.home-share-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.home-share-bar {
+  height: 4px;
+}
+
+.home-progress-fill,
+.home-share-fill {
+  height: 100%;
+  background: var(--primary);
+  transform-origin: left;
+}
+
+.home-card.ok .home-progress-fill { background: var(--chart-positive); }
+.home-card.warning .home-progress-fill { background: var(--chart-warning); }
+.home-card.danger .home-progress-fill { background: var(--danger); }
+
+/* Лента записей бота */
+
+.home-feed {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-feed-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.home-feed-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.home-feed-when {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.home-feed-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.home-feed-item.undone .home-feed-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.home-feed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.home-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+/* Планшет: 2 колонки, карточки по одной ячейке */
+@media (min-width: 640px) {
+  .home-grid {
+    gap: 16px;
+  }
+
+  .home-card,
+  .home-card.half {
+    grid-column: span 1;
+  }
+
+  .home-card.full {
+    grid-column: 1 / -1;
+  }
+
+  .home-card.half {
+    padding: 16px;
+  }
+
+  .home-card.half .home-card-head {
+    gap: 8px;
+  }
+
+  .home-card.half .home-card-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .home-card.half .home-card-title {
+    font-size: 0.9rem;
+  }
+
+  .home-card.half .home-card-aside,
+  .home-card.half .home-card-arrow {
+    display: inline;
+  }
+
+  .home-feed-item {
+    grid-template-columns: 96px minmax(0, 1fr) auto;
+    align-items: baseline;
+  }
+
+  .home-feed-tags {
+    justify-content: flex-end;
   }
 }
 
-@media (max-width: 430px) {
+@media (min-width: 768px) {
   .home-page {
-    padding: 72px 16px 24px;
-  }
-
-  .home-content .logo {
-    width: auto !important;
-    justify-content: center !important;
-    margin-inline: auto;
-  }
-
-  .home-content .logo .logo-text {
-    flex: 0 0 auto !important;
-  }
-
-  .subtitle {
-    margin-bottom: 16px;
+    padding: 40px 24px;
   }
 
   .home-datetime {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
   .home-date {
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
 
   .home-time {
-    font-size: 2rem;
+    font-size: 2.5rem;
   }
 
-  .quick-links {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+  .home-card {
+    padding: 20px;
   }
 
-  .quick-card {
-    padding: 20px 16px;
-  }
-
-  .quick-icon {
-    width: 44px;
-    height: 44px;
-    margin-bottom: 12px;
-  }
-
-  .quick-title {
-    font-size: 0.9rem;
-  }
-
-  .quick-desc {
-    font-size: 0.75rem;
+  .home-value {
+    font-size: 1.75rem;
   }
 }
 
-/* iPhone 12 Pro and smaller */
-@media (max-width: 390px) {
-  .quick-links {
-    gap: 10px;
+/* Десктоп: 3 колонки */
+@media (min-width: 1024px) {
+  .home-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-card {
+    transition: none;
   }
 
-  .quick-card {
-    padding: 16px 12px;
-  }
-
-  .quick-icon {
-    width: 40px;
-    height: 40px;
-  }
-
-  .quick-title {
-    font-size: 0.85rem;
+  a.home-card:hover {
+    transform: none;
   }
 }

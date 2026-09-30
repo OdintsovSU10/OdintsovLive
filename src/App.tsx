@@ -370,7 +370,7 @@ function App() {
         <main className={`main-content ${collapsed ? 'collapsed' : ''}`}>
           <Suspense fallback={<div className="page-loading"><div className="loading-spinner" /></div>}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<HomePage userId={user.id} />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/salary" element={<SalaryPage />} />
               <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
