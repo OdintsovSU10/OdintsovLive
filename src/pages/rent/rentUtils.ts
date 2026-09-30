@@ -20,6 +20,9 @@ export interface WaterReadings {
   hot: number
 }
 
+// Тарифы электричества по названию счётчика (T1, T2, T3), ₽/кВт·ч
+export type ElectricityTariffs = Record<string, number>
+
 export interface WaterBill {
   prevCold: number
   curCold: number
@@ -111,7 +114,8 @@ export const calcWaterBill = (
   cur: WaterReadings,
   tariffs: WaterTariffs
 ): WaterBill | null => {
-  if (!prev || cur.cold <= 0 || cur.hot <= 0) return null
+  // без показаний прошлого месяца расход посчитать нельзя
+  if (!prev || prev.cold <= 0 || prev.hot <= 0 || cur.cold <= 0 || cur.hot <= 0) return null
   const prevCold = Math.floor(prev.cold)
   const curCold = Math.floor(cur.cold)
   const prevHot = Math.floor(prev.hot)
@@ -139,6 +143,23 @@ export const calcWaterBill = (
 
 export const hasAllTariffs = (tariffs: WaterTariffs) =>
   tariffs.cold > 0 && tariffs.hot > 0 && tariffs.drainage > 0
+
+// Сумма за электричество: расход по каждому тарифу × его цена; null, если данных не хватает
+export const calcElectricityTotal = (
+  prev: ElectricityMeter[] | null,
+  cur: ElectricityMeter[],
+  tariffs: ElectricityTariffs
+): number | null => {
+  if (!prev || cur.length === 0) return null
+  let total = 0
+  for (const meter of cur) {
+    const prevMeter = prev.find(m => m.name === meter.name)
+    const tariff = tariffs[meter.name] || 0
+    if (!prevMeter || prevMeter.value <= 0 || meter.value <= 0 || tariff <= 0) return null
+    total += round2(Math.max(0, meter.value - prevMeter.value) * tariff)
+  }
+  return round2(total)
+}
 
 const money = (value: number, grouping = true) =>
   value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: grouping })

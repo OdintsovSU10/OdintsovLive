@@ -1,0 +1,9 @@
+.tariff-unit {
+  min-width: 64px;
+}
+
+@media (max-width: 430px) {
+  .tariff-unit {
+    min-width: 0;
+  }
+}

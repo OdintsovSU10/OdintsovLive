@@ -1,0 +1,36 @@
+.amount-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 84px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.amount-mode.is-manual {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.amount-mode.is-manual:hover {
+  border-color: var(--primary);
+}
+
+@media (max-width: 430px) {
+  .amount-mode {
+    min-width: 0;
+  }
+
+  .amount-mode.is-manual {
+    min-height: 44px;
+  }
+}

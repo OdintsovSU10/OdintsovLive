@@ -3,16 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { MONTHS } from '../lib/constants'
+import { parseNumber } from '../lib/formatUtils'
 import ElectricitySection from './rent/ElectricitySection'
 import MeterPhotoUpload from './rent/MeterPhotoUpload'
-import WaterBillSection from './rent/WaterBillSection'
+import PaymentsSection, { type AmountKey, type PaymentRow } from './rent/PaymentsSection'
+import RentMessageSection from './rent/RentMessageSection'
+import TariffsSection from './rent/TariffsSection'
 import {
   applyElectricity,
   assignWaterReadings,
   buildRentMessage,
+  calcElectricityTotal,
   calcWaterBill,
   hasAllTariffs,
   type ElectricityMeter,
+  type ElectricityTariffs,
   type RecognizedMeter,
   type WaterTariffs
 } from './rent/rentUtils'
@@ -22,6 +27,9 @@ interface RentRecord {
   rent_amount: number
   water_amount: number
   electricity_amount: number
+  rent_manual: boolean
+  water_manual: boolean
+  electricity_manual: boolean
   cold_water: number
   hot_water: number
   electricity: ElectricityMeter[]
@@ -30,12 +38,51 @@ interface RentRecord {
 }
 
 interface PrevRecord {
+  rent_amount: number
   cold_water: number
   hot_water: number
   electricity: ElectricityMeter[]
 }
 
-type SaveValue = number | boolean | string | ElectricityMeter[]
+type SaveValue = number | boolean | string | ElectricityMeter[] | ElectricityTariffs
+
+const AMOUNT_FIELDS = {
+  rent: { label: 'Аренда', amount: 'rent_amount', manual: 'rent_manual' },
+  water: { label: 'Вода', amount: 'water_amount', manual: 'water_manual' },
+  electricity: { label: 'Электричество', amount: 'electricity_amount', manual: 'electricity_manual' }
+} as const
+
+const AMOUNT_KEYS: AmountKey[] = ['rent', 'water', 'electricity']
+
+const EMPTY_RECORD: RentRecord = {
+  rent_amount: 0,
+  water_amount: 0,
+  electricity_amount: 0,
+  rent_manual: false,
+  water_manual: false,
+  electricity_manual: false,
+  cold_water: 0,
+  hot_water: 0,
+  electricity: [],
+  paid: false,
+  notes: ''
+}
+
+const toWaterTariffs = (
+  data: { cold_water_tariff?: unknown; hot_water_tariff?: unknown; drainage_tariff?: unknown } | null
+): WaterTariffs => ({
+  cold: Number(data?.cold_water_tariff) || 0,
+  hot: Number(data?.hot_water_tariff) || 0,
+  drainage: Number(data?.drainage_tariff) || 0
+})
+
+const waterTariffFields = (t: WaterTariffs) => ({
+  cold_water_tariff: t.cold,
+  hot_water_tariff: t.hot,
+  drainage_tariff: t.drainage
+})
+
+const hasAnyValue = (values: object) => Object.values(values).some(v => Number(v) > 0)
 
 export default function RentMonthPage() {
   const { year: yearParam, month: monthParam } = useParams()
@@ -45,26 +92,11 @@ export default function RentMonthPage() {
 
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [record, setRecord] = useState<RentRecord>({
-    rent_amount: 0,
-    water_amount: 0,
-    electricity_amount: 0,
-    cold_water: 0,
-    hot_water: 0,
-    electricity: [],
-    paid: false,
-    notes: ''
-  })
+  const [record, setRecord] = useState<RentRecord>(EMPTY_RECORD)
   const [prevRecord, setPrevRecord] = useState<PrevRecord | null>(null)
   const [tariffs, setTariffs] = useState<WaterTariffs>({ cold: 0, hot: 0, drainage: 0 })
-  const [inputs, setInputs] = useState({
-    rent: '',
-    water: '',
-    electricity: '',
-    coldWater: '',
-    hotWater: '',
-    notes: ''
-  })
+  const [electricityTariffs, setElectricityTariffs] = useState<ElectricityTariffs>({})
+  const [inputs, setInputs] = useState({ coldWater: '', hotWater: '', notes: '' })
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -74,6 +106,18 @@ export default function RentMonthPage() {
       }
     })
   }, [year, month])
+
+  const upsertFields = (uid: string, fields: Record<string, SaveValue>) =>
+    supabase.from('rent_records').upsert(
+      {
+        user_id: uid,
+        year,
+        month,
+        ...fields,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id,year,month' }
+    )
 
   const loadData = async (uid: string) => {
     setLoading(true)
@@ -91,160 +135,167 @@ export default function RentMonthPage() {
         .maybeSingle(),
       supabase
         .from('rent_records')
-        .select('cold_water, hot_water, electricity, cold_water_tariff, hot_water_tariff, drainage_tariff')
+        .select('rent_amount, cold_water, hot_water, electricity, cold_water_tariff, hot_water_tariff, drainage_tariff, electricity_tariffs')
         .eq('user_id', uid)
         .eq('year', prevYear)
         .eq('month', prevMonth)
         .maybeSingle()
     ])
 
-    const prevElectricity: ElectricityMeter[] = prevResult.data?.electricity || []
+    const data = currentResult.data
+    const prev = prevResult.data
+    const prevElectricity: ElectricityMeter[] = prev?.electricity || []
 
-    const ownTariffs: WaterTariffs = {
-      cold: Number(currentResult.data?.cold_water_tariff) || 0,
-      hot: Number(currentResult.data?.hot_water_tariff) || 0,
-      drainage: Number(currentResult.data?.drainage_tariff) || 0
+    setPrevRecord(prev
+      ? {
+          rent_amount: Number(prev.rent_amount) || 0,
+          cold_water: prev.cold_water || 0,
+          hot_water: prev.hot_water || 0,
+          electricity: prevElectricity
+        }
+      : null)
+
+    // Тарифы берём свои, иначе из прошлого месяца — и сразу сохраняем, чтобы шли дальше по цепочке
+    const inherited: Record<string, SaveValue> = {}
+    const ownWaterTariffs = toWaterTariffs(data)
+    const prevWaterTariffs = toWaterTariffs(prev)
+    if (hasAnyValue(ownWaterTariffs)) {
+      setTariffs(ownWaterTariffs)
+    } else {
+      setTariffs(prevWaterTariffs)
+      if (hasAnyValue(prevWaterTariffs)) Object.assign(inherited, waterTariffFields(prevWaterTariffs))
     }
-    const prevTariffs: WaterTariffs = {
-      cold: Number(prevResult.data?.cold_water_tariff) || 0,
-      hot: Number(prevResult.data?.hot_water_tariff) || 0,
-      drainage: Number(prevResult.data?.drainage_tariff) || 0
-    }
-    setTariffs(ownTariffs.cold || ownTariffs.hot || ownTariffs.drainage ? ownTariffs : prevTariffs)
 
-    if (prevResult.data) {
-      setPrevRecord({
-        cold_water: prevResult.data.cold_water || 0,
-        hot_water: prevResult.data.hot_water || 0,
-        electricity: prevElectricity
-      })
+    const ownElectricityTariffs: ElectricityTariffs = data?.electricity_tariffs || {}
+    const prevElectricityTariffs: ElectricityTariffs = prev?.electricity_tariffs || {}
+    if (hasAnyValue(ownElectricityTariffs)) {
+      setElectricityTariffs(ownElectricityTariffs)
+    } else {
+      setElectricityTariffs(prevElectricityTariffs)
+      if (hasAnyValue(prevElectricityTariffs)) inherited.electricity_tariffs = prevElectricityTariffs
     }
 
-    if (currentResult.data) {
-      const data = currentResult.data
-      const electricity: ElectricityMeter[] = data.electricity || []
-
+    if (data) {
       setRecord({
-        rent_amount: data.rent_amount || 0,
-        water_amount: data.water_amount || 0,
-        electricity_amount: data.electricity_amount || 0,
+        rent_amount: Number(data.rent_amount) || 0,
+        water_amount: Number(data.water_amount) || 0,
+        electricity_amount: Number(data.electricity_amount) || 0,
+        rent_manual: Boolean(data.rent_manual),
+        water_manual: Boolean(data.water_manual),
+        electricity_manual: Boolean(data.electricity_manual),
         cold_water: data.cold_water || 0,
         hot_water: data.hot_water || 0,
-        electricity,
+        electricity: data.electricity || [],
         paid: data.paid || false,
         notes: data.notes || ''
       })
       setInputs({
-        rent: data.rent_amount > 0 ? Math.round(data.rent_amount).toLocaleString('ru-RU') : '',
-        water: data.water_amount > 0 ? Math.round(data.water_amount).toLocaleString('ru-RU') : '',
-        electricity: data.electricity_amount > 0 ? Math.round(data.electricity_amount).toLocaleString('ru-RU') : '',
         coldWater: data.cold_water > 0 ? String(data.cold_water) : '',
         hotWater: data.hot_water > 0 ? String(data.hot_water) : '',
         notes: data.notes || ''
       })
-    } else if (prevElectricity.length > 0) {
+    } else {
       // Автокопирование счётчиков из предыдущего месяца
       const emptyMeters = prevElectricity.map(m => ({ name: m.name, value: 0 }))
-      setRecord(prev => ({ ...prev, electricity: emptyMeters }))
-      // Сохраняем пустые счётчики
-      await supabase.from('rent_records').upsert(
-        {
-          user_id: uid,
-          year,
-          month,
-          electricity: emptyMeters,
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: 'user_id,year,month' }
-      )
+      setRecord({ ...EMPTY_RECORD, electricity: emptyMeters })
+      setInputs({ coldWater: '', hotWater: '', notes: '' })
+      if (emptyMeters.length > 0) inherited.electricity = emptyMeters
     }
 
+    if (Object.keys(inherited).length > 0) await upsertFields(uid, inherited)
     setLoading(false)
-  }
-
-  const parseNumber = (value: string): number => {
-    const cleaned = value.replace(/\s/g, '').replace(',', '.')
-    return parseFloat(cleaned) || 0
   }
 
   const saveFields = async (fields: Record<string, SaveValue>) => {
     if (!userId) return
-
-    await supabase.from('rent_records').upsert(
-      {
-        user_id: userId,
-        year,
-        month,
-        ...fields,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: 'user_id,year,month' }
-    )
+    await upsertFields(userId, fields)
   }
 
   const saveField = (field: string, value: SaveValue) => saveFields({ [field]: value })
 
   const prevWater = prevRecord && { cold: prevRecord.cold_water, hot: prevRecord.hot_water }
+  const waterBill = calcWaterBill(prevWater, { cold: record.cold_water, hot: record.hot_water }, tariffs)
 
-  // Сумма «Вода» пересчитывается только по действию пользователя, чтобы не затирать старые месяцы.
-  // Тарифы сохраняем вместе с суммой: подставленные из прошлого месяца тоже должны перейти дальше
-  const waterAmountFields = (cold: number, hot: number, t: WaterTariffs): Record<string, number> => {
-    const bill = calcWaterBill(prevWater, { cold, hot }, t)
-    if (!bill || !hasAllTariffs(t)) return {}
-    setRecord(prev => ({ ...prev, water_amount: bill.total }))
-    setInputs(prev => ({ ...prev, water: Math.round(bill.total).toLocaleString('ru-RU') }))
-    return {
-      water_amount: bill.total,
-      cold_water_tariff: t.cold,
-      hot_water_tariff: t.hot,
-      drainage_tariff: t.drainage
+  const autoAmounts: Record<AmountKey, number | null> = {
+    rent: prevRecord && prevRecord.rent_amount > 0 ? prevRecord.rent_amount : null,
+    water: waterBill && hasAllTariffs(tariffs) ? waterBill.total : null,
+    electricity: calcElectricityTotal(prevRecord?.electricity ?? null, record.electricity, electricityTariffs)
+  }
+
+  // Пока сумма не введена вручную, она равна авторасчёту (0, если данных не хватает)
+  const amountOf = (key: AmountKey) => {
+    const { amount, manual } = AMOUNT_FIELDS[key]
+    return record[manual] ? record[amount] : autoAmounts[key] ?? 0
+  }
+
+  const amounts: Record<AmountKey, number> = {
+    rent: amountOf('rent'),
+    water: amountOf('water'),
+    electricity: amountOf('electricity')
+  }
+
+  // Авторасчётные суммы сохраняем, чтобы список месяцев и итоги видели актуальные значения
+  useEffect(() => {
+    if (loading || !userId) return
+    const changed: Record<string, number> = {}
+    for (const key of AMOUNT_KEYS) {
+      const { amount, manual } = AMOUNT_FIELDS[key]
+      if (!record[manual] && amounts[key] !== record[amount]) changed[amount] = amounts[key]
     }
+    if (Object.keys(changed).length === 0) return
+    setRecord(prev => ({ ...prev, ...changed }))
+    saveFields(changed)
+  }, [
+    loading,
+    userId,
+    amounts.rent,
+    amounts.water,
+    amounts.electricity,
+    record.rent_amount,
+    record.water_amount,
+    record.electricity_amount,
+    record.rent_manual,
+    record.water_manual,
+    record.electricity_manual
+  ])
+
+  const handleAmountChange = (key: AmountKey, value: number) => {
+    const { amount, manual } = AMOUNT_FIELDS[key]
+    setRecord(prev => ({ ...prev, [amount]: value, [manual]: true }))
+    saveFields({ [amount]: value, [manual]: true })
   }
 
-  const handleRentBlur = () => {
-    const value = parseNumber(inputs.rent)
-    setRecord(prev => ({ ...prev, rent_amount: value }))
-    setInputs(prev => ({ ...prev, rent: value > 0 ? Math.round(value).toLocaleString('ru-RU') : '' }))
-    saveField('rent_amount', value)
-  }
-
-  const handleWaterAmountBlur = () => {
-    const value = parseNumber(inputs.water)
-    setRecord(prev => ({ ...prev, water_amount: value }))
-    setInputs(prev => ({ ...prev, water: value > 0 ? Math.round(value).toLocaleString('ru-RU') : '' }))
-    saveField('water_amount', value)
-  }
-
-  const handleElectricityAmountBlur = () => {
-    const value = parseNumber(inputs.electricity)
-    setRecord(prev => ({ ...prev, electricity_amount: value }))
-    setInputs(prev => ({ ...prev, electricity: value > 0 ? Math.round(value).toLocaleString('ru-RU') : '' }))
-    saveField('electricity_amount', value)
+  const handleAmountReset = (key: AmountKey) => {
+    const { manual } = AMOUNT_FIELDS[key]
+    // саму сумму пересчитает и сохранит эффект синхронизации
+    setRecord(prev => ({ ...prev, [manual]: false }))
+    saveField(manual, false)
   }
 
   const handleColdWaterBlur = () => {
     const value = parseNumber(inputs.coldWater)
     setRecord(prev => ({ ...prev, cold_water: value }))
     setInputs(prev => ({ ...prev, coldWater: value > 0 ? String(value) : '' }))
-    saveFields({ cold_water: value, ...waterAmountFields(value, record.hot_water, tariffs) })
+    saveField('cold_water', value)
   }
 
   const handleHotWaterBlur = () => {
     const value = parseNumber(inputs.hotWater)
     setRecord(prev => ({ ...prev, hot_water: value }))
     setInputs(prev => ({ ...prev, hotWater: value > 0 ? String(value) : '' }))
-    saveFields({ hot_water: value, ...waterAmountFields(record.cold_water, value, tariffs) })
+    saveField('hot_water', value)
   }
 
-  const handleTariffChange = (key: keyof WaterTariffs, value: number) => {
+  const handleWaterTariffChange = (key: keyof WaterTariffs, value: number) => {
     const next = { ...tariffs, [key]: value }
     setTariffs(next)
-    saveFields({
-      cold_water_tariff: next.cold,
-      hot_water_tariff: next.hot,
-      drainage_tariff: next.drainage,
-      ...waterAmountFields(record.cold_water, record.hot_water, next)
-    })
+    saveFields(waterTariffFields(next))
+  }
+
+  const handleElectricityTariffChange = (name: string, value: number) => {
+    const next = { ...electricityTariffs, [name]: value }
+    setElectricityTariffs(next)
+    saveField('electricity_tariffs', next)
   }
 
   const applyRecognized = async (meters: RecognizedMeter[]) => {
@@ -255,12 +306,7 @@ export default function RentMonthPage() {
 
     setRecord(prev => ({ ...prev, electricity, cold_water: cold, hot_water: hot }))
     setInputs(prev => ({ ...prev, coldWater: cold > 0 ? String(cold) : '', hotWater: hot > 0 ? String(hot) : '' }))
-    await saveFields({
-      electricity,
-      cold_water: cold,
-      hot_water: hot,
-      ...waterAmountFields(cold, hot, tariffs)
-    })
+    await saveFields({ electricity, cold_water: cold, hot_water: hot })
   }
 
   const handleNotesBlur = () => {
@@ -296,8 +342,15 @@ export default function RentMonthPage() {
     return (cold || 0) + (hot || 0)
   }
 
-  const total = record.rent_amount + record.water_amount + record.electricity_amount
-  const waterBill = calcWaterBill(prevWater, { cold: record.cold_water, hot: record.hot_water }, tariffs)
+  const total = amounts.rent + amounts.water + amounts.electricity
+
+  const paymentRows: PaymentRow[] = AMOUNT_KEYS.map(key => ({
+    key,
+    label: AMOUNT_FIELDS[key].label,
+    amount: amounts[key],
+    manual: record[AMOUNT_FIELDS[key].manual],
+    hasAuto: autoAmounts[key] !== null
+  }))
 
   if (loading) {
     return (
@@ -325,51 +378,7 @@ export default function RentMonthPage() {
       </div>
 
       <div className="month-content">
-        <div className="content-section">
-          <div className="section-title">Платежи</div>
-          <div className="input-row">
-            <span>Аренда</span>
-            <div className="inline-input">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={inputs.rent}
-                placeholder="0"
-                onChange={e => setInputs(prev => ({ ...prev, rent: e.target.value }))}
-                onBlur={handleRentBlur}
-              />
-              <span>₽</span>
-            </div>
-          </div>
-          <div className="input-row">
-            <span>Вода</span>
-            <div className="inline-input">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={inputs.water}
-                placeholder="0"
-                onChange={e => setInputs(prev => ({ ...prev, water: e.target.value }))}
-                onBlur={handleWaterAmountBlur}
-              />
-              <span>₽</span>
-            </div>
-          </div>
-          <div className="input-row">
-            <span>Электричество</span>
-            <div className="inline-input">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={inputs.electricity}
-                placeholder="0"
-                onChange={e => setInputs(prev => ({ ...prev, electricity: e.target.value }))}
-                onBlur={handleElectricityAmountBlur}
-              />
-              <span>₽</span>
-            </div>
-          </div>
-        </div>
+        <PaymentsSection rows={paymentRows} onManualChange={handleAmountChange} onReset={handleAmountReset} />
 
         {userId && (
           <MeterPhotoUpload userId={userId} year={year} month={month} onRecognized={applyRecognized} />
@@ -422,12 +431,15 @@ export default function RentMonthPage() {
           onChange={handleElectricityChange}
         />
 
-        <WaterBillSection
-          tariffs={tariffs}
-          bill={waterBill}
-          message={buildRentMessage(record.electricity, waterBill, tariffs)}
-          onTariffChange={handleTariffChange}
+        <TariffsSection
+          water={tariffs}
+          electricity={electricityTariffs}
+          meterNames={record.electricity.map(m => m.name)}
+          onWaterChange={handleWaterTariffChange}
+          onElectricityChange={handleElectricityTariffChange}
         />
+
+        <RentMessageSection message={buildRentMessage(record.electricity, waterBill, tariffs)} />
 
         <div className="content-section">
           <div className="section-title">Заметки</div>
