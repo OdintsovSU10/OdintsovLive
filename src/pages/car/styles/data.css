@@ -44,6 +44,36 @@
   overflow-wrap: anywhere;
 }
 
+.car-info-photo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.car-info-photo img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  object-position: center 70%;
+  border-radius: var(--radius-md);
+}
+
+.car-info-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.car-info-photo-actions .car-btn {
+  flex: 1 1 0;
+}
+
+.car-file-btn.busy {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 /* Запчасти */
 
 .car-parts-tools {

@@ -9,8 +9,10 @@ import { CarSheets } from './components/sheets/CarSheets'
 import type { SheetState } from './components/sheets/CarSheets'
 import { DataTab } from './components/data/DataTab'
 import { JournalTab } from './components/journal/JournalTab'
+import { CarCover } from './components/overview/CarCover'
 import { OverviewTab } from './components/overview/OverviewTab'
 import { EMPTY_JOURNAL_FILTER, UNDO_DURATION_MS } from './constants'
+import { useCarPhoto } from './hooks/useCarPhoto'
 import { useCarRecords } from './hooks/useCarRecords'
 import { useCarStats } from './hooks/useCarStats'
 import { useCars } from './hooks/useCars'
@@ -36,6 +38,7 @@ export default function CarPage() {
   const { cars, selectedCar: car, selectCar, loading, loadCars, saveCar, deleteCar } = useCars()
   const records = useCarRecords(car, loadCars)
   const { entries, intervals } = useJournalEntries(records.maintenance, records.fuel, records.expenses)
+  const photo = useCarPhoto(car?.id ?? null)
 
   const [tab, setTab] = useState<CarTab>('overview')
   const [period, setPeriod] = useState<PeriodPreset>('6m')
@@ -105,6 +108,18 @@ export default function CarPage() {
     showToast({ message: `${target.brand} ${target.model} удалена` })
   }
 
+  const handleUploadPhoto = async (file: File) => {
+    const ok = await photo.savePhoto(file)
+    if (!ok) return failToast('Не удалось загрузить фото')
+    showToast({ message: 'Фото обновлено' })
+  }
+
+  const handleRemovePhoto = async () => {
+    const ok = await photo.removePhoto()
+    if (!ok) return failToast('Не удалось удалить фото')
+    showToast({ message: 'Фото удалено' })
+  }
+
   const handleSavePart = async (data: Omit<PartType, 'id' | 'car_id'>, editingId?: string) => {
     const ok = await runSaving(() => records.savePart(data, editingId))
     if (!ok) return failToast()
@@ -166,18 +181,29 @@ export default function CarPage() {
         </div>
       ) : (
         <section key={tab} className="car-panel">
-          {tab === 'overview' && (records.loading || !stats ? (
-            <div className="car-skeleton" aria-busy="true" />
-          ) : (
-            <OverviewTab
-              stats={stats}
-              entries={entries}
-              period={period}
-              onPeriodChange={setPeriod}
-              onOpenJournal={openJournal}
-              onAdd={openAdd}
-            />
-          ))}
+          {tab === 'overview' && (
+            <>
+              <CarCover
+                car={car}
+                photo={photo.photo}
+                loading={photo.loading}
+                uploading={photo.uploading}
+                onUpload={file => void handleUploadPhoto(file)}
+              />
+              {records.loading || !stats ? (
+                <div className="car-skeleton" aria-busy="true" />
+              ) : (
+                <OverviewTab
+                  stats={stats}
+                  entries={entries}
+                  period={period}
+                  onPeriodChange={setPeriod}
+                  onOpenJournal={openJournal}
+                  onAdd={openAdd}
+                />
+              )}
+            </>
+          )}
           {tab === 'journal' && (
             <JournalTab
               entries={entries}
@@ -194,6 +220,10 @@ export default function CarPage() {
               car={car}
               entries={entries}
               parts={records.parts}
+              photo={photo.photo}
+              photoUploading={photo.uploading}
+              onUploadPhoto={file => void handleUploadPhoto(file)}
+              onRemovePhoto={() => void handleRemovePhoto()}
               onEditCar={() => setSheet({ type: 'car', car })}
               onDeleteCar={() => setSheet({ type: 'delete-car', car })}
               onAddPart={() => setSheet({ type: 'part', part: null })}

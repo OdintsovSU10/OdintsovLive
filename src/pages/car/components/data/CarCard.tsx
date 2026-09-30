@@ -1,4 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import type { ChangeEvent } from 'react'
+import { Camera, ImageOff, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { MONTHS } from '../../../../lib/constants'
 import { calcAge } from '../../../../lib/dateUtils'
 import type { CarType } from '../../types'
@@ -8,11 +9,15 @@ import { formatMileage, formatRub } from '../../utils/format'
 interface Props {
   car: CarType
   spentTotal: number
+  photo: string | null
+  photoUploading: boolean
+  onUploadPhoto: (file: File) => void
+  onRemovePhoto: () => void
   onEdit: () => void
   onDelete: () => void
 }
 
-export function CarCard({ car, spentTotal, onEdit, onDelete }: Props) {
+export function CarCard({ car, spentTotal, photo, photoUploading, onUploadPhoto, onRemovePhoto, onEdit, onDelete }: Props) {
   const made = car.manufacture_month ? `${MONTHS[car.manufacture_month - 1]} ${car.manufacture_year}` : String(car.manufacture_year)
   const rows: [string, string][] = [
     ['Выпуск', `${made} · ${calcAge(car.manufacture_year, car.manufacture_month)}`],
@@ -24,6 +29,12 @@ export function CarCard({ car, spentTotal, onEdit, onDelete }: Props) {
     ['Расходы за всё время', formatRub(spentTotal)],
     ['Стоимость владения', formatRub((car.purchase_price || 0) + spentTotal)]
   ]
+
+  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (file) onUploadPhoto(file)
+  }
 
   return (
     <article className="car-card car-info">
@@ -39,6 +50,22 @@ export function CarCard({ car, spentTotal, onEdit, onDelete }: Props) {
           <button type="button" className="car-icon-btn danger" onClick={onDelete} aria-label="Удалить авто">
             <Trash2 size={18} />
           </button>
+        </div>
+      </div>
+      <div className="car-info-photo">
+        {photo && <img src={photo} alt={`${car.brand} ${car.model}`} />}
+        <div className="car-info-photo-actions">
+          <label className={`car-btn ghost car-file-btn ${photoUploading ? 'busy' : ''}`}>
+            {photoUploading ? <Loader2 size={18} className="car-spin" /> : <Camera size={18} />}
+            <span>{photoUploading ? 'Загружаю…' : photo ? 'Сменить фото' : 'Добавить фото'}</span>
+            <input type="file" accept="image/*" onChange={handleFile} disabled={photoUploading} />
+          </label>
+          {photo && (
+            <button type="button" className="car-btn danger" onClick={onRemovePhoto} disabled={photoUploading}>
+              <ImageOff size={18} />
+              <span>Удалить фото</span>
+            </button>
+          )}
         </div>
       </div>
       <dl className="car-info-grid">

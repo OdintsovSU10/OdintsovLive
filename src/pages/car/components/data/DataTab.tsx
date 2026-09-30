@@ -6,6 +6,10 @@ interface Props {
   car: CarType
   entries: JournalEntry[]
   parts: PartType[]
+  photo: string | null
+  photoUploading: boolean
+  onUploadPhoto: (file: File) => void
+  onRemovePhoto: () => void
   onEditCar: () => void
   onDeleteCar: () => void
   onAddPart: () => void
@@ -15,13 +19,22 @@ interface Props {
 }
 
 export function DataTab({
-  car, entries, parts, onEditCar, onDeleteCar, onAddPart, onEditPart, onDeletePart, onImportParts
+  car, entries, parts, photo, photoUploading, onUploadPhoto, onRemovePhoto, onEditCar, onDeleteCar, onAddPart, onEditPart, onDeletePart, onImportParts
 }: Props) {
   const spentTotal = entries.reduce((acc, entry) => acc + entry.amount, 0)
 
   return (
     <div className="car-data">
-      <CarCard car={car} spentTotal={spentTotal} onEdit={onEditCar} onDelete={onDeleteCar} />
+      <CarCard
+        car={car}
+        spentTotal={spentTotal}
+        photo={photo}
+        photoUploading={photoUploading}
+        onUploadPhoto={onUploadPhoto}
+        onRemovePhoto={onRemovePhoto}
+        onEdit={onEditCar}
+        onDelete={onDeleteCar}
+      />
       <PartsCatalog parts={parts} onAdd={onAddPart} onEdit={onEditPart} onDelete={onDeletePart} onImport={onImportParts} />
     </div>
   )
