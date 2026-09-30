@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Check, X, Users, Palette, Type, Upload, Trash2, KeyRound } from 'lucide-react'
+import { Check, X, Users, Palette, Type, Upload, Trash2, KeyRound, Bot } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import FotTokenSettings from './admin/FotTokenSettings'
+import BotSettings from './admin/BotSettings'
 import './AdminPage.css'
 
 interface UserProfile {
@@ -63,7 +64,7 @@ const DEFAULT_SETTINGS: VisualSettings = {
   custom_fonts: []
 }
 
-type Tab = 'users' | 'visual' | 'fot'
+type Tab = 'users' | 'visual' | 'fot' | 'bot'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('users')
@@ -278,6 +279,13 @@ export default function AdminPage() {
           <KeyRound size={18} />
           <span>FOT API</span>
         </button>
+        <button
+          className={`admin-tab ${activeTab === 'bot' ? 'active' : ''}`}
+          onClick={() => setActiveTab('bot')}
+        >
+          <Bot size={18} />
+          <span>Telegram-бот</span>
+        </button>
       </div>
 
       {activeTab === 'users' && (
@@ -451,6 +459,12 @@ export default function AdminPage() {
       {activeTab === 'fot' && (
         <div className="tab-content">
           <FotTokenSettings />
+        </div>
+      )}
+
+      {activeTab === 'bot' && (
+        <div className="tab-content">
+          <BotSettings />
         </div>
       )}
     </div>

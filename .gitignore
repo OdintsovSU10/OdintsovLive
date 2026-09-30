@@ -31,3 +31,6 @@ npm-debug.log*
 /*.xlsx
 /*.xls
 /*.png
+
+# Telegram bot: receipts saved on disk
+ops/telegram-bot/data/

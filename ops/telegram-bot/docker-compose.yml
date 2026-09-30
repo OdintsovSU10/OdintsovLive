@@ -1,0 +1,15 @@
+services:
+  odintsovlive-bot:
+    image: node:24-alpine
+    container_name: odintsovlive-bot
+    restart: unless-stopped
+    working_dir: /app
+    command: node bot.mjs
+    volumes:
+      - ./:/app
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "3"

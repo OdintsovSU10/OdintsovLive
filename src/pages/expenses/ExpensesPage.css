@@ -489,6 +489,19 @@
   background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
+.type-badge.bot {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.note-cell {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
 .pagination {
   display: flex;
   align-items: center;

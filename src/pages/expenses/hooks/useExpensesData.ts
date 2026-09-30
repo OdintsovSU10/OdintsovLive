@@ -9,7 +9,7 @@ import type {
   ExpenseUserCategory,
   PreparedExpenseTransaction
 } from '../types'
-import { buildInsights } from '../utils/analysis'
+import { buildInsights, isFailed } from '../utils/analysis'
 import { normalizeCategoryKey, parseStatementFile } from '../utils/statementParser'
 
 const LOAD_PAGE_SIZE = 1000
@@ -85,6 +85,37 @@ interface ExistingTransactionHash {
   id: string
   dedupe_key: string
   row_hash: string
+}
+
+interface BotTransaction {
+  id: string
+  operation_date: string
+  payment_amount: number
+}
+
+const MERGE_AMOUNT_TOLERANCE = 1
+const MERGE_DAYS_TOLERANCE = 2
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function daysBetween(a: string, b: string): number {
+  return Math.abs(Date.parse(a) - Date.parse(b)) / DAY_MS
+}
+
+// Запись из Telegram-бота и банковская операция — одна трата, если совпали сумма (±1 ₽) и дата (±2 дня).
+// Найденную запись забираем из пула, чтобы она не склеилась второй раз.
+function takeBotMatch(pool: BotTransaction[], row: PreparedExpenseTransaction): BotTransaction | null {
+  if (row.flow_direction !== 'out' || isFailed(row)) return null
+
+  let best: BotTransaction | null = null
+  for (const candidate of pool) {
+    if (Math.abs(candidate.payment_amount - row.payment_amount) > MERGE_AMOUNT_TOLERANCE) continue
+    const days = daysBetween(candidate.operation_date, row.operation_date)
+    if (days > MERGE_DAYS_TOLERANCE) continue
+    if (!best || days < daysBetween(best.operation_date, row.operation_date)) best = candidate
+  }
+
+  if (best) pool.splice(pool.indexOf(best), 1)
+  return best
 }
 
 export function useExpensesData() {
@@ -221,6 +252,7 @@ export function useExpensesData() {
 
       const haystack = [
         transaction.description || '',
+        transaction.note || '',
         transaction.bank_category || '',
         transaction.mcc || '',
         transaction.card_mask || '',
@@ -392,8 +424,18 @@ export function useExpensesData() {
       if (batchError) throw batchError
       batchId = batch?.id || null
 
+      const { data: botRows, error: botError } = await supabase
+        .from('expense_transactions')
+        .select('id, operation_date, payment_amount')
+        .eq('user_id', userId)
+        .eq('source', 'telegram')
+
+      if (botError) throw botError
+      const botPool: BotTransaction[] = (botRows || []).map(row => ({ ...row, payment_amount: Number(row.payment_amount) }))
+
       let insertedRows = 0
       let updatedRows = 0
+      let mergedRows = 0
       let unchangedRows = 0
       let failedRows = 0
       const importErrors: ExpenseImportError[] = [...parsed.errors]
@@ -421,12 +463,29 @@ export function useExpensesData() {
         }
 
         const rowsToInsert: Array<PreparedExpenseTransaction & { user_id: string; import_batch_id: string | null }> = []
-        const rowsToUpdate: Array<{ id: string; payload: Partial<ExpenseTransaction>; sourceRow: number }> = []
+        const rowsToUpdate: Array<{ id: string; payload: Partial<ExpenseTransaction>; sourceRow: number; merged?: boolean }> = []
 
         for (const row of chunk) {
           const existing = existingMap.get(row.dedupe_key)
 
           if (!existing) {
+            // запись из бота становится банковской операцией, её note остаётся
+            const botMatch = takeBotMatch(botPool, row)
+            if (botMatch) {
+              rowsToUpdate.push({
+                id: botMatch.id,
+                sourceRow: row.source_row_number,
+                merged: true,
+                payload: {
+                  ...row,
+                  source: 'bank',
+                  import_batch_id: batchId,
+                  updated_at: new Date().toISOString()
+                }
+              })
+              continue
+            }
+
             rowsToInsert.push({
               ...row,
               user_id: userId,
@@ -476,7 +535,11 @@ export function useExpensesData() {
             continue
           }
 
-          updatedRows += 1
+          if (rowToUpdate.merged) {
+            mergedRows += 1
+          } else {
+            updatedRows += 1
+          }
         }
       }
 
@@ -502,6 +565,7 @@ export function useExpensesData() {
         parsedRows: parsed.parsedRows.length,
         insertedRows,
         updatedRows,
+        mergedRows,
         skippedRows,
         errors: limitedErrors
       }

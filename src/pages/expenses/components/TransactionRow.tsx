@@ -22,9 +22,13 @@ export function TransactionRow({ transaction, categoryName, compact = false }: P
       <td>
         <span className="description-cell">
           {transaction.description || '—'}
+          {transaction.source === 'telegram' && <span className="type-badge bot">Бот</span>}
           {failed && <span className="type-badge failed">Ошибка</span>}
           {internal && <span className="type-badge internal">Свои счета</span>}
         </span>
+        {transaction.note && transaction.note !== transaction.description && (
+          <span className="note-cell">{transaction.note}</span>
+        )}
       </td>
       {!compact && <td>{transaction.mcc || '—'}</td>}
       {!compact && <td>{transaction.card_mask || '—'}</td>}

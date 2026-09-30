@@ -165,6 +165,7 @@ export default function ExpensesPage() {
           <span>
             Импорт {lastImportSummary.fileName}: строк {lastImportSummary.totalRows}, добавлено {lastImportSummary.insertedRows},
             обновлено {lastImportSummary.updatedRows}, пропущено {lastImportSummary.skippedRows}
+            {lastImportSummary.mergedRows > 0 && `, склеено с записями бота ${lastImportSummary.mergedRows}`}
           </span>
         </div>
       )}

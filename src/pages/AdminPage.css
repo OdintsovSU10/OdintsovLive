@@ -697,3 +697,22 @@
     font-size: 1.25rem;
   }
 }
+
+.bot-settings-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.bot-settings-fields .fot-token-save {
+  justify-self: start;
+}
+
+@media (max-width: 430px) {
+  .bot-settings-fields input {
+    font-size: 16px;
+  }
+
+  .bot-settings-fields .fot-token-save {
+    justify-self: stretch;
+  }
+}

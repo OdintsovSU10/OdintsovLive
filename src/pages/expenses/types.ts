@@ -1,6 +1,9 @@
 export type FlowDirection = 'in' | 'out' | 'zero'
 export type FlowFilter = 'all' | 'in' | 'out'
 
+// telegram — запись из бота; при импорте выписки склеивается с банковской операцией
+export type ExpenseSource = 'bank' | 'telegram'
+
 export interface ExpenseTransaction {
   id: string
   user_id: string
@@ -27,6 +30,8 @@ export interface ExpenseTransaction {
   flow_direction: FlowDirection
   include_in_analytics: boolean
   mapped_category_id: string | null
+  source: ExpenseSource
+  note: string | null
   created_at: string
   updated_at: string
 }
@@ -64,6 +69,7 @@ export interface ExpenseImportSummary {
   parsedRows: number
   insertedRows: number
   updatedRows: number
+  mergedRows: number
   skippedRows: number
   errors: ExpenseImportError[]
 }
