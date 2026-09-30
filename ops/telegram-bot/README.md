@@ -13,6 +13,10 @@ Telegram ──getUpdates──► odintsovlive-bot (quantor, node:24-alpine)
 Бот живёт на `quantor`, а не на Selectel: с Selectel Telegram API заблокирован,
 OpenRouter отвечает 403. На `quantor` трафик к ним идёт через туннель AmneziaWG (`awg0`).
 
+Голосовые расшифровывает ElevenLabs Scribe (`scribe_v2`), затем текст разбирается как обычный.
+ElevenLabs блокирует РФ — его запросы идут через tinyproxy на nl3 (`194.37.81.38:18443`,
+IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `environment` в `docker-compose.yml`.
+
 | Инструмент | Куда пишет |
 |---|---|
 | `add_purchase` | `expense_transactions` |

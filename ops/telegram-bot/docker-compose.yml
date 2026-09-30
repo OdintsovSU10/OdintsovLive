@@ -7,6 +7,12 @@ services:
     command: node bot.mjs
     volumes:
       - ./:/app
+    environment:
+      # ElevenLabs блокирует РФ: только его запросы идут через tinyproxy на nl3,
+      # остальное — напрямую (Telegram и OpenRouter через туннель quantor)
+      NODE_USE_ENV_PROXY: "1"
+      HTTPS_PROXY: http://194.37.81.38:18443
+      NO_PROXY: api.telegram.org,openrouter.ai,live.meridianai.ru
     mem_limit: 128m
     logging:
       driver: json-file

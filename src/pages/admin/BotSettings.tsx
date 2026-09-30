@@ -8,6 +8,8 @@ interface BotSettingsStatus {
   telegram_token_hint: string | null
   has_openrouter_key: boolean
   openrouter_key_hint: string | null
+  has_elevenlabs_key: boolean
+  elevenlabs_key_hint: string | null
   telegram_owner_id: string | null
   openrouter_model: string | null
   bot_username: string | null
@@ -34,6 +36,7 @@ export default function BotSettings() {
   const [status, setStatus] = useState<BotSettingsStatus | null>(null)
   const [telegramToken, setTelegramToken] = useState('')
   const [openrouterKey, setOpenrouterKey] = useState('')
+  const [elevenlabsKey, setElevenlabsKey] = useState('')
   const [ownerId, setOwnerId] = useState('')
   const [model, setModel] = useState('')
   const [showSecrets, setShowSecrets] = useState(false)
@@ -87,6 +90,7 @@ export default function BotSettings() {
       p_telegram_bot_token: telegramToken.trim() || null,
       p_telegram_owner_id: ownerId.trim(),
       p_openrouter_api_key: openrouterKey.trim() || null,
+      p_elevenlabs_api_key: elevenlabsKey.trim() || null,
       p_openrouter_model: model.trim()
     })
     if (rpcError) {
@@ -95,6 +99,7 @@ export default function BotSettings() {
       applyStatus(data as BotSettingsStatus)
       setTelegramToken('')
       setOpenrouterKey('')
+      setElevenlabsKey('')
       setShowSecrets(false)
       setSuccess('Сохранено. Бот подхватит изменения в течение минуты.')
     }
@@ -104,7 +109,7 @@ export default function BotSettings() {
   const online = Boolean(
     status?.last_seen_at && !status.last_error && Date.now() - Date.parse(status.last_seen_at) < ONLINE_WINDOW_MS
   )
-  const changed = Boolean(telegramToken.trim() || openrouterKey.trim())
+  const changed = Boolean(telegramToken.trim() || openrouterKey.trim() || elevenlabsKey.trim())
     || ownerId.trim() !== (status?.telegram_owner_id || '')
     || model.trim() !== (status?.openrouter_model || '')
 
@@ -194,6 +199,23 @@ export default function BotSettings() {
               value={openrouterKey}
               onChange={event => setOpenrouterKey(event.target.value)}
               placeholder={status?.has_openrouter_key ? `Задан (…${status.openrouter_key_hint}) — пусто, чтобы не менять` : 'sk-or-v1-…'}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              disabled={saving}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="bot-elevenlabs-key">Ключ ElevenLabs (голосовые)</label>
+          <div className="fot-token-input-wrap">
+            <input
+              id="bot-elevenlabs-key"
+              type={showSecrets ? 'text' : 'password'}
+              value={elevenlabsKey}
+              onChange={event => setElevenlabsKey(event.target.value)}
+              placeholder={status?.has_elevenlabs_key ? `Задан (…${status.elevenlabs_key_hint}) — пусто, чтобы не менять` : 'sk_…'}
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}

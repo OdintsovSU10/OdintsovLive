@@ -136,13 +136,15 @@ const insertOne = async (rest, table, row, track) => {
   return created
 }
 
-const updateMileage = async (rest, car, mileage) => {
+// Прежний пробег запоминаем в записи: отмена вернёт его
+const updateMileage = async (rest, car, mileage, track) => {
   if (!mileage || mileage <= car.currentMileage) return
   await rest(`cars?id=eq.${car.id}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ current_mileage: mileage })
   })
+  track('cars', car.id, { from: car.currentMileage, to: mileage })
   car.currentMileage = mileage
 }
 
@@ -198,7 +200,7 @@ const addFuel = async ({ rest, ctx, track, entryId, index, args }) => {
   await insertOne(rest, 'car_fuel', {
     car_id: car.id, date, mileage, liters, price_per_liter: price, total_cost: total, fuel_type: fuelType
   }, track)
-  await updateMileage(rest, car, mileage)
+  await updateMileage(rest, car, mileage, track)
   if (total) {
     await insertExpense(rest, ctx, track, {
       entryId, index, date, amount: total,
@@ -234,7 +236,7 @@ const addCarService = async ({ rest, ctx, track, entryId, index, args }) => {
     if (!title) throw new UserError('Не понял, какие работы по ТО')
     await insertOne(rest, 'car_maintenance', { car_id: car.id, date, mileage, type: title, description, cost }, track)
   }
-  await updateMileage(rest, car, mileage)
+  await updateMileage(rest, car, mileage, track)
   if (cost) {
     await insertExpense(rest, ctx, track, {
       entryId, index, date, amount: round2(cost),
@@ -304,7 +306,7 @@ export const createEntry = async (rest, { userId, chatId, messageId, messageIds,
 export const executeTools = async (rest, ctx, entryId, toolCalls) => {
   const rows = []
   const lines = []
-  const track = (table, id) => rows.push({ table, id })
+  const track = (table, id, extra = {}) => rows.push({ table, id, ...extra })
 
   for (const [index, call] of toolCalls.entries()) {
     const handler = HANDLERS[call.name]
@@ -335,7 +337,16 @@ export const undoEntry = async (rest, userId, entryId) => {
   if (!entry) return { ok: false, text: 'Запись не найдена' }
   if (entry.undone) return { ok: false, text: 'Уже отменено' }
 
-  for (const { table, id } of [...entry.created_rows].reverse()) {
+  for (const { table, id, from, to } of [...entry.created_rows].reverse()) {
+    if (table === 'cars' && UUID_RE.test(id) && Number.isInteger(from) && Number.isInteger(to)) {
+      // пробег возвращаем, только если после бота его никто не менял
+      await rest(`cars?id=eq.${id}&current_mileage=eq.${to}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ current_mileage: from })
+      })
+      continue
+    }
     if (!UNDO_TABLES.has(table) || !UUID_RE.test(id)) continue
     // трату, уже склеенную с банковской выпиской, не трогаем — она теперь банковская
     const guard = table === 'expense_transactions' ? '&source=eq.telegram' : ''

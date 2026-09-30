@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { createEntry, createRest, emptyContext, executeTools, loadContext, undoEntry } from './actions.mjs'
-import { callLlm } from './llm.mjs'
+import { callLlm, transcribe } from './llm.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
 const ENV_FILE = path.join(DIR, '.env')
@@ -18,6 +18,7 @@ const SETTINGS_SYNC_MS = 60_000
 // Память диалога нужна только для уточнений («сколько литров?» → «40»)
 const HISTORY_LIMIT = 6
 const HISTORY_TTL_MS = 10 * 60_000
+const VOICE_MAX_SECONDS = 120
 
 const HELP = `Пиши как есть, я разложу по разделам сайта:
 • «заправился 40 л по 62.5, пробег 123456»
@@ -25,6 +26,7 @@ const HELP = `Пиши как есть, я разложу по разделам 
 • «поменял масло 4500, пробег 120 000», «мойка 800»
 • «вес 82.4», «талия 84, грудь 102»
 • фото чека (можно с подписью)
+• голосовое — то же самое, только вслух
 Под каждой записью — кнопка «Отменить».`
 
 const log = (...args) => console.log(new Date().toISOString(), ...args)
@@ -45,6 +47,7 @@ const loadEnv = () => {
       ownerTelegramId: env.TELEGRAM_OWNER_ID,
       userId: env.OWNER_USER_ID,
       openrouterKey: env.OPENROUTER_API_KEY,
+      elevenlabsKey: env.ELEVENLABS_API_KEY,
       model: env.OPENROUTER_MODEL
     }
   }
@@ -52,7 +55,7 @@ const loadEnv = () => {
 
 const loadSettings = async (base, rest) => {
   const [row = {}] = await rest(
-    'bot_settings?id=eq.1&select=owner_user_id,telegram_bot_token,telegram_owner_id,openrouter_api_key,openrouter_model'
+    'bot_settings?id=eq.1&select=owner_user_id,telegram_bot_token,telegram_owner_id,openrouter_api_key,openrouter_model,elevenlabs_api_key'
   )
   const config = {
     ...base,
@@ -61,6 +64,7 @@ const loadSettings = async (base, rest) => {
     ownerTelegramId: row.telegram_owner_id || base.fallback.ownerTelegramId || '',
     userId: row.owner_user_id || base.fallback.userId,
     openrouterKey: row.openrouter_api_key || base.fallback.openrouterKey,
+    elevenlabsKey: row.elevenlabs_api_key || base.fallback.elevenlabsKey,
     model: row.openrouter_model || base.fallback.model || DEFAULT_MODEL
   }
   const missing = [['token', 'Telegram-токен'], ['openrouterKey', 'ключ OpenRouter'], ['userId', 'владелец']]
@@ -87,13 +91,12 @@ const createTelegram = token => async (method, body = {}) => {
   return data.result
 }
 
-// Telegram присылает фото уже сжатым (до 1280 px) — берём самый крупный вариант как есть
-const downloadPhoto = async (config, tg, photos) => {
-  const file = await tg('getFile', { file_id: photos.at(-1).file_id })
+const downloadFile = async (config, tg, fileId) => {
+  const file = await tg('getFile', { file_id: fileId })
   const res = await fetch(`https://api.telegram.org/file/bot${config.token}/${file.file_path}`, {
     signal: AbortSignal.timeout(60_000)
   })
-  if (!res.ok) throw new Error(`Не скачалось фото: ${res.status}`)
+  if (!res.ok) throw new Error(`Не скачался файл: ${res.status}`)
   return Buffer.from(await res.arrayBuffer())
 }
 
@@ -162,15 +165,35 @@ const createBot = config => {
 
     const chat = getChat(msg.chat.id)
     let content
+    // что бот услышал в голосовом — показываем в ответе
+    let heard = ''
     if (msg.photo) {
-      chat.photo = await downloadPhoto(config, tg, msg.photo)
+      // Telegram присылает фото уже сжатым (до 1280 px) — берём самый крупный вариант как есть
+      chat.photo = await downloadFile(config, tg, msg.photo.at(-1).file_id)
       content = photoContent(chat.photo, msg.caption)
+    } else if (msg.voice) {
+      if (!config.elevenlabsKey) {
+        await reply(msg, 'Голосовые не настроены: нужен ключ ElevenLabs в Админке → Telegram-бот')
+        return
+      }
+      if (msg.voice.duration > VOICE_MAX_SECONDS) {
+        await reply(msg, 'Голосовое длиннее 2 минут — запиши покороче')
+        return
+      }
+      await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
+      heard = await transcribe(config, await downloadFile(config, tg, msg.voice.file_id))
+      if (!heard) {
+        await reply(msg, 'Не расслышал, повтори')
+        return
+      }
+      content = heard
     } else if (msg.text) {
       content = msg.text
     } else {
-      await reply(msg, 'Понимаю текст и фото чека')
+      await reply(msg, 'Понимаю текст, голосовые и фото чека')
       return
     }
+    const heardLine = heard ? `🎙 «${heard}»\n\n` : ''
 
     chat.history.push({ role: 'user', content })
     chat.messageIds.push(msg.message_id)
@@ -186,7 +209,7 @@ const createBot = config => {
       chat.history = chat.history.slice(-HISTORY_LIMIT)
       // диалог для модели должен начинаться с реплики пользователя
       while (chat.history[0]?.role === 'assistant') chat.history.shift()
-      const sent = await reply(msg, answer)
+      const sent = await reply(msg, heardLine + answer)
       chat.messageIds.push(sent.message_id)
       return
     }
@@ -209,7 +232,7 @@ const createBot = config => {
     chats.delete(msg.chat.id)
     log(`entry ${entry.id}: ${toolCalls.map(c => c.name).join(', ')} → ${rows.length} строк, $${usage?.cost ?? '?'}`)
 
-    await reply(msg, lines.join('\n'), rows.length > 0
+    await reply(msg, heardLine + lines.join('\n'), rows.length > 0
       ? { reply_markup: { inline_keyboard: [[{ text: '↩️ Отменить', callback_data: `undo:${entry.id}` }]] } }
       : {})
   }

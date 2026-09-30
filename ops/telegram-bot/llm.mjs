@@ -1,8 +1,9 @@
 // Разбор сообщений через OpenRouter: нейронка выбирает инструменты (tool calls) и заполняет поля,
-// запись в базу делают обработчики из actions.mjs.
+// запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает ElevenLabs.
 import { BODY_PARAM_FIELDS, CAR_EXPENSE_CATEGORIES, FUEL_TYPES } from './actions.mjs'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text'
 
 const fn = (name, description, properties, required) => ({
   type: 'function',
@@ -136,4 +137,25 @@ export const callLlm = async (config, ctx, history) => {
     // стоимость запроса в $ и токены — для лога
     usage: data.usage || null
   }
+}
+
+// Голосовое (OGG/Opus из Telegram) → текст через ElevenLabs Scribe. ElevenLabs блокирует РФ,
+// поэтому запрос идёт через tinyproxy на nl3 (HTTPS_PROXY в docker-compose.yml)
+export const transcribe = async (config, audio) => {
+  const form = new FormData()
+  form.append('file', new Blob([audio], { type: 'audio/ogg' }), 'voice.ogg')
+  form.append('model_id', 'scribe_v2')
+  form.append('language_code', 'ru')
+  form.append('tag_audio_events', 'false')
+  const res = await fetch(ELEVENLABS_STT_URL, {
+    method: 'POST',
+    headers: { 'xi-api-key': config.elevenlabsKey },
+    body: form,
+    signal: AbortSignal.timeout(60_000)
+  })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(`ElevenLabs ${res.status}: ${data?.detail?.message || 'ошибка распознавания'}`)
+  }
+  return (data?.text || '').trim()
 }
