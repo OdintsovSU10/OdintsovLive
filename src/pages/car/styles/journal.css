@@ -1,0 +1,236 @@
+/* Машина: «Журнал» — единая лента ТО, заправок и допов */
+
+.car-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.car-journal-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.car-journal-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.car-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.car-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--primary);
+  background: var(--primary-light);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.car-journal-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.car-journal-summary strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.car-fuel-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.car-fuel-strip > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+}
+
+.car-fuel-strip span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.car-fuel-strip strong {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Группа месяца: заголовок прилипает под верхней панелью телефона */
+
+.car-journal-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.car-journal-month {
+  position: sticky;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  z-index: 5;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 4px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.car-journal-month-total {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.car-rows {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.car-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.car-row:hover {
+  background: var(--surface-hover);
+}
+
+.car-row:active {
+  transform: scale(0.98);
+}
+
+.car-row:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.car-row-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--kind-color) 15%, transparent);
+  color: var(--kind-color);
+}
+
+.car-row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.car-row-title {
+  overflow: hidden;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.car-row-details {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-row-amount {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.car-row-skeleton {
+  height: 60px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  animation: car-pulse 1.2s ease-in-out infinite;
+}
+
+@media (min-width: 431px) {
+  .car-journal-month {
+    top: 0;
+  }
+
+  .car-fuel-strip strong {
+    font-size: 1rem;
+  }
+}
+
+/* Десктоп: строка — как строка таблицы (дата/пробег | детали | сумма) */
+@media (min-width: 1024px) {
+  .car-row-main {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .car-row-title {
+    flex: 0 0 220px;
+  }
+
+  .car-row-meta {
+    flex: 1;
+    flex-wrap: nowrap;
+    gap: 16px;
+  }
+
+  .car-row-date {
+    flex: 0 0 170px;
+  }
+}

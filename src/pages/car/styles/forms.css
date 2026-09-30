@@ -1,0 +1,128 @@
+/* Машина: формы внутри листов (рендерятся в body через portal — без привязки к .car-page) */
+
+.car-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.car-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.car-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.car-field > label,
+.car-field-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.car-field input,
+.car-field select,
+.car-field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 16px;
+  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+/* iOS: иначе поле даты игнорирует высоту и выравнивание */
+.car-field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  text-align: left;
+}
+
+.car-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.car-field input:focus,
+.car-field select:focus,
+.car-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.car-field.invalid input,
+.car-field.invalid select {
+  border-color: var(--danger);
+}
+
+.car-field-error {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+.car-field-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.car-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.car-chip {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  transition: background 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+}
+
+.car-chip:hover {
+  color: var(--text-primary);
+}
+
+.car-chip.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.car-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.car-form-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.car-form-total strong {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}

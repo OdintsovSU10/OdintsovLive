@@ -1,0 +1,286 @@
+/* Машина: «Обзор» — KPI, графики, структура расходов, следующее ТО */
+
+.car-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.car-overview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* KPI */
+
+.car-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.car-kpi {
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--kpi-color, var(--primary));
+  background: var(--surface);
+}
+
+.car-kpi-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.car-kpi-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.car-kpi-hint {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.car-kpi-hint.up { color: var(--chart-negative); }
+.car-kpi-hint.down { color: var(--chart-positive); }
+
+/* Сетка графиков */
+
+.car-overview-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Телефон: колонки «растворяются», порядок — от графика расходов к деталям */
+.car-overview-main,
+.car-overview-side {
+  display: contents;
+}
+
+.car-cost-chart { order: 1; }
+.car-breakdown { order: 2; }
+.car-service { order: 3; }
+.car-fuel-chart { order: 4; }
+.car-mileage-chart { order: 5; }
+
+.car-chart-box {
+  width: 100%;
+  height: 240px;
+}
+
+.car-chart-box.small {
+  height: 180px;
+}
+
+.car-chart-box.clickable .recharts-surface {
+  cursor: pointer;
+}
+
+.car-cost-chart {
+  gap: 8px;
+}
+
+/* Куда уходят деньги */
+
+.car-breakdown.selected {
+  border-color: var(--primary);
+}
+
+.car-breakdown-period {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.car-breakdown-period strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.car-share-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -8px;
+}
+
+.car-share-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.15s ease-out;
+}
+
+.car-share-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.car-share-row:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.car-share-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.car-share-head strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.car-share-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.car-share-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.car-share-track {
+  flex: 1;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+}
+
+.car-share-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  transform-origin: left;
+  transition: transform 0.25s ease-out;
+}
+
+.car-share-meta {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 88px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.car-delta {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.car-delta.up { color: var(--chart-negative); }
+.car-delta.down { color: var(--chart-positive); }
+.car-delta.flat { color: var(--text-muted); }
+
+/* Следующее ТО */
+
+.car-service-left {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.car-service.warning .car-service-left { color: var(--chart-warning); }
+.car-service.danger .car-service-left { color: var(--danger); }
+
+.car-service .car-btn {
+  align-self: flex-start;
+}
+
+.car-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+}
+
+.car-progress-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--chart-4);
+  transform-origin: left;
+  transition: transform 0.25s ease-out;
+}
+
+.car-service.warning .car-progress-fill { background: var(--chart-warning); }
+.car-service.danger .car-progress-fill { background: var(--danger); }
+
+@media (min-width: 431px) {
+  .car-chart-box {
+    height: 260px;
+  }
+}
+
+@media (min-width: 768px) {
+  .car-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .car-kpi-value {
+    font-size: 1.35rem;
+  }
+
+  .car-chart-box {
+    height: 300px;
+  }
+
+  .car-chart-box.small {
+    height: 220px;
+  }
+}
+
+/* Десктоп: две независимые колонки без пустот под короткими карточками */
+@media (min-width: 1024px) {
+  .car-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .car-overview-main,
+  .car-overview-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .car-cost-chart .car-chart-box {
+    height: 320px;
+  }
+}

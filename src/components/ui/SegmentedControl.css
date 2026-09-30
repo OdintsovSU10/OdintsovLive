@@ -1,0 +1,66 @@
+.ui-segmented {
+  display: inline-flex;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.ui-segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.ui-segmented.stretch {
+  display: flex;
+  width: 100%;
+}
+
+.ui-segmented button {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.ui-segmented.sm button {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+
+.ui-segmented button:hover {
+  color: var(--text-primary);
+}
+
+.ui-segmented button.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-segmented button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-segmented button {
+    transition: none;
+  }
+}

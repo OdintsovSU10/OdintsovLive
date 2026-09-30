@@ -51,10 +51,47 @@ export interface PartType {
   notes: string | null
 }
 
-export type Tab = 'summary' | 'maintenance' | 'fuel' | 'expenses' | 'info'
-export type ModalType = 'car' | 'maintenance' | 'fuel' | 'expense' | null
-export type SortBy = 'date' | 'cost'
-export type ChartTab = 'expenses' | 'mileage' | 'fuel'
+export type CarTab = 'overview' | 'journal' | 'data'
+export type RecordKind = 'maintenance' | 'fuel' | 'expense'
+export type PeriodPreset = '3m' | '6m' | 'year' | 'all'
+export type SortField = 'date' | 'amount'
+export type SortDir = 'desc' | 'asc'
+
+export type CarRecord =
+  | { kind: 'maintenance'; row: MaintenanceType }
+  | { kind: 'fuel'; row: FuelType }
+  | { kind: 'expense'; row: ExpenseType }
+
+export type RecordPayload =
+  | { kind: 'maintenance'; data: Omit<MaintenanceType, 'id' | 'car_id'> }
+  | { kind: 'fuel'; data: Omit<FuelType, 'id' | 'car_id'> }
+  | { kind: 'expense'; data: Omit<ExpenseType, 'id' | 'car_id'> }
+
+// Включительный диапазон дат в формате YYYY-MM-DD
+export interface DateRange {
+  from: string
+  to: string
+}
+
+// Единая запись журнала: ТО, заправка или доп. расход
+export interface JournalEntry {
+  id: string
+  kind: RecordKind
+  date: string
+  mileage: number | null
+  title: string
+  details: string | null
+  amount: number
+  groupKey: string
+  record: CarRecord
+}
+
+export interface JournalFilter {
+  kind: RecordKind | 'all'
+  range: (DateRange & { label: string }) | null
+  group: { key: string; label: string } | null
+  query: string
+}
 
 export interface CarFormData {
   brand: string
@@ -66,28 +103,6 @@ export interface CarFormData {
   current_mileage: string
   purchase_price: string
   vin: string
-}
-
-export interface MaintenanceFormData {
-  date: string
-  mileage: string
-  type: string
-  cost: string
-}
-
-export interface FuelFormData {
-  date: string
-  mileage: string
-  liters: string
-  price_per_liter: string
-  fuel_type: string
-}
-
-export interface ExpenseFormData {
-  date: string
-  category: string
-  description: string
-  cost: string
 }
 
 export interface PartFormData {

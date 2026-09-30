@@ -1,0 +1,92 @@
+/* Общие элементы графиков (Recharts): тултип, легенда-переключатель */
+
+.ui-chart-tooltip {
+  min-width: 140px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.ui-chart-tooltip-label {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.ui-chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-chart-tooltip-row strong {
+  margin-left: auto;
+  padding-left: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ui-chart-tooltip-total {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.ui-chart-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ui-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+
+.ui-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s ease-out, background 0.15s ease-out;
+}
+
+.ui-chart-legend-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.ui-chart-legend-item.off {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.ui-chart-legend-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* Рамка фокуса Recharts после клика мышью не нужна, с клавиатуры — остаётся */
+.recharts-wrapper :focus:not(:focus-visible),
+.recharts-surface:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-chart-legend-item {
+    transition: none;
+  }
+}

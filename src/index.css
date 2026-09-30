@@ -47,6 +47,25 @@
   --font-headline: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
+
+  /* Палитра графиков — общая для страниц */
+  --chart-1: #C4A77D;
+  --chart-2: #5B7DB1;
+  --chart-3: #D08C60;
+  --chart-4: #6B9E78;
+  --chart-5: #9B6FB0;
+  --chart-6: #C9A23A;
+  --chart-7: #4F9DA6;
+  --chart-8: #B5656F;
+  --chart-positive: #2F855A;
+  --chart-negative: #C0504D;
+  --chart-warning: #B7791F;
+
+  /* Текст на кнопках с фоном --primary */
+  --on-primary: #1A1A1A;
+
+  /* Затемнение под модальными листами */
+  --overlay: rgba(0, 0, 0, 0.45);
 }
 
 [data-theme="dark"] {
@@ -74,6 +93,17 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --chart-2: #7EA0D6;
+  --chart-3: #E3A176;
+  --chart-4: #86BE94;
+  --chart-5: #B690CC;
+  --chart-6: #E3BD5A;
+  --chart-7: #6FBBC3;
+  --chart-8: #D1838C;
+  --chart-positive: #5BC48A;
+  --chart-negative: #F07B72;
+  --chart-warning: #F6AD55;
 }
 
 :root[data-route-theme="tender"] {

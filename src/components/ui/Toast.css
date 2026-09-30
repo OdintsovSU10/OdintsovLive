@@ -1,0 +1,91 @@
+/* Тост снизу по центру, над FAB. Ниже --z-topbar, выше листов. */
+
+.ui-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  min-height: 48px;
+  padding: 6px 6px 6px 16px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transform: translateX(-50%);
+  animation: ui-toast-in 0.2s ease-out both;
+}
+
+.ui-toast.error {
+  border-color: var(--danger);
+}
+
+.ui-toast-message {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.ui-toast-action {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-toast-action:hover {
+  background: var(--bg-tertiary);
+}
+
+.ui-toast-timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--primary);
+  transform-origin: left;
+  animation: ui-toast-timer linear both;
+}
+
+.ui-toast.error .ui-toast-timer {
+  background: var(--danger);
+}
+
+@keyframes ui-toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes ui-toast-timer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (min-width: 768px) {
+  .ui-toast {
+    bottom: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-toast {
+    animation: none;
+  }
+
+  .ui-toast-timer {
+    display: none;
+  }
+}

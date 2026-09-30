@@ -1,0 +1,170 @@
+/* Лист снизу (телефон) / панель справа (≥768px). Ниже --z-topbar. */
+
+.ui-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ui-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+  animation: ui-sheet-fade-in 0.2s ease-out both;
+}
+
+.ui-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  outline: none;
+  animation: ui-sheet-slide-up 0.22s ease-out both;
+}
+
+.ui-sheet-handle {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.ui-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 20px;
+}
+
+.ui-sheet-header h2 {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.ui-sheet-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-secondary);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.ui-sheet-close:hover {
+  background: var(--bg-tertiary);
+}
+
+.ui-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 20px 16px;
+}
+
+.ui-sheet-footer {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ui-sheet-root.closing .ui-sheet {
+  animation: ui-sheet-slide-down 0.18s ease-in both;
+}
+
+.ui-sheet-root.closing .ui-sheet-backdrop {
+  animation: ui-sheet-fade-out 0.18s ease-in both;
+}
+
+@keyframes ui-sheet-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ui-sheet-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes ui-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes ui-sheet-slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes ui-sheet-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes ui-sheet-slide-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@media (min-width: 768px) {
+  .ui-sheet-root {
+    justify-content: flex-end;
+    align-items: stretch;
+  }
+
+  .ui-sheet {
+    width: 420px;
+    max-width: 100%;
+    max-height: none;
+    height: 100dvh;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+    border-bottom: 1px solid var(--border);
+    border-right: none;
+    animation-name: ui-sheet-slide-in-right;
+  }
+
+  .ui-sheet-handle {
+    display: none;
+  }
+
+  .ui-sheet-header {
+    padding-top: 16px;
+  }
+
+  .ui-sheet-root.closing .ui-sheet {
+    animation-name: ui-sheet-slide-out-right;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-sheet,
+  .ui-sheet-backdrop,
+  .ui-sheet-root.closing .ui-sheet,
+  .ui-sheet-root.closing .ui-sheet-backdrop {
+    animation: none;
+  }
+}

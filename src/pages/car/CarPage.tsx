@@ -1,338 +1,233 @@
 import { useState } from 'react'
-import { Plus, X, Car, ChevronDown, Fuel, Wrench, Receipt, BarChart3, Edit2, Trash2, Info } from 'lucide-react'
-import { MONTHS } from '../../lib/constants'
+import type { ReactNode } from 'react'
+import { BarChart3, Car, ChevronDown, Info, ListOrdered, Plus } from 'lucide-react'
+import { Toast } from '../../components/ui/Toast'
+import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { useToast } from '../../hooks/useToast'
 import { calcAge } from '../../lib/dateUtils'
-import { useCarData } from './hooks/useCarData'
-import { SummaryTab, MaintenanceTab, FuelTab, ExpensesTab, InfoTab } from './components/tabs'
+import { CarSheets } from './components/sheets/CarSheets'
+import type { SheetState } from './components/sheets/CarSheets'
+import { DataTab } from './components/data/DataTab'
+import { JournalTab } from './components/journal/JournalTab'
+import { OverviewTab } from './components/overview/OverviewTab'
+import { EMPTY_JOURNAL_FILTER, UNDO_DURATION_MS } from './constants'
+import { useCarRecords } from './hooks/useCarRecords'
+import { useCarStats } from './hooks/useCarStats'
+import { useCars } from './hooks/useCars'
+import { useJournalEntries } from './hooks/useJournalEntries'
 import type {
-  Tab, ChartTab, SortBy, CarType,
-  MaintenanceType, FuelType, ExpenseType, PartType,
-  CarFormData, MaintenanceFormData, FuelFormData, ExpenseFormData, PartFormData
+  CarRecord, CarTab, CarType, JournalFilter, PartType, PeriodPreset, RecordKind, RecordPayload
 } from './types'
-import '../CarPage.css'
+import { consumptionForFill } from './utils/consumption'
+import { formatL100 } from './utils/format'
+import './styles/car.css'
+import './styles/overview.css'
+import './styles/journal.css'
+import './styles/forms.css'
+import './styles/data.css'
 
-const initialCarForm: CarFormData = {
-  brand: '', model: '', manufacture_month: '', manufacture_year: '',
-  purchase_date: '', purchase_mileage: '', current_mileage: '', purchase_price: '', vin: ''
-}
-const initialMaintenanceForm: MaintenanceFormData = { date: '', mileage: '', type: '', cost: '' }
-const initialFuelForm: FuelFormData = { date: '', mileage: '', liters: '', price_per_liter: '', fuel_type: 'АИ-95' }
-const initialExpenseForm: ExpenseFormData = { date: '', category: '', description: '', cost: '' }
-const initialPartForm: PartFormData = { category: '', name: '', part_number: '', notes: '' }
+const TAB_OPTIONS: { value: CarTab; label: string; icon: ReactNode }[] = [
+  { value: 'overview', label: 'Обзор', icon: <BarChart3 size={18} /> },
+  { value: 'journal', label: 'Журнал', icon: <ListOrdered size={18} /> },
+  { value: 'data', label: 'Данные', icon: <Info size={18} /> }
+]
 
 export default function CarPage() {
-  const {
-    cars, selectedCar, setSelectedCar, loading,
-    maintenance, fuel, expenses, parts,
-    saveCar, deleteCar, saveMaintenance, deleteMaintenance,
-    saveFuel, deleteFuel, saveExpense, deleteExpense, savePart, deletePart, importParts
-  } = useCarData()
+  const { cars, selectedCar: car, selectCar, loading, loadCars, saveCar, deleteCar } = useCars()
+  const records = useCarRecords(car, loadCars)
+  const { entries, intervals } = useJournalEntries(records.maintenance, records.fuel, records.expenses)
 
-  const [showCarSelect, setShowCarSelect] = useState(false)
-  const [activeTab, setActiveTab] = useState<Tab>('summary')
-  const [showCarModal, setShowCarModal] = useState(false)
-  const [editingCar, setEditingCar] = useState<CarType | null>(null)
-  const [formData, setFormData] = useState<CarFormData>(initialCarForm)
+  const [tab, setTab] = useState<CarTab>('overview')
+  const [period, setPeriod] = useState<PeriodPreset>('6m')
+  const [filter, setFilter] = useState<JournalFilter>(EMPTY_JOURNAL_FILTER)
+  const [sheet, setSheet] = useState<SheetState>(null)
+  const [saving, setSaving] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
 
-  const [editingMaintenance, setEditingMaintenance] = useState<MaintenanceType | null>(null)
-  const [editingFuel, setEditingFuel] = useState<FuelType | null>(null)
-  const [editingExpense, setEditingExpense] = useState<ExpenseType | null>(null)
-  const [editingPart, setEditingPart] = useState<PartType | null>(null)
+  const stats = useCarStats({
+    car, entries, maintenance: records.maintenance, fuel: records.fuel, intervals, period
+  })
 
-  const [maintenanceForm, setMaintenanceForm] = useState<MaintenanceFormData>(initialMaintenanceForm)
-  const [fuelForm, setFuelForm] = useState<FuelFormData>(initialFuelForm)
-  const [expenseForm, setExpenseForm] = useState<ExpenseFormData>(initialExpenseForm)
-  const [partForm, setPartForm] = useState<PartFormData>(initialPartForm)
+  const failToast = (message = 'Не удалось сохранить') => showToast({ message, tone: 'error' })
 
-  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false)
-  const [showFuelForm, setShowFuelForm] = useState(false)
-  const [showExpenseForm, setShowExpenseForm] = useState(false)
-  const [showPartForm, setShowPartForm] = useState(false)
-
-  const [sortBy, setSortBy] = useState<SortBy>('date')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [chartTab, setChartTab] = useState<ChartTab>('expenses')
-
-  const openCarModal = () => {
-    setFormData(initialCarForm)
-    setEditingCar(null)
-    setShowCarModal(true)
+  // Сохранение с блокировкой кнопки: двойной тап не создаст дубль
+  const runSaving = async (action: () => Promise<boolean>): Promise<boolean> => {
+    setSaving(true)
+    const ok = await action()
+    setSaving(false)
+    return ok
   }
 
-  const openEditCarModal = (car: CarType) => {
-    setEditingCar(car)
-    setFormData({
-      brand: car.brand, model: car.model,
-      manufacture_month: car.manufacture_month?.toString() || '',
-      manufacture_year: car.manufacture_year.toString(),
-      purchase_date: car.purchase_date,
-      purchase_mileage: car.purchase_mileage.toString(),
-      current_mileage: car.current_mileage.toString(),
-      purchase_price: car.purchase_price?.toString() || '',
-      vin: car.vin || ''
+  const openAdd = (kind?: RecordKind) => setSheet(kind ? { type: 'record', kind, record: null } : { type: 'add' })
+
+  const openJournal = (next: Pick<JournalFilter, 'range' | 'group'>) => {
+    setFilter({ ...EMPTY_JOURNAL_FILTER, ...next })
+    setTab('journal')
+    window.scrollTo({ top: 0 })
+  }
+
+  const handleSaveRecord = async (payload: RecordPayload, editingId?: string) => {
+    const l100 = payload.kind === 'fuel'
+      ? consumptionForFill(records.fuel, payload.data.mileage, payload.data.liters, editingId)
+      : null
+    const ok = await runSaving(() => records.saveRecord(payload, editingId))
+    if (!ok) return failToast()
+    setSheet(null)
+    showToast({ message: l100 ? `Сохранено · расход ${formatL100(l100)}` : 'Сохранено' })
+  }
+
+  // Удаление сразу, «Вернуть» вставляет ту же строку обратно
+  const handleDeleteRecord = async (record: CarRecord) => {
+    setSheet(null)
+    const ok = await records.deleteRecord(record)
+    if (!ok) return failToast('Не удалось удалить')
+    showToast({
+      message: 'Запись удалена',
+      actionLabel: 'Вернуть',
+      duration: UNDO_DURATION_MS,
+      onAction: () => {
+        void records.restoreRecord(record).then(restored => { if (!restored) failToast('Не удалось вернуть') })
+      }
     })
-    setShowCarModal(true)
   }
 
-  const closeCarModal = () => {
-    setShowCarModal(false)
-    setEditingCar(null)
-    setFormData(initialCarForm)
+  const handleSaveCar = async (data: Partial<CarType>, editingId?: string) => {
+    const ok = await runSaving(() => saveCar(data, editingId))
+    if (!ok) return failToast()
+    setSheet(null)
   }
 
-  const handleSaveCar = async () => {
-    if (!formData.brand || !formData.model || !formData.manufacture_year || !formData.purchase_date) return
-    await saveCar({
-      brand: formData.brand.trim(), model: formData.model.trim(),
-      manufacture_month: formData.manufacture_month ? parseInt(formData.manufacture_month) : null,
-      manufacture_year: parseInt(formData.manufacture_year),
-      purchase_date: formData.purchase_date,
-      purchase_mileage: parseInt(formData.purchase_mileage) || 0,
-      current_mileage: parseInt(formData.current_mileage) || parseInt(formData.purchase_mileage) || 0,
-      purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
-      vin: formData.vin.trim() || null
-    }, editingCar)
-    closeCarModal()
+  const handleDeleteCar = async (target: CarType) => {
+    const ok = await runSaving(() => deleteCar(target.id))
+    if (!ok) return failToast('Не удалось удалить авто')
+    setSheet(null)
+    setTab('overview')
+    showToast({ message: `${target.brand} ${target.model} удалена` })
   }
 
-  const openMaintenanceForm = (item?: MaintenanceType) => {
-    if (item) {
-      setEditingMaintenance(item)
-      setMaintenanceForm({ date: item.date, mileage: item.mileage?.toString() || '', type: item.type, cost: item.cost?.toString() || '' })
-    } else {
-      setMaintenanceForm(initialMaintenanceForm)
-    }
-    setShowMaintenanceForm(true)
+  const handleSavePart = async (data: Omit<PartType, 'id' | 'car_id'>, editingId?: string) => {
+    const ok = await runSaving(() => records.savePart(data, editingId))
+    if (!ok) return failToast()
+    setSheet(null)
   }
 
-  const resetMaintenanceForm = () => { setMaintenanceForm(initialMaintenanceForm); setEditingMaintenance(null); setShowMaintenanceForm(false) }
-
-  const handleSaveMaintenance = async () => {
-    if (!maintenanceForm.date || !maintenanceForm.type) return
-    await saveMaintenance({
-      date: maintenanceForm.date, type: maintenanceForm.type,
-      mileage: maintenanceForm.mileage ? parseInt(maintenanceForm.mileage) : null,
-      cost: maintenanceForm.cost ? parseFloat(maintenanceForm.cost) : null
-    }, editingMaintenance?.id)
-    resetMaintenanceForm()
+  const handleDeletePart = async (part: PartType) => {
+    const ok = await records.deletePart(part)
+    if (!ok) return failToast('Не удалось удалить')
+    showToast({
+      message: `${part.name} удалена`,
+      actionLabel: 'Вернуть',
+      duration: UNDO_DURATION_MS,
+      onAction: () => { void records.restorePart(part) }
+    })
   }
 
-  const openFuelForm = (item?: FuelType) => {
-    if (item) {
-      setEditingFuel(item)
-      setFuelForm({ date: item.date, mileage: item.mileage?.toString() || '', liters: item.liters?.toString() || '', price_per_liter: item.price_per_liter?.toString() || '', fuel_type: item.fuel_type })
-    } else {
-      setFuelForm(initialFuelForm)
-    }
-    setShowFuelForm(true)
+  const handleImportParts = async (rows: Omit<PartType, 'id' | 'car_id'>[]) => {
+    if (rows.length === 0) return failToast('В файле нет строк: категория, название, артикул')
+    const ok = await records.importParts(rows)
+    if (!ok) return failToast('Не удалось импортировать')
+    showToast({ message: `Импортировано: ${rows.length}` })
   }
-
-  const resetFuelForm = () => { setFuelForm(initialFuelForm); setEditingFuel(null); setShowFuelForm(false) }
-
-  const handleSaveFuel = async () => {
-    if (!fuelForm.date) return
-    const liters = fuelForm.liters ? parseFloat(fuelForm.liters) : null
-    const pricePerLiter = fuelForm.price_per_liter ? parseFloat(fuelForm.price_per_liter) : null
-    await saveFuel({
-      date: fuelForm.date, fuel_type: fuelForm.fuel_type,
-      mileage: fuelForm.mileage ? parseInt(fuelForm.mileage) : null,
-      liters, price_per_liter: pricePerLiter,
-      total_cost: liters && pricePerLiter ? liters * pricePerLiter : null
-    }, editingFuel?.id)
-    resetFuelForm()
-  }
-
-  const openExpenseForm = (item?: ExpenseType) => {
-    if (item) {
-      setEditingExpense(item)
-      setExpenseForm({ date: item.date, category: item.category, description: item.description || '', cost: item.cost.toString() })
-    } else {
-      setExpenseForm(initialExpenseForm)
-    }
-    setShowExpenseForm(true)
-  }
-
-  const resetExpenseForm = () => { setExpenseForm(initialExpenseForm); setEditingExpense(null); setShowExpenseForm(false) }
-
-  const handleSaveExpense = async () => {
-    if (!expenseForm.date || !expenseForm.category || !expenseForm.cost) return
-    await saveExpense({
-      date: expenseForm.date, category: expenseForm.category,
-      description: expenseForm.description || null, cost: parseFloat(expenseForm.cost)
-    }, editingExpense?.id)
-    resetExpenseForm()
-  }
-
-  const openPartForm = (item?: PartType) => {
-    if (item) {
-      setEditingPart(item)
-      setPartForm({ category: item.category, name: item.name, part_number: item.part_number, notes: item.notes || '' })
-    } else {
-      setPartForm(initialPartForm)
-    }
-    setShowPartForm(true)
-  }
-
-  const resetPartForm = () => { setPartForm(initialPartForm); setEditingPart(null); setShowPartForm(false) }
-
-  const handleSavePart = async () => {
-    if (!partForm.category || !partForm.name || !partForm.part_number) return
-    await savePart({ category: partForm.category, name: partForm.name, part_number: partForm.part_number, notes: partForm.notes || null }, editingPart?.id)
-    resetPartForm()
-  }
-
-  if (loading) return <div className="car-page"><div className="loading">Загрузка...</div></div>
 
   return (
     <div className="car-page">
-      <div className="car-header">
-        <h1>Машина</h1>
-        <button className="add-car-btn" onClick={openCarModal}><Plus size={20} /><span>Добавить авто</span></button>
-      </div>
-
-      {cars.length === 0 ? (
-        <div className="no-cars">
-          <Car size={48} strokeWidth={1} />
-          <p>Нет добавленных автомобилей</p>
-          <button className="add-first-car-btn" onClick={openCarModal}>Добавить автомобиль</button>
-        </div>
-      ) : (
-        <>
-          <div className="car-selector" onClick={() => setShowCarSelect(!showCarSelect)}>
-            <div className="selected-car">
-              <Car size={20} />
-              <span>{selectedCar?.brand} {selectedCar?.model} <span className="car-age-small">({selectedCar && calcAge(selectedCar.manufacture_year, selectedCar.manufacture_month)})</span></span>
-              <ChevronDown size={18} className={showCarSelect ? 'rotated' : ''} />
-            </div>
-            {showCarSelect && (
-              <div className="car-dropdown">
-                {cars.map(car => (
-                  <div key={car.id} className={`car-option ${selectedCar?.id === car.id ? 'active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setSelectedCar(car); setShowCarSelect(false) }}>
-                    <span>{car.brand} {car.model} <span className="car-age-small">({calcAge(car.manufacture_year, car.manufacture_month)})</span></span>
-                    <div className="car-option-actions">
-                      <button onClick={(e) => { e.stopPropagation(); openEditCarModal(car) }}><Edit2 size={14} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); deleteCar(car.id) }}><Trash2 size={14} /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <header className="car-header">
+        <div className="car-header-top">
+          <div className="car-title">
+            <h1>Машина</h1>
+            {car && (
+              <button type="button" className="car-switch" onClick={() => setSheet({ type: 'cars' })} aria-haspopup="dialog">
+                <Car size={18} aria-hidden="true" />
+                <span className="car-switch-name">{car.brand} {car.model}</span>
+                <span className="car-switch-age">{calcAge(car.manufacture_year, car.manufacture_month)}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
             )}
           </div>
-
-          {selectedCar && (
-            <>
-              <div className="car-tabs">
-                <button className={`car-tab ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>
-                  <BarChart3 size={18} /><span>Сводная</span>
-                </button>
-                <button className={`car-tab ${activeTab === 'maintenance' ? 'active' : ''}`} onClick={() => setActiveTab('maintenance')}>
-                  <Wrench size={18} /><span>ТО</span>
-                </button>
-                <button className={`car-tab ${activeTab === 'fuel' ? 'active' : ''}`} onClick={() => setActiveTab('fuel')}>
-                  <Fuel size={18} /><span>Бензин</span>
-                </button>
-                <button className={`car-tab ${activeTab === 'expenses' ? 'active' : ''}`} onClick={() => setActiveTab('expenses')}>
-                  <Receipt size={18} /><span>Допы</span>
-                </button>
-                <button className={`car-tab ${activeTab === 'info' ? 'active' : ''}`} onClick={() => setActiveTab('info')}>
-                  <Info size={18} /><span>Инфо</span>
-                </button>
-              </div>
-
-              <div className="tab-content">
-                {activeTab === 'summary' && (
-                  <SummaryTab selectedCar={selectedCar} maintenance={maintenance} fuel={fuel} expenses={expenses} chartTab={chartTab} setChartTab={setChartTab} />
-                )}
-                {activeTab === 'maintenance' && (
-                  <MaintenanceTab maintenance={maintenance} searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortBy={sortBy} setSortBy={setSortBy}
-                    showForm={showMaintenanceForm} form={maintenanceForm} setForm={setMaintenanceForm} editing={editingMaintenance}
-                    onOpenForm={openMaintenanceForm} onResetForm={resetMaintenanceForm} onSave={handleSaveMaintenance} onDelete={deleteMaintenance} />
-                )}
-                {activeTab === 'fuel' && (
-                  <FuelTab selectedCar={selectedCar} fuel={fuel} maintenance={[]} expenses={[]} searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortBy={sortBy} setSortBy={setSortBy}
-                    showForm={showFuelForm} form={fuelForm} setForm={setFuelForm} editing={editingFuel}
-                    onOpenForm={openFuelForm} onResetForm={resetFuelForm} onSave={handleSaveFuel} onDelete={deleteFuel} />
-                )}
-                {activeTab === 'expenses' && (
-                  <ExpensesTab expenses={expenses} searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortBy={sortBy} setSortBy={setSortBy}
-                    showForm={showExpenseForm} form={expenseForm} setForm={setExpenseForm} editing={editingExpense}
-                    onOpenForm={openExpenseForm} onResetForm={resetExpenseForm} onSave={handleSaveExpense} onDelete={deleteExpense} />
-                )}
-                {activeTab === 'info' && (
-                  <InfoTab parts={parts} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-                    showForm={showPartForm} form={partForm} setForm={setPartForm} editing={editingPart}
-                    onOpenForm={openPartForm} onResetForm={resetPartForm} onSave={handleSavePart} onDelete={deletePart} onImport={importParts} />
-                )}
-              </div>
-            </>
+          {car && (
+            <button type="button" className="car-btn primary car-add-desktop" onClick={() => openAdd()}>
+              <Plus size={18} />
+              <span>Запись</span>
+            </button>
           )}
-        </>
+        </div>
+        {car && <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} ariaLabel="Разделы" stretch />}
+      </header>
+
+      {loading ? (
+        <div className="car-skeleton" aria-busy="true" />
+      ) : !car ? (
+        <div className="car-empty">
+          <Car size={48} strokeWidth={1} />
+          <p>Добавьте автомобиль — и ведите заправки, ТО и расходы в одном месте</p>
+          <button type="button" className="car-btn primary" onClick={() => setSheet({ type: 'car', car: null })}>
+            Добавить автомобиль
+          </button>
+        </div>
+      ) : (
+        <section key={tab} className="car-panel">
+          {tab === 'overview' && (records.loading || !stats ? (
+            <div className="car-skeleton" aria-busy="true" />
+          ) : (
+            <OverviewTab
+              stats={stats}
+              entries={entries}
+              period={period}
+              onPeriodChange={setPeriod}
+              onOpenJournal={openJournal}
+              onAdd={openAdd}
+            />
+          ))}
+          {tab === 'journal' && (
+            <JournalTab
+              entries={entries}
+              intervals={intervals}
+              loading={records.loading}
+              filter={filter}
+              onFilterChange={setFilter}
+              onOpen={entry => setSheet({ type: 'record', kind: entry.kind, record: entry.record })}
+              onAdd={() => openAdd()}
+            />
+          )}
+          {tab === 'data' && (
+            <DataTab
+              car={car}
+              entries={entries}
+              parts={records.parts}
+              onEditCar={() => setSheet({ type: 'car', car })}
+              onDeleteCar={() => setSheet({ type: 'delete-car', car })}
+              onAddPart={() => setSheet({ type: 'part', part: null })}
+              onEditPart={part => setSheet({ type: 'part', part })}
+              onDeletePart={part => void handleDeletePart(part)}
+              onImportParts={rows => void handleImportParts(rows)}
+            />
+          )}
+        </section>
       )}
 
-      {showCarModal && (
-        <div className="modal-overlay" onClick={closeCarModal}>
-          <div className="car-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{editingCar ? 'Редактировать авто' : 'Добавить авто'}</h2>
-              <button className="close-btn" onClick={closeCarModal}><X size={20} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Марка *</label>
-                  <input type="text" placeholder="Toyota" value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Модель *</label>
-                  <input type="text" placeholder="Camry" value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Месяц выпуска</label>
-                  <select value={formData.manufacture_month} onChange={e => setFormData({ ...formData, manufacture_month: e.target.value })}>
-                    <option value="">—</option>
-                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Год выпуска *</label>
-                  <input type="number" placeholder="2020" value={formData.manufacture_year} onChange={e => setFormData({ ...formData, manufacture_year: e.target.value })} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Дата покупки *</label>
-                <input type="date" value={formData.purchase_date} onChange={e => setFormData({ ...formData, purchase_date: e.target.value })} />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Пробег при покупке (км)</label>
-                  <input type="number" placeholder="50000" value={formData.purchase_mileage} onChange={e => setFormData({ ...formData, purchase_mileage: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Текущий пробег (км)</label>
-                  <input type="number" placeholder="55000" value={formData.current_mileage} onChange={e => setFormData({ ...formData, current_mileage: e.target.value })} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Стоимость покупки (₽)</label>
-                <input type="number" placeholder="1500000" value={formData.purchase_price} onChange={e => setFormData({ ...formData, purchase_price: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>VIN</label>
-                <input type="text" placeholder="JTDKN3DU5A0123456" value={formData.vin} onChange={e => setFormData({ ...formData, vin: e.target.value.toUpperCase() })} maxLength={17} />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={closeCarModal}>Отмена</button>
-              <button className="btn-save" onClick={handleSaveCar} disabled={!formData.brand || !formData.model || !formData.manufacture_year || !formData.purchase_date}>
-                {editingCar ? 'Сохранить' : 'Добавить'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {car && (
+        <button type="button" className="car-fab" onClick={() => openAdd()} aria-label="Добавить запись">
+          <Plus size={26} />
+        </button>
       )}
+
+      <CarSheets
+        sheet={sheet}
+        saving={saving}
+        cars={cars}
+        car={car}
+        fuel={records.fuel}
+        expenses={records.expenses}
+        onChange={setSheet}
+        onSelectCar={selectCar}
+        onSaveRecord={(payload, editingId) => void handleSaveRecord(payload, editingId)}
+        onDeleteRecord={record => void handleDeleteRecord(record)}
+        onSaveCar={(data, editingId) => void handleSaveCar(data, editingId)}
+        onDeleteCar={target => void handleDeleteCar(target)}
+        onSavePart={(data, editingId) => void handleSavePart(data, editingId)}
+      />
+
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   )
 }

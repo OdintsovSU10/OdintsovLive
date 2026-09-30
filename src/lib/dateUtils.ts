@@ -44,7 +44,8 @@ export function formatDate(date: string | Date, format: 'short' | 'full' = 'full
 
 export function calcAge(year: number, month?: number | null): string {
   const now = new Date()
-  const purchaseDate = new Date(year, month ?? 0)
+  // month в БД 1–12, Date ждёт 0–11
+  const purchaseDate = new Date(year, (month ?? 1) - 1)
   const diffMs = now.getTime() - purchaseDate.getTime()
   const diffYears = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25))
   const diffMonths = Math.floor((diffMs % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.44))

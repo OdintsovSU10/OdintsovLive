@@ -1,0 +1,186 @@
+/* Машина: «Данные» — карточка авто и каталог запчастей */
+
+.car-data {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.car-vin {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.car-info .car-card-header {
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.car-info-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.car-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.car-info-item dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.car-info-item dd {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Запчасти */
+
+.car-parts-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.car-parts-tools .car-search {
+  flex-basis: 100%;
+}
+
+.car-parts-tools .car-btn {
+  flex: 1 1 0;
+}
+
+.car-file-btn {
+  position: relative;
+  cursor: pointer;
+}
+
+.car-file-btn input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.car-file-btn:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.car-parts-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.car-parts-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.15s ease-out;
+}
+
+.car-parts-head:hover {
+  background: var(--bg-tertiary);
+}
+
+.car-parts-head svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform 0.15s ease-out;
+}
+
+.car-parts-head svg.open {
+  transform: rotate(180deg);
+}
+
+.car-parts-count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.car-parts-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 8px 26px;
+}
+
+.car-part {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.car-part-main {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.car-part-name {
+  font-weight: 500;
+}
+
+.car-part-number {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.car-part-notes {
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+@media (min-width: 768px) {
+  .car-info-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .car-parts-tools .car-search {
+    flex-basis: 200px;
+  }
+
+  .car-parts-tools .car-btn {
+    flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .car-data {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  }
+
+  .car-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
