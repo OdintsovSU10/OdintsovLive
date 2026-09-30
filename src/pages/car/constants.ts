@@ -59,7 +59,7 @@ export const PERIOD_OPTIONS: { value: PeriodPreset; label: string }[] = [
 ]
 
 // Плановое ТО: что наступит раньше
-export const SERVICE_INTERVAL_KM = 10000
+export const SERVICE_INTERVAL_KM = 5500
 export const SERVICE_INTERVAL_MONTHS = 12
 export const SERVICE_WARNING_SHARE = 0.9
 

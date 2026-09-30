@@ -11,7 +11,6 @@ import { CostByMonthChart } from '../charts/CostByMonthChart'
 import { FuelChart } from '../charts/FuelChart'
 import { MileageChart } from '../charts/MileageChart'
 import { KpiGrid } from './KpiGrid'
-import { ServiceDueCard } from './ServiceDueCard'
 
 interface Props {
   stats: CarStats
@@ -51,37 +50,31 @@ export function OverviewTab({ stats, entries, period, onPeriodChange, onOpenJour
         <span className="car-muted">{formatDate(ranges.current.from)} — {formatDate(ranges.current.to)}</span>
       </div>
 
-      <KpiGrid kpi={kpi} />
+      <KpiGrid kpi={kpi} serviceDue={serviceDue} onAddService={() => onAdd('maintenance')} />
 
-      {/* Десктоп — две колонки; на телефоне порядок карточек задаёт CSS order */}
+      {/* Десктоп — сетка 2×2 со строками одной высоты: расходы | структура, топливо | пробег */}
       <div className="car-overview-grid">
-        <div className="car-overview-main">
-          <CostByMonthChart buckets={buckets} selectedKey={selectedBucket?.key ?? null} onSelect={setSelectedKey} onAdd={() => onAdd()} />
-          <FuelChart consumption={consumption} avgL100={kpi.l100} prices={fuelPrices} onAdd={() => onAdd('fuel')} />
-        </div>
-
-        <div className="car-overview-side">
-          {selectedBucket && bucketBreakdown ? (
-            <CostBreakdown
-              items={bucketBreakdown}
-              periodLabel={selectedBucket.title}
-              comparisonLabel={selectedBucket.key.includes('Q') ? 'к прошлому кварталу' : 'к прошлому месяцу'}
-              onReset={() => setSelectedKey(null)}
-              onSelectItem={openGroup}
-              onOpenJournal={() => onOpenJournal({ range: journalRange, group: null })}
-            />
-          ) : (
-            <CostBreakdown
-              items={breakdown}
-              periodLabel={periodLabel}
-              comparisonLabel={ranges.previous ? 'к прошлому периоду' : null}
-              onSelectItem={openGroup}
-              onOpenJournal={() => onOpenJournal({ range: journalRange, group: null })}
-            />
-          )}
-          <ServiceDueCard due={serviceDue} onAdd={() => onAdd('maintenance')} />
-          <MileageChart points={mileage} kmPerMonth={kpi.kmPerMonth} />
-        </div>
+        <CostByMonthChart buckets={buckets} selectedKey={selectedBucket?.key ?? null} onSelect={setSelectedKey} onAdd={() => onAdd()} />
+        {selectedBucket && bucketBreakdown ? (
+          <CostBreakdown
+            items={bucketBreakdown}
+            periodLabel={selectedBucket.title}
+            comparisonLabel={selectedBucket.key.includes('Q') ? 'к прошлому кварталу' : 'к прошлому месяцу'}
+            onReset={() => setSelectedKey(null)}
+            onSelectItem={openGroup}
+            onOpenJournal={() => onOpenJournal({ range: journalRange, group: null })}
+          />
+        ) : (
+          <CostBreakdown
+            items={breakdown}
+            periodLabel={periodLabel}
+            comparisonLabel={ranges.previous ? 'к прошлому периоду' : null}
+            onSelectItem={openGroup}
+            onOpenJournal={() => onOpenJournal({ range: journalRange, group: null })}
+          />
+        )}
+        <FuelChart consumption={consumption} avgL100={kpi.l100} prices={fuelPrices} onAdd={() => onAdd('fuel')} />
+        <MileageChart points={mileage} kmPerMonth={kpi.kmPerMonth} />
       </div>
     </div>
   )

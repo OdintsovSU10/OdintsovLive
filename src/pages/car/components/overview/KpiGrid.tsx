@@ -1,9 +1,13 @@
 import type { CSSProperties } from 'react'
 import type { CarKpi } from '../../hooks/useCarStats'
 import { formatNumber, formatRub } from '../../utils/format'
+import type { ServiceDue } from '../../utils/serviceDue'
+import { ServiceDueCard } from './ServiceDueCard'
 
 interface Props {
   kpi: CarKpi
+  serviceDue: ServiceDue | null
+  onAddService: () => void
 }
 
 interface Change {
@@ -43,7 +47,7 @@ function KpiCard({ label, value, color, change, hint }: CardProps) {
   )
 }
 
-export function KpiGrid({ kpi }: Props) {
+export function KpiGrid({ kpi, serviceDue, onAddService }: Props) {
   return (
     <section className="car-kpi-grid" aria-label="Показатели за период">
       <KpiCard
@@ -73,6 +77,7 @@ export function KpiGrid({ kpi }: Props) {
         color="var(--chart-4)"
         hint={`${formatNumber(Math.round(kpi.km))} км за период`}
       />
+      <ServiceDueCard due={serviceDue} onAdd={onAddService} />
     </section>
   )
 }

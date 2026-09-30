@@ -1,10 +1,13 @@
-import { ArrowRight, X } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowRight, ChevronDown, X } from 'lucide-react'
 import type { BreakdownItem } from '../../utils/buckets'
 import { formatRub } from '../../utils/format'
 
 // Меньше 5% — «≈», больше чем вдвое — кратность
 const DELTA_THRESHOLD = 0.05
 const RATIO_THRESHOLD = 2
+// Длинный хвост категорий не растягивает строку сетки — остальное по кнопке
+const VISIBLE_ITEMS = 6
 
 interface Props {
   items: BreakdownItem[]
@@ -29,7 +32,10 @@ function renderDelta(value: number, prev: number | null) {
 }
 
 export function CostBreakdown({ items, periodLabel, comparisonLabel, onReset, onSelectItem, onOpenJournal }: Props) {
+  const [showAll, setShowAll] = useState(false)
   const max = Math.max(...items.map(item => item.value), 0)
+  const hiddenCount = items.length - VISIBLE_ITEMS
+  const visible = showAll || hiddenCount <= 0 ? items : items.slice(0, VISIBLE_ITEMS)
   const total = items.reduce((acc, item) => acc + item.value, 0)
 
   return (
@@ -56,7 +62,7 @@ export function CostBreakdown({ items, periodLabel, comparisonLabel, onReset, on
         <p className="car-muted">Нет трат за период</p>
       ) : (
         <ul className="car-share-list">
-          {items.map(item => (
+          {visible.map(item => (
             <li key={item.key}>
               <button type="button" className="car-share-row" onClick={() => onSelectItem(item)}>
                 <span className="car-share-head">
@@ -85,10 +91,18 @@ export function CostBreakdown({ items, periodLabel, comparisonLabel, onReset, on
       )}
 
       {items.length > 0 && (
-        <button type="button" className="car-link-btn" onClick={onOpenJournal}>
-          Открыть в журнале
-          <ArrowRight size={16} />
-        </button>
+        <div className="car-breakdown-actions">
+          {hiddenCount > 0 && (
+            <button type="button" className="car-link-btn" aria-expanded={showAll} onClick={() => setShowAll(prev => !prev)}>
+              {showAll ? 'Свернуть' : `Показать все (${items.length})`}
+              <ChevronDown size={16} className={showAll ? 'car-rotated' : ''} />
+            </button>
+          )}
+          <button type="button" className="car-link-btn" onClick={onOpenJournal}>
+            Открыть в журнале
+            <ArrowRight size={16} />
+          </button>
+        </div>
       )}
     </article>
   )

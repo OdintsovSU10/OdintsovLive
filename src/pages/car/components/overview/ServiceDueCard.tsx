@@ -1,7 +1,7 @@
-import { Wrench } from 'lucide-react'
-import { SERVICE_INTERVAL_KM, SERVICE_INTERVAL_MONTHS, SERVICE_WARNING_SHARE } from '../../constants'
+import type { CSSProperties } from 'react'
+import { SERVICE_INTERVAL_KM, SERVICE_WARNING_SHARE } from '../../constants'
 import { formatDayShort } from '../../utils/dates'
-import { formatMileage, formatNumber, plural } from '../../utils/format'
+import { formatMileage, formatNumber } from '../../utils/format'
 import type { ServiceDue } from '../../utils/serviceDue'
 
 interface Props {
@@ -9,44 +9,43 @@ interface Props {
   onAdd: () => void
 }
 
-const MONTH_FORMS: [string, string, string] = ['месяц', 'месяца', 'месяцев']
-
-function describeLeft(due: ServiceDue): string {
-  if (due.progress >= 1) return 'Пора на ТО'
-  const parts = [
-    due.kmLeft !== null ? `${formatNumber(due.kmLeft)} км` : null,
-    `${due.monthsLeft} ${plural(due.monthsLeft, MONTH_FORMS)}`
-  ].filter(Boolean)
-  return `через ${parts.join(' или ')}`
+const TONE_COLORS = {
+  ok: 'var(--chart-4)',
+  warning: 'var(--chart-warning)',
+  danger: 'var(--danger)'
 }
 
+// Карточка в ряду KPI: сколько осталось до ТО по пробегу или сроку — что раньше
 export function ServiceDueCard({ due, onAdd }: Props) {
   if (!due) {
     return (
-      <article className="car-card car-service">
-        <div className="car-card-header"><h3>Следующее ТО</h3></div>
-        <p className="car-muted">
-          Добавьте ТО или замену масла — посчитаем, когда следующее
-          (каждые {formatNumber(SERVICE_INTERVAL_KM)} км или {SERVICE_INTERVAL_MONTHS} мес.).
-        </p>
-        <button type="button" className="car-btn ghost" onClick={onAdd}>
-          <Wrench size={18} />
-          <span>Добавить ТО</span>
+      <article className="car-kpi car-kpi-service" style={{ '--kpi-color': TONE_COLORS.ok } as CSSProperties}>
+        <div className="car-kpi-label">Следующее ТО</div>
+        <div className="car-kpi-value">—</div>
+        <button type="button" className="car-kpi-link" onClick={onAdd}>
+          Отметить ТО — посчитаем интервал {formatNumber(SERVICE_INTERVAL_KM)} км
         </button>
       </article>
     )
   }
 
   const tone = due.progress >= 1 ? 'danger' : due.progress >= SERVICE_WARNING_SHARE ? 'warning' : 'ok'
-  const since = [
-    `${formatDayShort(due.date, true)}`,
-    due.kmSince !== null ? `${formatMileage(due.kmSince)} назад` : null
-  ].filter(Boolean).join(' · ')
+  const value = due.progress >= 1
+    ? 'Пора на ТО'
+    : due.kmLeft !== null ? `через ${formatMileage(due.kmLeft)}` : `через ${due.monthsLeft} мес.`
+  const hint = due.progress >= 1
+    ? (due.kmSince !== null ? `прошло ${formatMileage(due.kmSince)}` : `прошло ${due.monthsSince} мес.`)
+    : (due.kmLeft !== null ? `или ${due.monthsLeft} мес.` : 'пробег последнего ТО не указан')
+  const last = `${due.title} · ${formatDayShort(due.date, true)}`
 
   return (
-    <article className={`car-card car-service ${tone}`}>
-      <div className="car-card-header"><h3>Следующее ТО</h3></div>
-      <div className="car-service-left">{describeLeft(due)}</div>
+    <article
+      className={`car-kpi car-kpi-service ${tone}`}
+      style={{ '--kpi-color': TONE_COLORS[tone] } as CSSProperties}
+      title={`Последнее: ${last}${due.kmSince !== null ? ` · ${formatMileage(due.kmSince)} назад` : ''}`}
+    >
+      <div className="car-kpi-label">Следующее ТО</div>
+      <div className="car-kpi-value">{value}</div>
       <div
         className="car-progress"
         role="progressbar"
@@ -57,7 +56,8 @@ export function ServiceDueCard({ due, onAdd }: Props) {
       >
         <div className="car-progress-fill" style={{ transform: `scaleX(${Math.min(due.progress, 1)})` }} />
       </div>
-      <p className="car-muted">Последнее: {due.title} · {since}</p>
+      <div className="car-kpi-hint">{hint}</div>
+      <div className="car-kpi-hint car-kpi-last">{last}</div>
     </article>
   )
 }

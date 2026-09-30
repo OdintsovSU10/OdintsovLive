@@ -23,6 +23,8 @@
 }
 
 .car-kpi {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 14px;
   border-radius: var(--radius-md);
@@ -52,6 +54,41 @@
 .car-kpi-hint.up { color: var(--chart-negative); }
 .car-kpi-hint.down { color: var(--chart-positive); }
 
+/* Следующее ТО — карточка в ряду KPI; на телефоне и планшете во всю ширину */
+.car-kpi-service {
+  grid-column: 1 / -1;
+}
+
+.car-kpi-service.warning .car-kpi-value { color: var(--chart-warning); }
+.car-kpi-service.danger .car-kpi-value { color: var(--danger); }
+
+.car-kpi-service .car-progress {
+  margin: 8px 0 4px;
+}
+
+.car-kpi-last {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-kpi-link {
+  align-self: flex-start;
+  min-height: 44px;
+  margin-top: 2px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.car-kpi-link:hover {
+  color: var(--text-primary);
+}
+
 /* Сетка графиков */
 
 .car-overview-grid {
@@ -59,18 +96,6 @@
   flex-direction: column;
   gap: 16px;
 }
-
-/* Телефон: колонки «растворяются», порядок — от графика расходов к деталям */
-.car-overview-main,
-.car-overview-side {
-  display: contents;
-}
-
-.car-cost-chart { order: 1; }
-.car-breakdown { order: 2; }
-.car-service { order: 3; }
-.car-fuel-chart { order: 4; }
-.car-mileage-chart { order: 5; }
 
 .car-chart-box {
   width: 100%;
@@ -207,22 +232,10 @@
 .car-delta.down { color: var(--chart-positive); }
 .car-delta.flat { color: var(--text-muted); }
 
-/* Следующее ТО */
-
-.car-service-left {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.car-service.warning .car-service-left { color: var(--chart-warning); }
-.car-service.danger .car-service-left { color: var(--danger); }
-
-.car-service .car-btn {
-  align-self: flex-start;
-}
+/* Прогресс до ТО — цветом карточки */
 
 .car-progress {
-  height: 8px;
+  height: 6px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--bg-tertiary);
@@ -231,13 +244,21 @@
 .car-progress-fill {
   width: 100%;
   height: 100%;
-  background: var(--chart-4);
+  background: var(--kpi-color, var(--chart-4));
   transform-origin: left;
   transition: transform 0.25s ease-out;
 }
 
-.car-service.warning .car-progress-fill { background: var(--chart-warning); }
-.car-service.danger .car-progress-fill { background: var(--danger); }
+.car-breakdown-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin-top: auto;
+}
+
+.car-rotated {
+  transform: rotate(180deg);
+}
 
 @media (min-width: 431px) {
   .car-chart-box {
@@ -264,23 +285,36 @@
   }
 }
 
-/* Десктоп: две независимые колонки без пустот под короткими карточками */
+/* Десктоп: сетка 2×2, карточки в строке одной высоты — графики тянутся на свободное место */
 @media (min-width: 1024px) {
   .car-overview-grid {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    align-items: start;
+    align-items: stretch;
   }
 
-  .car-overview-main,
-  .car-overview-side {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
+  .car-overview-grid .car-chart-box {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 280px;
   }
 
-  .car-cost-chart .car-chart-box {
-    height: 320px;
+  .car-overview-grid .car-chart-box.small {
+    min-height: 220px;
+  }
+}
+
+/* Широкий экран: следующее ТО — пятой карточкой в ряду KPI */
+@media (min-width: 1280px) {
+  .car-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.3fr);
+  }
+
+  .car-kpi-service {
+    grid-column: auto;
+  }
+
+  .car-kpi-last {
+    display: none;
   }
 }
