@@ -15,7 +15,7 @@ import { AMOUNT_FIELDS, AMOUNT_KEYS, useRentMonth } from './rent/useRentMonth'
 import './RentMonthPage.css'
 
 const PHOTO_INPUT_ID = 'meter-photo-input'
-const PHOTO_HINT = 'Каждый тариф электросчётчика (T1, T2, T3) — отдельным фото, оба водомера — одним. Распознаёт домашний ПК, около 1,5 минуты на фото.'
+const PHOTO_HINT = 'Каждый тариф электросчётчика (T1, T2, T3) — отдельным фото, оба водомера — одним. Распознаёт бот, около 10 секунд на фото.'
 
 export default function RentMonthPage() {
   const { year: yearParam, month: monthParam } = useParams()
@@ -76,7 +76,7 @@ export default function RentMonthPage() {
   if (ocr.errorCount > 0) {
     notices.push({ level: 'warning', text: `Не распознано фото: ${ocr.errorCount} — добавьте ещё раз или введите вручную` })
   }
-  if (ocr.stale) notices.push({ level: 'warning', text: 'Домашний ПК не отвечает — показания можно ввести вручную' })
+  if (ocr.stale) notices.push({ level: 'warning', text: 'Бот не распознаёт фото — показания можно ввести вручную' })
   if (ocr.activeCount > 0) {
     notices.push({ level: 'info', text: 'Страницу можно закрыть: показания подставятся при следующем открытии' })
   }

@@ -10,8 +10,8 @@ import {
 } from './meterOcr'
 
 const POLL_MS = 4000
-// Задание в очереди дольше 10 минут — домашний ПК, скорее всего, выключен
-const STALE_MS = 10 * 60 * 1000
+// Задание в очереди дольше 2 минут — бот, скорее всего, не работает (обычно ~10 с)
+const STALE_MS = 2 * 60 * 1000
 
 interface UseMeterOcrJobsParams {
   userId: string | null

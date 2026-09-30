@@ -24,6 +24,11 @@ IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `env
 | `add_car_service` | `car_maintenance` / `car_expenses` + `expense_transactions`, если есть сумма |
 | `add_weight` | `body_weight` |
 | `add_body_params` | `body_params` |
+| `meter_photo` | `meter_ocr_jobs` (готовое задание; показания в месяц подставляет «Аренда») |
+
+**Счётчики.** Фото счётчиков распознаёт `google/gemini-3.1-flash-lite` (`meters.mjs`, выбрана
+сравнением на настоящих фото: 24/24, ~2,5 с). Бот же разбирает очередь `meter_ocr_jobs` с портала
+(раньше — Ollama на домашнем ПК, 80–90 с). Фото после распознавания — только на диске: `data/meters/`.
 
 Траты из бота — `source='telegram'`. При импорте выписки на странице «Траты» банковская
 операция с той же суммой (±1 ₽) и датой (±2 дня) склеивается с записью бота:
@@ -39,6 +44,7 @@ IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `env
 | `bot.mjs` | опрос Telegram, диалог, отмена, режим `--test` |
 | `llm.mjs` | промпт и инструменты для OpenRouter |
 | `actions.mjs` | запись в Supabase и отмена |
+| `meters.mjs` | распознавание счётчиков и очередь `meter_ocr_jobs` |
 | `.env` | доступ к Supabase и часовой пояс (см. `.env.example`) |
 
 Зависимостей нет, нужен Node 22+.
@@ -76,4 +82,4 @@ ssh quantor 'docker logs --tail=50 odintsovlive-bot'
 ```
 
 Обновление кода: `scp` файлов `*.mjs` и `ssh quantor 'docker restart odintsovlive-bot'`.
-Чеки — в `/opt/odintsovlive-bot/data/receipts/`.
+Чеки — в `/opt/odintsovlive-bot/data/receipts/`, фото счётчиков — в `data/meters/`.

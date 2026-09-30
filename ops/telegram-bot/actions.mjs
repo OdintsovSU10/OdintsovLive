@@ -20,7 +20,7 @@ export const BODY_PARAM_FIELDS = {
 }
 
 // Отменять можно только то, что бот создаёт сам
-const UNDO_TABLES = new Set(['expense_transactions', 'car_fuel', 'car_maintenance', 'car_expenses', 'body_weight', 'body_params'])
+const UNDO_TABLES = new Set(['expense_transactions', 'car_fuel', 'car_maintenance', 'car_expenses', 'body_weight', 'body_params', 'meter_ocr_jobs'])
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -303,19 +303,21 @@ export const createEntry = async (rest, { userId, chatId, messageId, messageIds,
 
 // Каждый вызов инструмента — отдельная строка ответа; созданные строки копим сразу,
 // чтобы отмена удаляла и то, что успело записаться до ошибки
-export const executeTools = async (rest, ctx, entryId, toolCalls) => {
+// extras — то, чего нет в самих аргументах: фото, настройки и обработчики из других модулей
+export const executeTools = async (rest, ctx, entryId, toolCalls, extras = {}) => {
+  const { handlers = {}, ...context } = extras
   const rows = []
   const lines = []
   const track = (table, id, extra = {}) => rows.push({ table, id, ...extra })
 
   for (const [index, call] of toolCalls.entries()) {
-    const handler = HANDLERS[call.name]
+    const handler = HANDLERS[call.name] || handlers[call.name]
     if (!handler) {
       lines.push(`⚠️ Неизвестное действие: ${call.name}`)
       continue
     }
     try {
-      lines.push(await handler({ rest, ctx, track, entryId, index, args: call.args }))
+      lines.push(await handler({ rest, ctx, track, entryId, index, args: call.args, ...context }))
     } catch (err) {
       lines.push(`⚠️ ${err instanceof UserError ? err.message : `Не записалось: ${err.message}`}`)
     }
@@ -349,7 +351,9 @@ export const undoEntry = async (rest, userId, entryId) => {
     }
     if (!UNDO_TABLES.has(table) || !UUID_RE.test(id)) continue
     // трату, уже склеенную с банковской выпиской, не трогаем — она теперь банковская
-    const guard = table === 'expense_transactions' ? '&source=eq.telegram' : ''
+    // показания, которые «Аренда» уже подставила в месяц, правятся там же
+    const guard = table === 'expense_transactions' ? '&source=eq.telegram'
+      : table === 'meter_ocr_jobs' ? '&applied=eq.false' : ''
     await rest(`${table}?id=eq.${id}${guard}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
   }
   await rest(`telegram_bot_entries?id=eq.${entryId}`, {

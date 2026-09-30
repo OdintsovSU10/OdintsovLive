@@ -14,12 +14,12 @@ export interface OcrJob {
 
 export const OCR_JOB_FIELDS = 'id, status, result, error, applied, created_at'
 
-// Среднее время распознавания на домашнем ПК, пока нет своей статистики
-const DEFAULT_OCR_SECONDS = 90
+// Среднее время распознавания ботом (OpenRouter) с ожиданием очереди, пока нет своей статистики
+const DEFAULT_OCR_SECONDS = 10
 
 export const isActiveJob = (job: OcrJob) => job.status === 'pending' || job.status === 'processing'
 
-// Фото сжимаются в браузере и уходят в очередь; домашний ПК заберёт их сам
+// Фото сжимаются в браузере и уходят в очередь; бот заберёт их сам
 export const uploadMeterPhotos = async (userId: string, year: number, month: number, files: File[]) => {
   for (const file of files) {
     const image_base64 = await resizeImage(file)
@@ -33,7 +33,7 @@ export const uploadMeterPhotos = async (userId: string, year: number, month: num
 export const estimateOcrSeconds = (jobs: OcrJob[]) => {
   const durations = jobs
     .map(j => j.result?.seconds)
-    .filter((s): s is number => typeof s === 'number' && s > 20)
+    .filter((s): s is number => typeof s === 'number' && s > 0)
   const average = durations.length > 0
     ? durations.reduce((sum, s) => sum + s, 0) / durations.length
     : DEFAULT_OCR_SECONDS

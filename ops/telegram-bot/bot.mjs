@@ -8,6 +8,7 @@ import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { createEntry, createRest, emptyContext, executeTools, loadContext, undoEntry } from './actions.mjs'
 import { callLlm, transcribe } from './llm.mjs'
+import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
 const ENV_FILE = path.join(DIR, '.env')
@@ -27,6 +28,7 @@ const HELP = `Пиши как есть, я разложу по разделам 
 • «вес 82.4», «талия 84, грудь 102»
 • фото чека (можно с подписью)
 • голосовое — то же самое, только вслух
+• фото счётчиков — показания уйдут в «Аренду»
 Под каждой записью — кнопка «Отменить».`
 
 const log = (...args) => console.log(new Date().toISOString(), ...args)
@@ -42,6 +44,7 @@ const loadEnv = () => {
     supabaseKey: env.SUPABASE_SERVICE_ROLE_KEY,
     timeZone: env.TZ || 'Europe/Moscow',
     receiptsDir: env.RECEIPTS_DIR || path.join(DIR, 'data', 'receipts'),
+    metersDir: env.METERS_DIR || path.join(DIR, 'data', 'meters'),
     fallback: {
       token: env.TELEGRAM_BOT_TOKEN,
       ownerTelegramId: env.TELEGRAM_OWNER_ID,
@@ -108,7 +111,7 @@ const saveReceipt = (config, photo, entryId, date) => {
 }
 
 const photoContent = (photo, caption) => [
-  { type: 'text', text: caption || 'Фото чека' },
+  { type: 'text', text: caption || 'Фото' },
   { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${photo.toString('base64')}` } }
 ]
 
@@ -190,7 +193,7 @@ const createBot = config => {
     } else if (msg.text) {
       content = msg.text
     } else {
-      await reply(msg, 'Понимаю текст, голосовые и фото чека')
+      await reply(msg, 'Понимаю текст, голосовые, фото чеков и счётчиков')
       return
     }
     const heardLine = heard ? `🎙 «${heard}»\n\n` : ''
@@ -221,8 +224,13 @@ const createBot = config => {
       messageIds: chat.messageIds,
       inputText: chat.history.filter(m => m.role === 'user').map(m => messageText(m.content)).join('\n')
     })
-    const { lines, rows } = await executeTools(rest, ctx, entry.id, toolCalls)
-    if (chat.photo && rows.length > 0) {
+    const { lines, rows } = await executeTools(rest, ctx, entry.id, toolCalls, {
+      config,
+      photo: chat.photo,
+      handlers: { meter_photo: meterPhotoHandler }
+    })
+    // фото счётчика сохраняет meters.mjs в свою папку, в чеки его не кладём
+    if (chat.photo && rows.length > 0 && !toolCalls.some(c => c.name === 'meter_photo')) {
       try {
         saveReceipt(config, chat.photo, entry.id, ctx.today)
       } catch (err) {
@@ -292,6 +300,8 @@ const main = async () => {
 
   let config = null
   let bot = null
+  // очередь фото счётчиков с портала — в этом же процессе, с текущими настройками
+  startMeterWorker(rest, () => config, log)
   let offset = 0
   let syncedAt = 0
 
