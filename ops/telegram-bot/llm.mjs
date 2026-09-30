@@ -119,6 +119,7 @@ export const callLlm = async (config, ctx, history) => {
       max_tokens: 1024,
       tools: buildTools(ctx),
       tool_choice: 'auto',
+      usage: { include: true },
       messages: [{ role: 'system', content: buildSystemPrompt(ctx) }, ...history]
     }),
     signal: AbortSignal.timeout(90_000)
@@ -131,6 +132,8 @@ export const callLlm = async (config, ctx, history) => {
 
   return {
     toolCalls: (message.tool_calls || []).map(call => ({ name: call.function.name, args: parseArgs(call.function.arguments) })),
-    text: typeof message.content === 'string' ? message.content.trim() : ''
+    text: typeof message.content === 'string' ? message.content.trim() : '',
+    // стоимость запроса в $ и токены — для лога
+    usage: data.usage || null
   }
 }

@@ -159,7 +159,7 @@ const createBot = config => {
     await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
 
     const ctx = await loadContext(rest, config.userId, config.timeZone)
-    const { toolCalls, text } = await callLlm(config, ctx, chat.history)
+    const { toolCalls, text, usage } = await callLlm(config, ctx, chat.history)
 
     if (toolCalls.length === 0) {
       const answer = text || 'Не понял, напиши иначе'
@@ -186,7 +186,7 @@ const createBot = config => {
       }
     }
     chats.delete(msg.chat.id)
-    log(`entry ${entry.id}: ${toolCalls.map(c => c.name).join(', ')} → ${rows.length} строк`)
+    log(`entry ${entry.id}: ${toolCalls.map(c => c.name).join(', ')} → ${rows.length} строк, $${usage?.cost ?? '?'}`)
 
     await reply(msg, lines.join('\n'), rows.length > 0
       ? { reply_markup: { inline_keyboard: [[{ text: '↩️ Отменить', callback_data: `undo:${entry.id}` }]] } }
