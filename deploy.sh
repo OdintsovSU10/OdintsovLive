@@ -48,6 +48,17 @@ if [[ ! -d "$DIST_DIR" ]]; then
   exit 1
 fi
 
+# Без ключа Supabase сайт открывается, но все запросы к API получают 401
+if ! grep -qE 'eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.|sb_publishable_' "$DIST_DIR"/assets/*.js; then
+  echo -e "${RED}Ошибка: в сборке нет ключа Supabase — проверьте VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY в .env${NC}"
+  exit 1
+fi
+
+if ! grep -qF "$EXPECTED_SUPABASE_URL" "$DIST_DIR"/assets/*.js; then
+  echo -e "${RED}Ошибка: в сборке нет ${EXPECTED_SUPABASE_URL} — проверьте VITE_SUPABASE_URL${NC}"
+  exit 1
+fi
+
 echo -e "${GREEN}[2/3] Заливка статики...${NC}"
 if [[ "$SKIP_BACKUP" != "1" ]]; then
   ssh "$SSH_TARGET" "cp -a '${REMOTE_PATH}' '${REMOTE_PATH}.bak-$(date +%F-%H%M)'"
