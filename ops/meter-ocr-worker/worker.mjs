@@ -4,6 +4,7 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -37,19 +38,21 @@ const SCHEMA = {
 
 const log = (...args) => console.log(new Date().toISOString(), ...args)
 
+// .env читаем заново при каждой попытке: process.loadEnvFile не перезаписывает
+// уже заданные переменные, и пустой ключ из первой версии файла остался бы навсегда
 const loadConfig = () => {
   if (!fs.existsSync(ENV_FILE)) return null
-  process.loadEnvFile(ENV_FILE)
-  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '')
-  const supabaseKey = process.env.SUPABASE_KEY
+  const env = parseEnv(fs.readFileSync(ENV_FILE, 'utf8'))
+  const supabaseUrl = env.SUPABASE_URL?.replace(/\/$/, '')
+  const supabaseKey = env.SUPABASE_KEY
   if (!supabaseUrl || !supabaseKey) return null
   return {
     supabaseUrl,
     supabaseKey,
-    ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
-    model: process.env.OLLAMA_MODEL || 'qwen3-vl:4b-instruct',
-    pollMs: Number(process.env.POLL_INTERVAL_MS) || 5000,
-    photosDir: process.env.PHOTOS_DIR || path.join(DIR, 'photos')
+    ollamaUrl: env.OLLAMA_URL || 'http://127.0.0.1:11434',
+    model: env.OLLAMA_MODEL || 'qwen3-vl:4b-instruct',
+    pollMs: Number(env.POLL_INTERVAL_MS) || 5000,
+    photosDir: env.PHOTOS_DIR || path.join(DIR, 'photos')
   }
 }
 
