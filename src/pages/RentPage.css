@@ -60,23 +60,6 @@
   cursor: not-allowed;
 }
 
-.rent-page .import-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  margin-top: 24px;
-  padding: 0 4px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: color var(--transition);
-}
-
-.rent-page .import-btn:hover {
-  color: var(--text-primary);
-}
-
 .rent-page .year-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

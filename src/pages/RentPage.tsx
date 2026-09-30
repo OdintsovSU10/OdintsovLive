@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { MONTHS, YEARS } from '../lib/constants'
 import { isCurrentMonth, isFutureMonth } from '../lib/dateUtils'
-import { parseNumber } from '../lib/formatUtils'
 import CurrentMonthCard from './rent/CurrentMonthCard'
 import './RentPage.css'
 
@@ -84,64 +82,6 @@ export default function RentPage() {
 
   const getRecord = (monthIndex: number): RentRecord | null => {
     return records.find(r => r.month === monthIndex) || null
-  }
-
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !userId) return
-
-    const reader = new FileReader()
-    reader.onload = async (evt) => {
-      const data = evt.target?.result
-      const workbook = XLSX.read(data, { type: 'binary' })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<(string | number)[]>(sheet, { header: 1 })
-
-      const recordsToUpsert = rows
-        .filter((row: any[]) => row[8] !== undefined && row[9] !== undefined && !isNaN(parseNumber(row[8])) && !isNaN(parseNumber(row[9])))
-        .map((row: any[]) => ({
-          user_id: userId,
-          rent_amount: parseNumber(row[0]),
-          water_amount: parseNumber(row[1]),
-          electricity_amount: parseNumber(row[2]),
-          cold_water: parseNumber(row[3]),
-          hot_water: parseNumber(row[4]),
-          electricity: [
-            { name: 'T1', value: parseNumber(row[5]) },
-            { name: 'T2', value: parseNumber(row[6]) },
-            { name: 'T3', value: parseNumber(row[7]) }
-          ],
-          year: parseNumber(row[8]),
-          month: parseNumber(row[9]) - 1
-        }))
-
-      for (const record of recordsToUpsert) {
-        if (isNaN(record.year) || isNaN(record.month)) continue
-
-        const { data: existing } = await supabase
-          .from('rent_records')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('year', record.year)
-          .eq('month', record.month)
-          .maybeSingle()
-
-        if (existing) {
-          await supabase
-            .from('rent_records')
-            .update(record)
-            .eq('id', existing.id)
-        } else {
-          await supabase
-            .from('rent_records')
-            .insert(record)
-        }
-      }
-
-      loadData()
-    }
-    reader.readAsBinaryString(file)
-    e.target.value = ''
   }
 
   const yearTotals = records.reduce(
@@ -290,12 +230,6 @@ export default function RentPage() {
               </div>
             </div>
           </div>
-
-          <label className="import-btn">
-            <Upload size={18} />
-            <span>Импорт из Excel</span>
-            <input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} hidden />
-          </label>
         </>
       )}
     </div>
