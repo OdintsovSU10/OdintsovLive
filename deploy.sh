@@ -59,6 +59,12 @@ if ! grep -qF "$EXPECTED_SUPABASE_URL" "$DIST_DIR"/assets/*.js; then
   exit 1
 fi
 
+# Без ключа погоды сборщик выкидывает код запроса целиком — виджет пишет «API ключ не найден»
+if ! grep -qF 'api.openweathermap.org' "$DIST_DIR"/assets/*.js; then
+  echo -e "${RED}Ошибка: в сборке нет ключа погоды — проверьте VITE_OPENWEATHER_API_KEY${NC}"
+  exit 1
+fi
+
 echo -e "${GREEN}[2/3] Заливка статики...${NC}"
 if [[ "$SKIP_BACKUP" != "1" ]]; then
   ssh "$SSH_TARGET" "cp -a '${REMOTE_PATH}' '${REMOTE_PATH}.bak-$(date +%F-%H%M)'"
