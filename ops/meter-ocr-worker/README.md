@@ -43,8 +43,9 @@ ssh home 'powershell -NoProfile -Command "Start-ScheduledTask MeterOcr"'
 ssh home 'C:\meter-ocr\ollama\ollama.exe pull qwen3-vl:4b-instruct'
 ```
 
-`.env` заполняется вручную на home: `copy .env.example .env`, вписать `SUPABASE_KEY`
-(тот же publishable/anon-ключ, что у портала). Ключ в чат и в git не попадает.
+`.env` заполняется вручную на home: `copy .env.example .env`, вписать `SUPABASE_KEY` —
+ключ `service_role` (`SERVICE_ROLE_KEY` из `/opt/supabase/.env`). Anon-ключ не подходит:
+у роли anon нет доступа к таблицам (миграция 028). Ключ в чат и в git не попадает.
 
 Перезапуск после обновления `worker.mjs` / `start.cmd`:
 
