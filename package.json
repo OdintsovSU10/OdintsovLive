@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "fot:timesheet:sync": "node scripts/sync-fot-timesheet.mjs"
+    "fot:timesheet:sync": "node scripts/sync-fot-timesheet.mjs",
+    "icons:generate": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
@@ -22,6 +23,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "sharp": "^0.34.5",
     "typescript": "~5.6.2",
     "vite": "^6.0.5"
   }
