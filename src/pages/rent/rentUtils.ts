@@ -64,8 +64,8 @@ export const resizeImage = (file: File, maxSide = 1280, quality = 0.85): Promise
     img.src = url
   })
 
-// Водомеры одинаковые, поэтому ХВС/ГВС определяем по прошлому месяцу:
-// показания не убывают, иначе — по положению (слева ХВС, справа ГВС)
+// Водомеры одинаковые, но ХВС всегда больше ГВС: из двух показаний большее — ХВС.
+// Одно показание относим к счётчику, от прошлого значения которого оно ближе (показания не убывают)
 export const assignWaterReadings = (
   values: number[],
   prev: WaterReadings | null
@@ -83,15 +83,8 @@ export const assignWaterReadings = (
     return { cold: value }
   }
 
-  const [left, right] = readings
-  if (prev) {
-    const prevCold = Math.floor(prev.cold)
-    const prevHot = Math.floor(prev.hot)
-    const direct = left >= prevCold && right >= prevHot
-    const swapped = right >= prevCold && left >= prevHot
-    if (swapped && !direct) return { cold: right, hot: left }
-  }
-  return { cold: left, hot: right }
+  const [first, second] = readings
+  return { cold: Math.max(first, second), hot: Math.min(first, second) }
 }
 
 export const applyElectricity = (
