@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, Scale, Ruler, StickyNote, Car, Users, ReceiptText } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, Scale, Ruler, Car, Users, ReceiptText } from 'lucide-react'
 import Logo from '../components/Logo'
 import WeatherWidget from '../components/WeatherWidget'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
@@ -7,7 +7,6 @@ import './HomePage.css'
 
 const pages = [
   { path: '/tender', Icon: Users, title: 'Тендерное управление', desc: 'Персонал и зарплаты' },
-  { path: '/notes', Icon: StickyNote, title: 'Заметки', desc: 'Личные записи' },
   { path: '/calendar', Icon: Calendar, title: 'Календарь', desc: 'Учёт рабочих дней' },
   { path: '/salary', Icon: Wallet, title: 'Зарплата', desc: 'Расчёт заработка' },
   { path: '/vacation-rate', Icon: Umbrella, title: 'Отпускные', desc: 'Расчёт ставки' },

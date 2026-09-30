@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, StickyNote, Car, ArrowLeft, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, X, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
@@ -50,7 +50,6 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
   const [bodyExpanded, setBodyExpanded] = useState(isBodyActive)
   const [mobileHidden, setMobileHidden] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
-  const [isInNotesEditor, setIsInNotesEditor] = useState(false)
   const swipeStartX = useRef(0)
   const swipeStartY = useRef(0)
   const isSwipeFromEdge = useRef(false)
@@ -79,27 +78,8 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Отслеживаем режим редактора заметок
-  useEffect(() => {
-    const checkEditorMode = () => {
-      setIsInNotesEditor(document.body.dataset.notesEditor === 'true')
-    }
-
-    // Проверяем при изменениях body
-    const observer = new MutationObserver(checkEditorMode)
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-notes-editor'] })
-
-    checkEditorMode()
-    return () => observer.disconnect()
-  }, [])
-
   // Swipe from left edge to open sidebar
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    // Не обрабатываем свайп если активен редактор заметок
-    if (document.body.dataset.editorSwipe === 'true') {
-      isSwipeFromEdge.current = false
-      return
-    }
     const touch = e.touches[0]
     swipeStartX.current = touch.clientX
     swipeStartY.current = touch.clientY
@@ -108,12 +88,6 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (!isSwipeFromEdge.current || !isMobile) return
-
-    // Не открываем сайдбар если активен свайп в редакторе заметок
-    if (document.body.dataset.editorSwipe === 'true') {
-      isSwipeFromEdge.current = false
-      return
-    }
 
     const touch = e.changedTouches[0]
     const diffX = touch.clientX - swipeStartX.current
@@ -149,35 +123,25 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
 
   const mobileMenuOpen = isMobile && !mobileHidden
 
-  const handleMobileBackClick = () => {
-    if (isInNotesEditor) {
-      window.dispatchEvent(new CustomEvent('notes-editor-back'))
-    } else {
-      setMobileHidden(!mobileHidden)
-    }
-  }
-
   return (
     <>
       {isMobile && (
         <>
           <button
-            className={`mobile-menu-btn ${!mobileHidden ? 'menu-open' : ''} ${isInNotesEditor ? 'back-mode' : ''}`}
-            onClick={handleMobileBackClick}
+            className={`mobile-menu-btn ${!mobileHidden ? 'menu-open' : ''}`}
+            onClick={() => setMobileHidden(!mobileHidden)}
           >
-            {isInNotesEditor ? <ArrowLeft size={20} /> : (mobileHidden ? <Menu size={20} /> : <X size={20} />)}
+            {mobileHidden ? <Menu size={20} /> : <X size={20} />}
           </button>
-          {mobileHidden && !isInNotesEditor && (
+          {mobileHidden && (
             <Link to="/" className="mobile-logo">
               <Logo size={24} showText={false} />
             </Link>
           )}
-          {!isInNotesEditor && (
-            <div
-              className={`sidebar-overlay ${!mobileHidden ? 'visible' : ''}`}
-              onClick={() => setMobileHidden(true)}
-            />
-          )}
+          <div
+            className={`sidebar-overlay ${!mobileHidden ? 'visible' : ''}`}
+            onClick={() => setMobileHidden(true)}
+          />
         </>
       )}
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${isMobile && mobileHidden ? 'mobile-hidden' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}>
@@ -191,11 +155,6 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
         </div>
 
       <nav className="sidebar-nav">
-        <NavLink to="/notes" className="nav-link">
-          <StickyNote size={20} strokeWidth={1.5} />
-          {(!collapsed || mobileMenuOpen) && <span>Заметки</span>}
-        </NavLink>
-
         <div className={`nav-group ${workExpanded ? 'expanded' : ''}`}>
           <button
             className={`nav-link nav-group-toggle ${isWorkActive ? 'active' : ''}`}

@@ -19,12 +19,12 @@ src/
   App.tsx              # Root: auth state, theme, routing
   lib/supabase.ts      # Supabase client
   components/          # Reusable UI (Logo, Sidebar, Calendar)
-  pages/               # Route pages (Home, Work, Notes, Body, Admin)
+  pages/               # Route pages (Home, Work, Body, Admin)
 ```
 
 **Auth flow**: App.tsx checks session → unapproved users see pending screen → approved users get full app.
 
-**Routes**: `/`, `/notes`, `/calendar`, `/salary`, `/salary/:year/:month`, `/vacation-rate`, `/rent`, `/rent/:year/:month`, `/body/weight`, `/body/params`, `/car`, `/tender`, `/tender/admin` (admin only), `/admin` (admin only)
+**Routes**: `/`, `/calendar`, `/salary`, `/salary/:year/:month`, `/vacation-rate`, `/rent`, `/rent/:year/:month`, `/body/weight`, `/body/params`, `/car`, `/tender`, `/tender/admin` (admin only), `/admin` (admin only)
 
 ## Database (Supabase)
 

@@ -55,7 +55,6 @@ supabase/
 │   ├── 010_expense_tracking.sql
 │   ├── body_tables.sql
 │   ├── create_car_tables.sql
-│   ├── create_notes_table.sql
 │   └── prod.sql
 └── schemas/
     └── prod.sql
@@ -129,22 +128,7 @@ src/
 │   ├── Sidebar.css
 │   ├── Sidebar.tsx
 │   ├── WeatherWidget.css
-│   ├── WeatherWidget.tsx
-│   └── notes/
-│       ├── NoteCard.tsx
-│       ├── NotesEditor.tsx
-│       ├── editorCommands.ts
-│       ├── types.ts
-│       ├── components/
-│       │   ├── EditorToolbar.tsx
-│       │   ├── SelectionMenu.tsx
-│       │   └── index.ts
-│       └── hooks/
-│           ├── index.ts
-│           ├── useAutoSave.ts
-│           ├── useKeyboardHandlers.ts
-│           ├── useSelectionMenu.ts
-│           └── useSwipeBack.ts
+│   └── WeatherWidget.tsx
 └── pages/
     ├── AdminPage.css
     ├── AdminPage.tsx
@@ -156,8 +140,6 @@ src/
     ├── CarPage.css
     ├── HomePage.css
     ├── HomePage.tsx
-    ├── NotesPage.css
-    ├── NotesPage.tsx
     ├── RentMonthPage.css
     ├── RentMonthPage.tsx
     ├── RentPage.css
@@ -251,7 +233,7 @@ Config & Docs:
 
 | Что | Кол-во |
 |-----|--------|
-| Фичей (pages) | 10 (auth, home, notes, calendar, salary, expenses, car, tender, rent, body, vacation, admin) |
+| Фичей (pages) | 11 (auth, home, calendar, salary, expenses, car, tender, rent, body, vacation, admin) |
 | Таблиц БД | 25+ |
 | Миграций | 15 |
 | Docker-сервисов | 4 (db, auth, rest, kong) |

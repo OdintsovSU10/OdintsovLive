@@ -19,7 +19,6 @@ const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
 const ExpensesPage = lazy(() => import('./pages/expenses'))
 const WeightPage = lazy(() => import('./pages/WeightPage'))
 const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
-const NotesPage = lazy(() => import('./pages/NotesPage'))
 const CarPage = lazy(() => import('./pages/car'))
 const TenderPage = lazy(() => import('./pages/tender'))
 const AdminTenderPage = lazy(() => import('./pages/tender/AdminTenderPage'))
@@ -372,7 +371,6 @@ function App() {
           <Suspense fallback={<div className="page-loading"><div className="loading-spinner" /></div>}>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/notes" element={<NotesPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/salary" element={<SalaryPage />} />
               <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
