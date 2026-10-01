@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import type { EmployeeWithStats, TimesheetEntry } from '../types'
-import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
+import type { EmployeeWithStats, TimesheetEntry, WorkPlan } from '../types'
+import { getDailyHoursNorm, getRemoteFullDayHours, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import { TIMESHEET_STATUS_META } from '../utils/timesheetStatus'
 import './TimesheetGrid.css'
 
@@ -58,28 +58,22 @@ const getTimesheetNormHours = (date: Date): number => {
 
 const WEEKEND_TARGET_HOURS = 5
 
-const getWorkedHours = (entry: TimesheetEntry, date: Date): number => {
+const getWorkedHours = (entry: TimesheetEntry, date: Date, plan?: WorkPlan): number => {
   if (entry.status !== 'work' && entry.status !== 'remote' && entry.status !== 'sick_worked') return 0
 
-  const expectedHours = getDailyHoursNorm(date)
+  const expectedHours = plan?.is_working_day ? plan.planned_hours : getDailyHoursNorm(date)
   if (entry.status === 'sick_worked') {
     return roundTimesheetHours(entry.hours_worked) || expectedHours
   }
 
-  const weekendOrHoliday = isWeekendOrHoliday(date)
-  const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
-
-  // Импорт "У" подставляет 8ч по умолчанию. В будни считаем это полной нормой дня (9/8),
-  // чтобы суммарные часы и факт/план не занижались.
-  if (
-    entry.status === 'remote'
-    && !weekendOrHoliday
-    && entry.hours_worked === 8
-    && !entry.is_correction
-  ) {
-    return expectedHours
+  if (entry.status === 'remote') {
+    if (plan) {
+      return roundTimesheetHours(entry.hours_worked, plan.is_working_day ? plan.planned_hours : 0)
+    }
+    return getRemoteFullDayHours(entry.hours_worked, date)
   }
 
+  const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
   return roundTimesheetHours(rawHours)
 }
 
@@ -87,12 +81,6 @@ const getMinimumHoursForDay = (date: Date): number => {
   if (isWeekendOrHoliday(date)) return WEEKEND_TARGET_HOURS
   if (date.getDay() === 5) return 8
   return 9
-}
-
-const getUnderworkTag = (date: Date): string => {
-  if (isWeekendOrHoliday(date)) return '<5ч'
-  if (date.getDay() === 5) return '<8ч'
-  return '<9ч'
 }
 
 const buildWeeks = (year: number, month: number, daysInMonth: number): number[][] => {
@@ -123,7 +111,26 @@ const buildTimesheetMap = (timesheet: TimesheetEntry[] | undefined, year: number
   return map
 }
 
-const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: number, month: number, days: number[]): EmployeeStats => {
+const buildWorkPlanMap = (plans: WorkPlan[] | undefined, year: number, month: number): Map<number, WorkPlan> => {
+  const map = new Map<number, WorkPlan>()
+  if (!plans) return map
+
+  for (const plan of plans) {
+    const date = new Date(`${plan.work_date}T12:00:00`)
+    if (date.getFullYear() !== year || date.getMonth() + 1 !== month) continue
+    map.set(date.getDate(), plan)
+  }
+
+  return map
+}
+
+const getEmployeeStats = (
+  timesheetMap: Map<number, TimesheetEntry>,
+  workPlanMap: Map<number, WorkPlan>,
+  year: number,
+  month: number,
+  days: number[]
+): EmployeeStats => {
   let workDays = 0
   let remoteDays = 0
   let vacationDays = 0
@@ -136,12 +143,13 @@ const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: numbe
     if (!entry) continue
 
     const date = new Date(year, month - 1, day)
-    const weekend = isWeekendOrHoliday(date)
+    const plan = workPlanMap.get(day)
+    const weekend = plan ? !plan.is_working_day : isWeekendOrHoliday(date)
 
     if (entry.status === 'work' || entry.status === 'remote' || entry.status === 'sick_worked') {
-      const hours = getWorkedHours(entry, date)
+      const hours = getWorkedHours(entry, date, plan)
       totalHours += hours
-      overtimeHours += Math.max(0, hours - getDailyHoursNorm(date))
+      overtimeHours += Math.max(0, hours - (plan?.planned_hours ?? getDailyHoursNorm(date)))
 
       if (entry.status === 'remote') {
         remoteDays += 1
@@ -174,17 +182,37 @@ const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: numbe
 
 const getCellVisual = (
   entry: TimesheetEntry | undefined,
-  date: Date
+  date: Date,
+  plan?: WorkPlan
 ): { label: string; className: string; title: string; underworkTag?: string } | null => {
-  if (!entry) return null
+  const planTitle = plan
+    ? `График: ${plan.schedule_name || plan.schedule_type}. ${plan.is_working_day
+      ? `${String(plan.work_start || '').slice(0, 5)}–${String(plan.work_end || '').slice(0, 5)}, план ${formatHours(plan.planned_hours)} ч.`
+      : 'Выходной по графику.'}`
+    : 'График FOT не загружен.'
+  const correctionTitle = entry?.is_correction
+    ? ` Корректировка${entry.correction_author ? `: ${entry.correction_author}` : ''}${entry.correction_reason ? ` — ${entry.correction_reason}` : ''}${entry.correction_approval_status ? ` (${entry.correction_approval_status})` : ''}.`
+    : ''
+
+  if (!entry) {
+    if (!plan?.is_working_day) return null
+    return {
+      label: formatHours(plan.planned_hours),
+      className: 'ts-pill ts-pill-hours ts-plan-only',
+      title: `${planTitle} Факт пока отсутствует.`
+    }
+  }
 
   if (entry.status === 'work' || entry.status === 'remote') {
-    const hours = getWorkedHours(entry, date)
-    const rawHours = roundTimesheetHours(entry.hours_worked, getDailyHoursNorm(date))
-    const minimumHours = getMinimumHoursForDay(date)
-    const isCritical = hours < 3
-    const isUnderworked = hours < minimumHours
-    const isOverTenHours = hours > 10
+    const hours = getWorkedHours(entry, date, plan)
+    const rawHours = roundTimesheetHours(entry.hours_worked, plan?.planned_hours ?? getDailyHoursNorm(date))
+    const minimumHours = plan?.is_working_day
+      ? (plan.full_day_threshold_hours || plan.planned_hours)
+      : (plan ? 0 : getMinimumHoursForDay(date))
+    const outsidePlan = Boolean(plan && !plan.is_working_day)
+    const isUnderworked = minimumHours > 0 && hours < minimumHours
+    const isCritical = isUnderworked && hours < 3
+    const isOverPlan = plan ? hours > plan.planned_hours : hours > 10
     const baseTone = entry.status === 'remote'
       ? 'ts-tone-remote'
       : (isWeekendOrHoliday(date) ? 'ts-tone-weekend' : 'ts-tone-workday')
@@ -192,43 +220,48 @@ const getCellVisual = (
     let stateTone = 'ts-state-normal'
     if (isCritical) {
       stateTone = 'ts-state-critical'
-    } else if (isOverTenHours) {
-      stateTone = 'ts-state-high'
-    } else if (isUnderworked) {
+    } else if (isUnderworked || outsidePlan) {
       stateTone = 'ts-state-low'
+    } else if (isOverPlan) {
+      stateTone = 'ts-state-high'
     }
 
     const titlePrefix = entry.status === 'remote'
       ? TIMESHEET_STATUS_META.remote.label
       : TIMESHEET_STATUS_META.work.label
     const hasAdjustedHours = Math.abs(rawHours - hours) > 0.001
-    const title = hasAdjustedHours
-      ? `${titlePrefix}. Факт в табеле: ${formatHours(rawHours)} ч. Учтено в расчёте: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
-      : `${titlePrefix}. Отработано: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
+    const factTitle = hasAdjustedHours
+      ? `${titlePrefix}. Факт: ${formatHours(rawHours)} ч, учтено: ${formatHours(hours)} ч.`
+      : `${titlePrefix}. Факт: ${formatHours(hours)} ч.`
+    const complianceTitle = outsidePlan
+      ? ' Нарушение: работа вне графика.'
+      : (isUnderworked ? ' Нарушение: факт ниже порога полного дня.' : ' График соблюдён.')
+    const title = `${planTitle} ${factTitle}${complianceTitle}${correctionTitle}`
 
     return {
       label: entry.status === 'remote' ? TIMESHEET_STATUS_META.remote.short : formatHours(hours),
       className: `ts-pill ${entry.status === 'remote' ? 'ts-pill-status' : 'ts-pill-hours'} ${baseTone} ${stateTone}`,
       title,
-      underworkTag: isUnderworked ? getUnderworkTag(date) : undefined
+      underworkTag: outsidePlan ? 'вне плана' : (isUnderworked ? `<${formatHours(minimumHours)}ч` : undefined)
     }
   }
 
   if (entry.status === 'sick_worked') {
-    const hours = getWorkedHours(entry, date)
+    const hours = getWorkedHours(entry, date, plan)
     const meta = TIMESHEET_STATUS_META.sick_worked
     return {
       label: meta.short,
       className: `ts-pill ts-pill-status ts-status-${meta.className}`,
-      title: `${meta.label}. Учтено: ${formatHours(hours)} ч.`
+      title: `${planTitle} ${meta.label}. Учтено: ${formatHours(hours)} ч.${correctionTitle}`
     }
   }
 
   const meta = TIMESHEET_STATUS_META[entry.status]
   return {
     label: meta.short,
-    className: `ts-pill ts-pill-status ts-status-${meta.className}`,
-    title: `${meta.label}. Отработано: 0 ч.`
+    className: `ts-pill ts-pill-status ts-status-${meta.className} ${entry.status === 'absent' && plan?.is_working_day ? 'ts-state-critical' : ''}`,
+    title: `${planTitle} ${meta.label}. Отработано: 0 ч.${entry.status === 'absent' && plan?.is_working_day ? ' Нарушение графика.' : ''}${correctionTitle}`,
+    underworkTag: entry.status === 'absent' && plan?.is_working_day ? '0ч' : undefined
   }
 }
 
@@ -243,14 +276,14 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
 
   const daysInMonth = new Date(year, month, 0).getDate()
   const allDays = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => i + 1), [daysInMonth])
-  const monthNormHours = useMemo(() => (
+  const fallbackMonthNormHours = useMemo(() => (
     allDays.reduce((sum, day) => {
       const date = new Date(year, month - 1, day)
       if (isWeekendOrHoliday(date)) return sum
       return sum + getTimesheetNormHours(date)
     }, 0)
   ), [allDays, month, year])
-  const monthNormDays = useMemo(() => (
+  const fallbackMonthNormDays = useMemo(() => (
     allDays.reduce((sum, day) => {
       const date = new Date(year, month - 1, day)
       return isWeekendOrHoliday(date) ? sum : sum + 1
@@ -307,14 +340,23 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
     return map
   }, [employees, year, month])
 
+  const workPlansByEmployee = useMemo(() => {
+    const map = new Map<number, Map<number, WorkPlan>>()
+    for (const employee of employees) {
+      map.set(employee.id, buildWorkPlanMap(employee.workPlans, year, month))
+    }
+    return map
+  }, [employees, year, month])
+
   const employeeStats = useMemo(() => {
     const stats = new Map<number, EmployeeStats>()
     for (const employee of employees) {
       const timesheetMap = timesheetByEmployee.get(employee.id) || new Map<number, TimesheetEntry>()
-      stats.set(employee.id, getEmployeeStats(timesheetMap, year, month, allDays))
+      const workPlanMap = workPlansByEmployee.get(employee.id) || new Map<number, WorkPlan>()
+      stats.set(employee.id, getEmployeeStats(timesheetMap, workPlanMap, year, month, allDays))
     }
     return stats
-  }, [allDays, employees, month, timesheetByEmployee, year])
+  }, [allDays, employees, month, timesheetByEmployee, workPlansByEmployee, year])
 
   const departmentColors = useMemo(() => {
     const colors = new Map<string, string>()
@@ -413,9 +455,9 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
         <span className="ts-legend-title">Легенда</span>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-weekend" /> Выходные дни</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-workday" /> Рабочие дни (будни)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-low" /> Недоработка (ярлык &lt;9/&lt;8/&lt;5)</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-low" /> Нарушение графика FOT</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-state-critical" /> Критично (&lt;3ч)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-high" /> Повышенная нагрузка (&gt;10ч)</div>
+        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-high" /> Сверх плана FOT</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-vacation">От</span> Отпуск</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-sick">Б</span> Больничный</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-absent">Н</span> Неявка</div>
@@ -424,6 +466,7 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
         <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-unpaid">С</span> За свой счёт</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-educational">У</span> Учебный отпуск</div>
         <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-sick-worked">РБ</span> Работа на больничном</div>
+        <div className="ts-legend-item"><span className="ts-correction-dot ts-legend-correction">К</span> Корректировка FOT</div>
       </div>
 
       {!isMobile && (
@@ -462,6 +505,14 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                   </tr>
                   {!collapsedDepartments[subdivision] && groupEmps.map(emp => {
                     const timesheetMap = timesheetByEmployee.get(emp.id) || new Map<number, TimesheetEntry>()
+                    const workPlanMap = workPlansByEmployee.get(emp.id) || new Map<number, WorkPlan>()
+                    const hasWorkPlans = workPlanMap.size > 0
+                    const monthNormHours = hasWorkPlans
+                      ? Array.from(workPlanMap.values()).reduce((sum, plan) => sum + (plan.is_working_day ? plan.planned_hours : 0), 0)
+                      : fallbackMonthNormHours
+                    const monthNormDays = hasWorkPlans
+                      ? Array.from(workPlanMap.values()).filter(plan => plan.is_working_day).length
+                      : fallbackMonthNormDays
                     const stats = employeeStats.get(emp.id) || {
                       workDays: 0,
                       remoteDays: 0,
@@ -505,8 +556,9 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                         {daysToShow.map(day => {
                           const date = new Date(year, month - 1, day)
                           const entry = timesheetMap.get(day)
-                          const visual = getCellVisual(entry, date)
-                          const weekend = isWeekendDay(year, month, day)
+                          const plan = workPlanMap.get(day)
+                          const visual = getCellVisual(entry, date, plan)
+                          const weekend = plan ? !plan.is_working_day : isWeekendDay(year, month, day)
                           const dateStr = toIsoDate(year, month, day)
 
                           return (
@@ -520,7 +572,7 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                                 <span className={visual.className} title={visual.title} aria-label={visual.title}>
                                   {visual.underworkTag && <span className="ts-underwork-tag">{visual.underworkTag}</span>}
                                   {visual.label}
-                                  {entry?.is_correction && <span className="ts-correction-dot" />}
+                                  {entry?.is_correction && <span className="ts-correction-dot">К</span>}
                                 </span>
                               ) : (
                                 <span className="ts-cell-empty">—</span>
@@ -579,6 +631,14 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                 <div className="ts-mobile-cards">
                   {groupEmps.map(emp => {
                     const timesheetMap = timesheetByEmployee.get(emp.id) || new Map<number, TimesheetEntry>()
+                    const workPlanMap = workPlansByEmployee.get(emp.id) || new Map<number, WorkPlan>()
+                    const hasWorkPlans = workPlanMap.size > 0
+                    const monthNormHours = hasWorkPlans
+                      ? Array.from(workPlanMap.values()).reduce((sum, plan) => sum + (plan.is_working_day ? plan.planned_hours : 0), 0)
+                      : fallbackMonthNormHours
+                    const monthNormDays = hasWorkPlans
+                      ? Array.from(workPlanMap.values()).filter(plan => plan.is_working_day).length
+                      : fallbackMonthNormDays
                     const stats = employeeStats.get(emp.id) || {
                       workDays: 0,
                       remoteDays: 0,
@@ -641,8 +701,9 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                           {daysToShow.map(day => {
                             const date = new Date(year, month - 1, day)
                             const entry = timesheetMap.get(day)
-                            const visual = getCellVisual(entry, date)
-                            const weekend = isWeekendDay(year, month, day)
+                            const plan = workPlanMap.get(day)
+                            const visual = getCellVisual(entry, date, plan)
+                            const weekend = plan ? !plan.is_working_day : isWeekendDay(year, month, day)
                             const dateStr = toIsoDate(year, month, day)
 
                             return (
@@ -661,7 +722,7 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                                   <span className={visual.className} title={visual.title} aria-label={visual.title}>
                                     {visual.underworkTag && <span className="ts-underwork-tag">{visual.underworkTag}</span>}
                                     {visual.label}
-                                    {entry?.is_correction && <span className="ts-correction-dot" />}
+                                    {entry?.is_correction && <span className="ts-correction-dot">К</span>}
                                   </span>
                                 ) : (
                                   <span className="ts-cell-empty">—</span>

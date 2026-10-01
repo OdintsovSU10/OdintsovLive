@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { parseTimesheetExcel, extractLastName } from '../utils/excelParser'
-import { roundTimesheetHours } from '../utils/salaryCalculator'
+import { getRemoteFullDayHours, roundTimesheetHours } from '../utils/salaryCalculator'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
 import type { ParsedTimesheetRow, ImportResult, Employee } from '../types'
 
@@ -77,11 +77,14 @@ export function useTimesheetImport() {
 
           for (const day of row.days) {
             const workDate = `${row.year}-${String(row.month).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`
+            const date = new Date(row.year, row.month - 1, day.day)
             rowsToUpsert.push({
               employee_id: row.matched_employee_id!,
               work_date: workDate,
               status: day.status,
-              hours_worked: day.hours == null ? null : roundTimesheetHours(day.hours),
+              hours_worked: day.status === 'remote'
+                ? getRemoteFullDayHours(day.hours, date)
+                : (day.hours == null ? null : roundTimesheetHours(day.hours)),
               is_correction: day.is_correction
             })
           }
@@ -114,7 +117,7 @@ export function useTimesheetImport() {
               }
               totalHours += hours
             } else if (day.status === 'remote') {
-              const hours = roundTimesheetHours(day.hours, 8)
+              const hours = getRemoteFullDayHours(day.hours, date)
               if (isWeekend) {
                 // Удалёнка в выходной тоже считается рабочим выходным (>= 3ч)
                 if (hours >= 3) weekendWorkDays++

@@ -45,6 +45,7 @@ interface DepartmentPayrollGroup {
   count: number
   totals: {
     salary: number
+    timesheetPay: number
     calculatedWorkPay: number
     weekendPay: number
     transportPay: number
@@ -203,6 +204,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
       const color = DEPT_COLORS[index % DEPT_COLORS.length]
       const totals = group.rows.reduce((acc, row) => {
         acc.salary += row.salaryForMonth
+        acc.timesheetPay += row.calculation.calculated_salary
         acc.calculatedWorkPay += (row.calculation.calculated_salary - row.calculation.weekend_payment) + row.monthlyBonus
         acc.weekendPay += row.calculation.weekend_payment
         acc.transportPay += row.calculation.transport_payment
@@ -213,6 +215,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
         return acc
       }, {
         salary: 0,
+        timesheetPay: 0,
         calculatedWorkPay: 0,
         weekendPay: 0,
         transportPay: 0,
@@ -234,6 +237,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
     const totals = groups.reduce((acc, group) => {
       acc.employees += group.count
       acc.salary += group.totals.salary
+      acc.timesheetPay += group.totals.timesheetPay
       acc.calculatedWorkPay += group.totals.calculatedWorkPay
       acc.weekendPay += group.totals.weekendPay
       acc.transportPay += group.totals.transportPay
@@ -245,6 +249,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
     }, {
       employees: 0,
       salary: 0,
+      timesheetPay: 0,
       calculatedWorkPay: 0,
       weekendPay: 0,
       transportPay: 0,
@@ -396,7 +401,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
             {payrollData.growthAbsolute > 0 ? '▲' : payrollData.growthAbsolute < 0 ? '▼' : '•'} {Math.abs(payrollData.growthPercent).toFixed(1)}%
             <span>
               {livePayroll.isLive
-                ? `По табелю: ${formatMoney(payrollData.totals.final)}`
+                ? `По табелю: ${formatMoney(payrollData.totals.timesheetPay)}`
                 : formatMoney(payrollData.growthAbsolute)}
             </span>
           </div>

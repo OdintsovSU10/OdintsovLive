@@ -4,11 +4,12 @@ import { useLivePayroll } from './hooks/useLivePayroll'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
 import { DashboardOverview } from './components/DashboardOverview'
+import { ManagementAgent } from './components/ManagementAgent'
 import { EmployeeSkudEvents } from './components/EmployeeSkudEvents'
 import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { getWorkDaysNorm } from '../../lib/workNorms'
-import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from './utils/salaryCalculator'
+import { calculateSalary, getDailyHoursNorm, getRemoteFullDayHours, getSalaryForMonth, isWeekendOrHoliday, roundTimesheetHours } from './utils/salaryCalculator'
 import {
   calculateEmployeeMonthlyPayrollPlan,
   formatLiveMoney,
@@ -44,6 +45,7 @@ const monthNames = [
 ]
 
 const tabsOrder: Array<{ key: TenderTab; label: string }> = [
+  { key: 'agent', label: 'Агент' },
   { key: 'dashboard', label: 'Дашборд' },
   { key: 'timesheet', label: 'Табель' },
   { key: 'fot', label: 'ФОТ' }
@@ -157,13 +159,8 @@ function resolveTimesheetWorkedHours(entry: TimesheetEntry, date: Date): number 
     return roundTimesheetHours(entry.hours_worked) || expectedHours
   }
 
-  if (
-    entry.status === 'remote'
-    && !isWeekendOrHoliday(date)
-    && entry.hours_worked === 8
-    && !entry.is_correction
-  ) {
-    return expectedHours
+  if (entry.status === 'remote') {
+    return getRemoteFullDayHours(entry.hours_worked, date)
   }
 
   return roundTimesheetHours(entry.hours_worked, expectedHours)
@@ -740,6 +737,7 @@ export function EmployeeDetail({
       normHours: 0,
       overtime: 0,
       earned: 0,
+      timesheetEarned: 0,
       statusCounts: createEmptyTimesheetStatusCounts()
     }
 
@@ -842,6 +840,7 @@ export function EmployeeDetail({
       normHours: Math.round(normHours),
       overtime: Math.round(overtime),
       earned: salaryCalc.final_salary,
+      timesheetEarned: salaryCalc.calculated_salary,
       statusCounts
     }
   }, [
@@ -1074,7 +1073,7 @@ export function EmployeeDetail({
           </div>
           <div className="tender-detail-live-metric">
             <small>По табелю</small>
-            <strong>{Math.round(selectedMonthStats.earned).toLocaleString('ru-RU')} ₽</strong>
+            <strong>{Math.round(selectedMonthStats.timesheetEarned).toLocaleString('ru-RU')} ₽</strong>
           </div>
         </div>
         <div
@@ -1125,7 +1124,7 @@ export function EmployeeDetail({
         </article>
         <article className="tender-detail-kpi-card">
           <small>По табелю</small>
-          <strong style={{ color: '#a5b4fc' }}>{Math.round(selectedMonthStats.earned).toLocaleString('ru-RU')} ₽</strong>
+          <strong style={{ color: '#a5b4fc' }}>{Math.round(selectedMonthStats.timesheetEarned).toLocaleString('ru-RU')} ₽</strong>
         </article>
       </div>
 
@@ -1398,7 +1397,7 @@ export default function TenderPage() {
   const [filterDept, setFilterDept] = useState('all')
   const [filterSubdiv, setFilterSubdiv] = useState('all')
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
-  const [activeTab, setActiveTab] = useState<TenderTab>('dashboard')
+  const [activeTab, setActiveTab] = useState<TenderTab>('agent')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
   const departments = useMemo(
@@ -1515,6 +1514,7 @@ export default function TenderPage() {
               {tab.label}
             </button>
           ))}
+          <div id="tender-tab-status" className="tender-shell-status" />
         </nav>
       </header>
 
@@ -1528,6 +1528,15 @@ export default function TenderPage() {
           />
         ) : (
           <>
+            {activeTab === 'agent' && (
+              <ManagementAgent
+                employees={employees}
+                year={selectedYear}
+                month={selectedMonth}
+                onSelectEmployee={setSelectedEmployee}
+              />
+            )}
+
             {activeTab === 'dashboard' && (
               <DashboardOverview
                 employees={employees}

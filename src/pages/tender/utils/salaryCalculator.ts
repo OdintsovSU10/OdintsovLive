@@ -106,6 +106,11 @@ export function getDailyHoursNorm(date: Date): number {
   return DAILY_HOURS[dayOfWeek] || 8
 }
 
+// Удалёнка всегда считается полным днём: меньше 9 часов быть не может.
+export function getRemoteFullDayHours(hours: number | null | undefined, _date: Date): number {
+  return Math.max(roundTimesheetHours(hours), 9)
+}
+
 interface SalaryInput {
   employee_id: number
   base_salary: number
@@ -150,7 +155,7 @@ export function calculateSalary(input: SalaryInput): SalaryCalculation {
         }
         break
       case 'remote':
-        const remoteHours = hours || getDailyHoursNorm(entryDate)
+        const remoteHours = getRemoteFullDayHours(entry.hours_worked, entryDate)
         if (isWeekend) {
           // Удалёнка в выходной тоже считается рабочим выходным (>= 3ч)
           if (remoteHours >= 3) weekend_work_days++

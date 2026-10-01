@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Clock, RefreshCw } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { useLocation } from 'react-router-dom'
+import { RefreshCw } from 'lucide-react'
 import './AppUpdatePrompt.css'
 
 declare const __APP_BUILD_VERSION__: string
@@ -11,8 +13,6 @@ interface AppVersionInfo {
 
 const VERSION_URL = '/app-version.json'
 const CHECK_INTERVAL_MS = 2 * 60 * 1000
-const SNOOZE_MS = 30 * 60 * 1000
-const SNOOZE_STORAGE_KEY = 'app-update-snooze'
 
 function parseVersionInfo(payload: unknown): AppVersionInfo | null {
   if (!payload || typeof payload !== 'object') return null
@@ -24,26 +24,10 @@ function parseVersionInfo(payload: unknown): AppVersionInfo | null {
   return { version, builtAt: builtAt || undefined }
 }
 
-function getSnoozedUntil(version: string): number {
-  try {
-    const raw = localStorage.getItem(SNOOZE_STORAGE_KEY)
-    if (!raw) return 0
-
-    const parsed = JSON.parse(raw) as { version?: string; until?: number }
-    if (parsed.version !== version) return 0
-
-    return typeof parsed.until === 'number' ? parsed.until : 0
-  } catch {
-    return 0
-  }
-}
-
-function setSnoozedUntil(version: string, until: number) {
-  localStorage.setItem(SNOOZE_STORAGE_KEY, JSON.stringify({ version, until }))
-}
-
 function AppUpdatePrompt() {
+  const location = useLocation()
   const [availableVersion, setAvailableVersion] = useState<AppVersionInfo | null>(null)
+  const [updateTarget, setUpdateTarget] = useState<HTMLElement | null>(null)
 
   const checkForUpdate = useCallback(async () => {
     try {
@@ -63,8 +47,6 @@ function AppUpdatePrompt() {
         setAvailableVersion(null)
         return
       }
-
-      if (getSnoozedUntil(nextVersion.version) > Date.now()) return
 
       setAvailableVersion(nextVersion)
     } catch (error) {
@@ -95,39 +77,34 @@ function AppUpdatePrompt() {
     }
   }, [checkForUpdate])
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setUpdateTarget(document.getElementById('tender-tab-status'))
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [availableVersion, location.pathname])
+
   if (!availableVersion) return null
 
   const handleUpdate = () => {
-    localStorage.removeItem(SNOOZE_STORAGE_KEY)
     window.location.reload()
   }
 
-  const handleSnooze = () => {
-    setSnoozedUntil(availableVersion.version, Date.now() + SNOOZE_MS)
-    setAvailableVersion(null)
-  }
-
-  return (
-    <div className="app-update-prompt" role="dialog" aria-live="polite" aria-labelledby="app-update-title">
-      <div className="app-update-prompt__icon">
-        <RefreshCw size={20} />
-      </div>
-      <div className="app-update-prompt__content">
-        <h2 id="app-update-title">Доступна новая версия</h2>
-        <p>Обновите страницу, чтобы увидеть последние изменения.</p>
-      </div>
-      <div className="app-update-prompt__actions">
-        <button className="app-update-prompt__button app-update-prompt__button--primary" onClick={handleUpdate}>
-          <RefreshCw size={16} />
-          <span>Обновить</span>
-        </button>
-        <button className="app-update-prompt__button" onClick={handleSnooze}>
-          <Clock size={16} />
-          <span>Позже</span>
-        </button>
-      </div>
-    </div>
+  const updateButton = (
+    <button
+      type="button"
+      className={`app-update-prompt ${updateTarget ? 'app-update-prompt--inline' : ''}`}
+      onClick={handleUpdate}
+      aria-label="Доступна новая версия. Обновить страницу"
+      title="Доступна новая версия — нажмите, чтобы обновить"
+    >
+      <RefreshCw size={16} aria-hidden="true" />
+      <span className="app-update-prompt__dot" aria-hidden="true" />
+    </button>
   )
+
+  return updateTarget ? createPortal(updateButton, updateTarget) : updateButton
 }
 
 export default AppUpdatePrompt
