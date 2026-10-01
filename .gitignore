@@ -34,3 +34,6 @@ npm-debug.log*
 
 # Telegram bot: receipts saved on disk
 ops/telegram-bot/data/
+
+# Claude Code: local settings (may contain secrets)
+.claude/settings.local.json
