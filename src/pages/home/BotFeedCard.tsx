@@ -20,6 +20,7 @@ const FEED_LIMIT = 5
 
 const TABLE_LABELS: Record<string, string> = {
   expense_transactions: 'Траты',
+  salary_payments: 'Зарплата',
   car_fuel: 'Заправка',
   car_maintenance: 'ТО',
   car_expenses: 'Машина',

@@ -1,8 +1,10 @@
 // Разбор сообщений через OpenRouter: нейронка выбирает инструменты (tool calls) и заполняет поля,
-// запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает ElevenLabs.
+// запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает Deepgram
+// (запасной — ElevenLabs).
 import { BODY_PARAM_FIELDS, CAR_EXPENSE_CATEGORIES, ENGINE_OIL_KEY, FUEL_TYPES } from './actions.mjs'
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const DEEPGRAM_STT_URL = 'https://api.deepgram.com/v1/listen'
 const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text'
 
 const fn = (name, description, properties, required) => ({
@@ -27,13 +29,20 @@ const buildTools = ctx => {
   )
 
   return [
-    fn('add_purchase', 'Покупка или трата денег. Не для заправки и не для расходов на машину.', {
+    fn('add_purchase', 'Покупка или трата денег. Не для заправки, не для расходов на машину и не для зарплаты и других зачислений.', {
       date,
       amount: money('Сумма в рублях, положительное число'),
       category,
       merchant: { type: 'string', description: 'Магазин или место, если известно' },
       description: { type: 'string', description: 'Что купили, коротко, с большой буквы' }
     }, ['date', 'amount', 'category', 'description']),
+    fn('add_salary', 'Зачисление зарплаты, аванса, премии, отпускных. Это доход, не трата.', {
+      date,
+      amount: money('Сумма зачисления в рублях, положительное число'),
+      month: { type: 'integer', description: 'Месяц, за который зарплата: 1 — январь, 12 — декабрь' },
+      year: { type: 'integer', description: 'Год, за который зарплата, — только если назван' },
+      note: { type: 'string', description: 'Комментарий пользователя его словами: «аванс», «премия», «вторая часть»' }
+    }, ['date', 'amount', 'month']),
     fn('add_fuel', 'Заправка машины топливом. Нужны литры или сумма.', {
       date,
       car_id: carId,
@@ -106,6 +115,9 @@ ${cars}
 - ТО, ремонт, мойка, парковка, штраф, страховка, запчасти для машины → add_car_service.
 - Поле resets в add_car_service — только то, что реально заменили: масло двигателя → ${ENGINE_OIL_KEY}, агрегат из списка машины → его id. «Сделал ТО», «поменял масло» — это замена масла двигателя. «Купил масло, фильтры, запчасти для ТО» без слов о замене — тоже kind maintenance, только resets пустой: покупка счётчик пробега не сбрасывает.
 - Замена (resets не пуст), а пробег не назван — не вызывай инструмент, спроси пробег по одометру.
+- Зарплата, зп, аванс, премия, отпускные, больничные — это зачисление, а не трата → add_salary, не add_purchase. Скриншот или уведомление банка о зачислении зарплаты — тоже add_salary.
+- Поле month в add_salary — месяц, за который зарплата, а не дата зачисления: «за сентябрь» → 9, «за прошлый месяц» считай от сегодняшней даты. Месяц не назван — не вызывай инструмент, спроси «За какой месяц?». Поле year — только если год назван.
+- Поле note в add_salary — комментарий пользователя его словами, без суммы и месяца. Комментария нет — не заполняй.
 - Фото чека: возьми итоговую сумму, дату и магазин. Чек с АЗС на топливо → add_fuel.
 - Фото счётчика электричества (дисплей с кВт·ч) или водомеров → meter_photo, не add_purchase.
 - Не выдумывай числа. Если не хватает обязательного (например, суммы покупки) или сообщение не про учёт — не вызывай инструменты, а ответь одним коротким предложением (уточняющий вопрос).`
@@ -154,9 +166,30 @@ export const callLlm = async (config, ctx, history) => {
   }
 }
 
-// Голосовое (OGG/Opus из Telegram) → текст через ElevenLabs Scribe. ElevenLabs блокирует РФ,
+// Голосовое (OGG/Opus из Telegram) → текст через Deepgram: файл уходит телом запроса как есть
+const transcribeDeepgram = async (config, audio) => {
+  const params = new URLSearchParams({
+    model: config.deepgramModel,
+    language: config.deepgramLanguage,
+    punctuate: 'true',
+    smart_format: 'true'
+  })
+  const res = await fetch(`${DEEPGRAM_STT_URL}?${params}`, {
+    method: 'POST',
+    headers: { Authorization: `Token ${config.deepgramKey}`, 'Content-Type': 'audio/ogg' },
+    body: audio,
+    signal: AbortSignal.timeout(60_000)
+  })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(`Deepgram ${res.status}: ${data?.err_msg || 'ошибка распознавания'}`)
+  }
+  return (data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '').trim()
+}
+
+// Запасной вариант, пока ключа Deepgram нет: ElevenLabs Scribe. ElevenLabs блокирует РФ,
 // поэтому запрос идёт через tinyproxy на nl3 (HTTPS_PROXY в docker-compose.yml)
-export const transcribe = async (config, audio) => {
+const transcribeElevenlabs = async (config, audio) => {
   const form = new FormData()
   form.append('file', new Blob([audio], { type: 'audio/ogg' }), 'voice.ogg')
   form.append('model_id', 'scribe_v2')
@@ -174,3 +207,6 @@ export const transcribe = async (config, audio) => {
   }
   return (data?.text || '').trim()
 }
+
+export const transcribe = (config, audio) =>
+  (config.deepgramKey ? transcribeDeepgram(config, audio) : transcribeElevenlabs(config, audio))

@@ -24,6 +24,7 @@ const VOICE_MAX_SECONDS = 120
 const HELP = `Пиши как есть, я разложу по разделам сайта:
 • «заправился 40 л по 62.5, пробег 123456»
 • «кофе 350», «вчера продукты в Ленте 2.4к»
+• «зарплата за сентябрь 150к, аванс»
 • «поменял масло 4500, пробег 120 000», «мойка 800»
 • «вес 82.4», «талия 84, грудь 102»
 • фото чека (можно с подписью)
@@ -35,6 +36,7 @@ const log = (...args) => console.log(new Date().toISOString(), ...args)
 
 // .env — только доступ к Supabase и часовой пояс. Ключи бота задаются в портале
 // (Админка → Telegram-бот, таблица bot_settings); значения из .env — запасные.
+// Ключ Deepgram (голосовые) — только в .env.
 const loadEnv = () => {
   const fileEnv = fs.existsSync(ENV_FILE) ? parseEnv(fs.readFileSync(ENV_FILE, 'utf8')) : {}
   const env = { ...process.env, ...fileEnv }
@@ -45,6 +47,9 @@ const loadEnv = () => {
     timeZone: env.TZ || 'Europe/Moscow',
     receiptsDir: env.RECEIPTS_DIR || path.join(DIR, 'data', 'receipts'),
     metersDir: env.METERS_DIR || path.join(DIR, 'data', 'meters'),
+    deepgramKey: env.DEEPGRAM_API_KEY,
+    deepgramModel: env.DEEPGRAM_MODEL || 'nova-3',
+    deepgramLanguage: env.DEEPGRAM_LANGUAGE || 'ru',
     fallback: {
       token: env.TELEGRAM_BOT_TOKEN,
       ownerTelegramId: env.TELEGRAM_OWNER_ID,
@@ -175,8 +180,8 @@ const createBot = config => {
       chat.photo = await downloadFile(config, tg, msg.photo.at(-1).file_id)
       content = photoContent(chat.photo, msg.caption)
     } else if (msg.voice) {
-      if (!config.elevenlabsKey) {
-        await reply(msg, 'Голосовые не настроены: нужен ключ ElevenLabs в Админке → Telegram-бот')
+      if (!config.deepgramKey && !config.elevenlabsKey) {
+        await reply(msg, 'Голосовые не настроены: нужен DEEPGRAM_API_KEY в .env бота')
         return
       }
       if (msg.voice.duration > VOICE_MAX_SECONDS) {

@@ -13,13 +13,16 @@ Telegram ──getUpdates──► odintsovlive-bot (quantor, node:24-alpine)
 Бот живёт на `quantor`, а не на Selectel: с Selectel Telegram API заблокирован,
 OpenRouter отвечает 403. На `quantor` трафик к ним идёт через туннель AmneziaWG (`awg0`).
 
-Голосовые расшифровывает ElevenLabs Scribe (`scribe_v2`), затем текст разбирается как обычный.
+Голосовые расшифровывает Deepgram (`nova-3`, `POST /v1/listen`, OGG/Opus телом запроса), затем текст
+разбирается как обычный. Ключ — `DEEPGRAM_API_KEY` в `.env` бота, модель и язык — `DEEPGRAM_MODEL`,
+`DEEPGRAM_LANGUAGE`. Без ключа Deepgram работает запасной ElevenLabs Scribe (`scribe_v2`, ключ в Админке).
 ElevenLabs блокирует РФ — его запросы идут через tinyproxy на nl3 (`194.37.81.38:18443`,
 IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `environment` в `docker-compose.yml`.
 
 | Инструмент | Куда пишет |
 |---|---|
 | `add_purchase` | `expense_transactions` |
+| `add_salary` | `salary_payments` (месяц, за который зарплата; в траты не дублируется) |
 | `add_fuel` | `car_fuel` + `expense_transactions` |
 | `add_car_service` | `car_maintenance` / `car_expenses` + `expense_transactions`, если есть сумма |
 | `add_weight` | `body_weight` |
@@ -61,7 +64,8 @@ IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `env
 - Записи бота привязываются к аккаунту портала, который сохранил настройки.
 
 В `.env` на сервере только доступ к базе (см. `.env.example`): `SUPABASE_URL`,
-`SUPABASE_SERVICE_ROLE_KEY` (из `/opt/supabase/.env`), `TZ`. Ключи бота в `.env` — запасной вариант.
+`SUPABASE_SERVICE_ROLE_KEY` (из `/opt/supabase/.env`), `TZ` и ключ Deepgram. Остальные ключи бота
+в `.env` — запасной вариант. `.env` читается при старте: после правки — `docker restart odintsovlive-bot`.
 
 ## Проверка разбора без записи
 

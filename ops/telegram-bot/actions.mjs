@@ -22,8 +22,10 @@ export const BODY_PARAM_FIELDS = {
   thigh_right: 'бедро правое'
 }
 
+const MONTH_NAMES = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
+
 // Отменять можно только то, что бот создаёт сам
-const UNDO_TABLES = new Set(['expense_transactions', 'car_fuel', 'car_maintenance', 'car_expenses', 'body_weight', 'body_params', 'meter_ocr_jobs'])
+const UNDO_TABLES = new Set(['expense_transactions', 'salary_payments', 'car_fuel', 'car_maintenance', 'car_expenses', 'body_weight', 'body_params', 'meter_ocr_jobs'])
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -200,6 +202,32 @@ const addPurchase = async ({ rest, ctx, track, entryId, index, args }) => {
   return `🛒 ${what}${merchant ? ` (${merchant})` : ''}: ${fmtMoney(amount)} · ${category} · ${date}`
 }
 
+// Год не назван (или назван так, что месяц уходит далеко в будущее) — берём ближайший такой месяц:
+// «за декабрь» в январе — это декабрь прошлого года
+const pickSalaryYear = (ctx, month, value) => {
+  const [currentYear, currentMonth] = ctx.today.split('-').map(Number)
+  const monthsAhead = year => (year - currentYear) * 12 + month - currentMonth
+  const named = toNumber(value)
+  if (Number.isInteger(named) && named >= 2000 && monthsAhead(named) <= 6) return named
+  return monthsAhead(currentYear) > 6 ? currentYear - 1 : currentYear
+}
+
+// Зарплата — доход: в expense_transactions не дублируем, зачисление придёт из банковской выписки
+const addSalary = async ({ rest, ctx, track, args }) => {
+  const amount = toNumber(args.amount)
+  if (!amount || amount <= 0) throw new UserError('Не понял сумму зарплаты')
+  const month = toNumber(args.month)
+  if (!Number.isInteger(month) || month < 1 || month > 12) throw new UserError('Не понял, за какой месяц зарплата')
+  const year = pickSalaryYear(ctx, month, args.year)
+  const date = pickDate(ctx, args.date)
+  const note = args.note?.trim() || null
+  // в базе месяц с нуля, как на сайте (Date.getMonth)
+  await insertOne(rest, 'salary_payments', {
+    user_id: ctx.userId, year, month: month - 1, amount: round2(amount), date, note
+  }, track)
+  return `💰 Зарплата за ${MONTH_NAMES[month - 1]} ${year}: ${fmtMoney(amount)}${note ? ` · ${note}` : ''} · ${date}`
+}
+
 const addFuel = async ({ rest, ctx, track, entryId, index, args }) => {
   const car = pickCar(ctx, args.car_id)
   const date = pickDate(ctx, args.date)
@@ -305,6 +333,7 @@ const addBodyParams = async ({ rest, ctx, track, args }) => {
 
 const HANDLERS = {
   add_purchase: addPurchase,
+  add_salary: addSalary,
   add_fuel: addFuel,
   add_car_service: addCarService,
   add_weight: addWeight,
