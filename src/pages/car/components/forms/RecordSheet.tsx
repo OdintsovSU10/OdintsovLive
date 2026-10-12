@@ -1,5 +1,5 @@
 import { KIND_META } from '../../constants'
-import type { CarRecord, CarType, ExpenseType, FuelType, RecordKind, RecordPayload } from '../../types'
+import type { CarRecord, CarType, ExpenseType, FuelType, RecordKind, RecordPayload, ServiceUnitType } from '../../types'
 import { formatDayShort } from '../../utils/dates'
 import { ExpenseForm } from './ExpenseForm'
 import { FormSheet } from './FormSheet'
@@ -20,13 +20,14 @@ interface Props {
   car: CarType
   fuel: FuelType[]
   expenses: ExpenseType[]
+  units: ServiceUnitType[]
   saving: boolean
   onSubmit: (payload: RecordPayload, editingId?: string) => void
   onDelete: (record: CarRecord) => void
   onClose: () => void
 }
 
-export function RecordSheet({ kind, record, car, fuel, expenses, saving, onSubmit, onDelete, onClose }: Props) {
+export function RecordSheet({ kind, record, car, fuel, expenses, units, saving, onSubmit, onDelete, onClose }: Props) {
   const title = record
     ? `${KIND_META[kind].label} · ${formatDayShort(record.row.date, true)}`
     : NEW_TITLES[kind]
@@ -55,6 +56,7 @@ export function RecordSheet({ kind, record, car, fuel, expenses, saving, onSubmi
           formId={FORM_ID}
           editing={record?.kind === 'maintenance' ? record.row : null}
           currentMileage={car.current_mileage}
+          units={units}
           onSubmit={submit}
         />
       )}

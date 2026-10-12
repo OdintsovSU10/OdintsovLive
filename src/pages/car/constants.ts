@@ -63,6 +63,10 @@ export const SERVICE_INTERVAL_KM = 5500
 export const SERVICE_INTERVAL_MONTHS = 12
 export const SERVICE_WARNING_SHARE = 0.9
 
+// Ключ счётчика масла двигателя в car_maintenance.resets; остальные значения там — id агрегатов
+export const ENGINE_OIL_KEY = 'engine_oil'
+export const ENGINE_OIL_LABEL = 'Масло двигателя'
+
 // Интервал между заправками длиннее — скорее ошибка ввода, чем реальный пробег
 export const MAX_FUEL_INTERVAL_KM = 2000
 export const MIN_CONSUMPTION_INTERVALS = 3

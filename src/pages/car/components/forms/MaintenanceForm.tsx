@@ -1,29 +1,39 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { MAINTENANCE_PRESETS } from '../../constants'
-import type { MaintenanceType, RecordPayload } from '../../types'
+import { ENGINE_OIL_KEY, ENGINE_OIL_LABEL, MAINTENANCE_PRESETS } from '../../constants'
+import type { MaintenanceType, RecordPayload, ServiceUnitType } from '../../types'
 import { todayIso } from '../../utils/dates'
 import { formatMileage } from '../../utils/format'
 import { parseDecimal, toInputValue } from '../../utils/parse'
 import { ChipGroup } from './ChipGroup'
+import { ChipMultiGroup } from './ChipMultiGroup'
 import { Field, describedBy } from './Field'
 
 interface Props {
   formId: string
   editing: MaintenanceType | null
   currentMileage: number
+  units: ServiceUnitType[]
   onSubmit: (payload: RecordPayload) => void
 }
 
 type Errors = Partial<Record<'type' | 'date' | 'mileage' | 'cost', string>>
 
-export function MaintenanceForm({ formId, editing, currentMileage, onSubmit }: Props) {
+export function MaintenanceForm({ formId, editing, currentMileage, units, onSubmit }: Props) {
   const [type, setType] = useState(editing?.type ?? '')
   const [date, setDate] = useState(editing?.date ?? todayIso())
   const [mileage, setMileage] = useState(toInputValue(editing?.mileage))
   const [cost, setCost] = useState(toInputValue(editing?.cost))
   const [description, setDescription] = useState(editing?.description ?? '')
+  const [resets, setResets] = useState<string[]>(editing?.resets ?? [])
   const [errors, setErrors] = useState<Errors>({})
+
+  const resetOptions = [
+    { key: ENGINE_OIL_KEY, label: ENGINE_OIL_LABEL },
+    ...units.map(unit => ({ key: unit.id, label: unit.name }))
+  ]
+  // Отметка удалённого агрегата в записи не сохраняется
+  const activeResets = resets.filter(key => resetOptions.some(option => option.key === key))
 
   const mileageHint = `Текущий: ${formatMileage(currentMileage)}`
 
@@ -35,6 +45,7 @@ export function MaintenanceForm({ formId, editing, currentMileage, onSubmit }: P
     if (!type.trim()) next.type = 'Что делали? Выберите или впишите'
     if (!date) next.date = 'Укажите дату'
     if (mileage && (mileageValue === null || mileageValue <= 0)) next.mileage = 'Пробег — положительное число'
+    else if (activeResets.length > 0 && !mileageValue) next.mileage = 'Укажите пробег — от него пойдёт отсчёт'
     if (cost && (costValue === null || costValue < 0)) next.cost = 'Стоимость — число'
     setErrors(next)
     if (Object.keys(next).length > 0) return
@@ -46,7 +57,8 @@ export function MaintenanceForm({ formId, editing, currentMileage, onSubmit }: P
         type: type.trim(),
         mileage: mileageValue ? Math.round(mileageValue) : null,
         cost: costValue,
-        description: description.trim() || null
+        description: description.trim() || null,
+        resets: activeResets
       }
     })
   }
@@ -58,6 +70,16 @@ export function MaintenanceForm({ formId, editing, currentMileage, onSubmit }: P
           onChange={e => setType(e.target.value)} {...describedBy('mnt-type', errors.type)} />
       </Field>
       <ChipGroup options={MAINTENANCE_PRESETS} value={type} onChange={setType} ariaLabel="Частые работы" />
+
+      <ChipMultiGroup
+        label="Что заменили"
+        options={resetOptions}
+        values={activeResets}
+        onChange={setResets}
+        hint={activeResets.length > 0
+          ? 'Счётчик пробега пойдёт заново с пробега этой записи'
+          : 'Ничего не выбрано — покупка или работа, счётчики не меняются'}
+      />
 
       <div className="car-form-row">
         <Field id="mnt-cost" label="Стоимость, ₽" error={errors.cost}>

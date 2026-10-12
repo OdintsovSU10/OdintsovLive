@@ -188,6 +188,14 @@
   white-space: nowrap;
 }
 
+.car-row-tag {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kind-color) 15%, transparent);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .car-row-amount {
   flex: 0 0 auto;
   font-size: 0.95rem;

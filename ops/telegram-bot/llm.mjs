@@ -1,6 +1,6 @@
 // Разбор сообщений через OpenRouter: нейронка выбирает инструменты (tool calls) и заполняет поля,
 // запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает ElevenLabs.
-import { BODY_PARAM_FIELDS, CAR_EXPENSE_CATEGORIES, FUEL_TYPES } from './actions.mjs'
+import { BODY_PARAM_FIELDS, CAR_EXPENSE_CATEGORIES, ENGINE_OIL_KEY, FUEL_TYPES } from './actions.mjs'
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text'
@@ -59,7 +59,12 @@ const buildTools = ctx => {
       description: { type: 'string', description: 'Подробности, если есть' },
       cost: money('Стоимость, руб'),
       mileage,
-      category
+      category,
+      resets: {
+        type: 'array',
+        items: { type: 'string', enum: [ENGINE_OIL_KEY, ...ctx.cars.flatMap(c => c.units.map(u => u.id))] },
+        description: `Только для maintenance: что реально заменили на машине — запись начнёт счётчик пробега заново. ${ENGINE_OIL_KEY} — масло двигателя, остальные значения — id агрегатов машины. Купили, но не меняли — пустой список`
+      }
     }, ['date', 'car_id', 'kind', 'title']),
     fn('meter_photo', 'Фото счётчиков электричества или воды — показания для аренды. Цифры не заполняй, их прочитает отдельная модель.', {
     }, []),
@@ -76,7 +81,12 @@ const buildTools = ctx => {
 
 const buildSystemPrompt = ctx => {
   const cars = ctx.cars.length > 0
-    ? ctx.cars.map(c => `- id ${c.id}: ${c.label}, пробег ${c.currentMileage} км, обычно ${c.lastFuelType}`).join('\n')
+    ? ctx.cars.map(c => {
+      const units = c.units.length > 0
+        ? `; агрегаты со счётчиком пробега: ${c.units.map(u => `${u.name} (id ${u.id})`).join(', ')}`
+        : ''
+      return `- id ${c.id}: ${c.label}, пробег ${c.currentMileage} км, обычно ${c.lastFuelType}${units}`
+    }).join('\n')
     : '- машин нет'
   const categories = ctx.bankCategories.length > 0 ? ctx.bankCategories.join('; ') : 'пока нет, придумай короткую'
 
@@ -94,6 +104,8 @@ ${cars}
 Правила:
 - Заправка → add_fuel, не add_purchase. Тип топлива не назван — бери обычный для этой машины.
 - ТО, ремонт, мойка, парковка, штраф, страховка, запчасти для машины → add_car_service.
+- Поле resets в add_car_service — только то, что реально заменили: масло двигателя → ${ENGINE_OIL_KEY}, агрегат из списка машины → его id. «Сделал ТО», «поменял масло» — это замена масла двигателя. «Купил масло, фильтры, запчасти для ТО» без слов о замене — resets пустой: покупка счётчик пробега не сбрасывает.
+- Замена (resets не пуст), а пробег не назван — не вызывай инструмент, спроси пробег по одометру.
 - Фото чека: возьми итоговую сумму, дату и магазин. Чек с АЗС на топливо → add_fuel.
 - Фото счётчика электричества (дисплей с кВт·ч) или водомеров → meter_photo, не add_purchase.
 - Не выдумывай числа. Если не хватает обязательного (например, суммы покупки) или сообщение не про учёт — не вызывай инструменты, а ответь одним коротким предложением (уточняющий вопрос).`

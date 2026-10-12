@@ -1,6 +1,7 @@
-/* Машина: «Данные» — карточка авто и каталог запчастей */
+/* Машина: «Данные» — карточка авто, счётчики агрегатов и каталог запчастей */
 
-.car-data {
+.car-data,
+.car-data-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
@@ -70,6 +71,50 @@
 .car-file-btn.busy {
   pointer-events: none;
   opacity: 0.7;
+}
+
+/* Агрегаты: пробег с замены. На широком экране строки встают в несколько колонок */
+
+.car-units-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 0 24px;
+}
+
+.car-unit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.car-unit-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.car-unit-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.car-unit-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.car-unit-value {
+  flex: 0 0 auto;
+  margin: 0 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Запчасти */

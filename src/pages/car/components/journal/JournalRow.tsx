@@ -13,6 +13,8 @@ interface Props {
 export function JournalRow({ entry, onOpen }: Props) {
   const Icon = KIND_ICONS[entry.kind]
   const meta = [formatDayShort(entry.date), entry.mileage ? formatMileage(entry.mileage) : null].filter(Boolean).join(' · ')
+  // Запись ТО с отметкой о замене сбросила счётчик пробега
+  const replaced = entry.record.kind === 'maintenance' && entry.record.row.resets.length > 0
 
   return (
     <li>
@@ -27,6 +29,7 @@ export function JournalRow({ entry, onOpen }: Props) {
           <span className="car-row-title">{entry.title}</span>
           <span className="car-row-meta">
             <span className="car-row-date">{meta}</span>
+            {replaced && <span className="car-row-tag">замена</span>}
             {entry.details && <span className="car-row-details">{entry.details}</span>}
           </span>
         </span>

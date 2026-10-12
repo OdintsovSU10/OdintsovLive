@@ -4,6 +4,9 @@
 
 export const FUEL_TYPES = ['АИ-95', 'АИ-100']
 export const CAR_EXPENSE_CATEGORIES = ['Мойка', 'Парковка', 'Штраф', 'Страховка', 'Налог', 'Запчасти', 'Аксессуары', 'Другое']
+// Ключ счётчика масла двигателя в car_maintenance.resets; остальные значения там — id агрегатов машины
+export const ENGINE_OIL_KEY = 'engine_oil'
+const ENGINE_OIL_LABEL = 'Масло двигателя'
 export const BODY_PARAM_FIELDS = {
   bicep_left: 'бицепс левый',
   bicep_right: 'бицепс правый',
@@ -80,7 +83,7 @@ export const nowInZone = timeZone => {
 
 export const emptyContext = timeZone => ({ userId: null, ...nowInZone(timeZone), cars: [], bankCategories: [], mappings: new Map() })
 
-// Контекст для нейронки и обработчиков: машины, банковские категории, маппинг категорий
+// Контекст для нейронки и обработчиков: машины с агрегатами, банковские категории, маппинг категорий
 export const loadContext = async (rest, userId, timeZone) => {
   const [cars, categoryRows, mappingRows] = await Promise.all([
     rest(`cars?user_id=eq.${userId}&select=id,brand,model,current_mileage,is_active&order=created_at.desc`),
@@ -90,9 +93,13 @@ export const loadContext = async (rest, userId, timeZone) => {
 
   const activeCars = cars.filter(c => c.is_active !== false)
   const carList = activeCars.length > 0 ? activeCars : cars
-  const lastFuel = carList.length > 0
-    ? await rest(`car_fuel?car_id=in.(${carList.map(c => c.id).join(',')})&select=car_id,fuel_type&order=date.desc&limit=50`)
-    : []
+  const carIds = carList.map(c => c.id).join(',')
+  const [lastFuel, units] = carList.length > 0
+    ? await Promise.all([
+      rest(`car_fuel?car_id=in.(${carIds})&select=car_id,fuel_type&order=date.desc&limit=50`),
+      rest(`car_service_units?car_id=in.(${carIds})&select=id,car_id,name&order=created_at.asc`)
+    ])
+    : [[], []]
 
   // Категории по частоте: самые ходовые — первыми
   const counts = new Map()
@@ -108,7 +115,8 @@ export const loadContext = async (rest, userId, timeZone) => {
       id: c.id,
       label: `${c.brand} ${c.model}`.trim(),
       currentMileage: c.current_mileage || 0,
-      lastFuelType: lastFuel.find(f => f.car_id === c.id)?.fuel_type || FUEL_TYPES[0]
+      lastFuelType: lastFuel.find(f => f.car_id === c.id)?.fuel_type || FUEL_TYPES[0],
+      units: units.filter(u => u.car_id === c.id).map(u => ({ id: u.id, name: u.name }))
     })),
     bankCategories: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name).slice(0, 60),
     mappings: new Map(mappingRows.map(m => [normalizeKey(m.bank_category), m.target_category_id]))
@@ -128,6 +136,14 @@ const pickCategory = (ctx, value, pattern, fallback) => {
   if (exact) return exact
   if (value?.trim()) return value.trim()
   return (pattern && ctx.bankCategories.find(c => pattern.test(c))) || fallback
+}
+
+// Что заменено: масло двигателя и агрегаты этой машины; чужие и выдуманные ключи отбрасываем
+const pickResets = (car, value) => {
+  const labels = new Map([[ENGINE_OIL_KEY, ENGINE_OIL_LABEL], ...car.units.map(u => [u.id, u.name])])
+  return [...new Set(Array.isArray(value) ? value : [])]
+    .filter(key => labels.has(key))
+    .map(key => ({ key, label: labels.get(key) }))
 }
 
 const insertOne = async (rest, table, row, track) => {
@@ -227,6 +243,7 @@ const addCarService = async ({ rest, ctx, track, entryId, index, args }) => {
   const mileage = toNumber(args.mileage) ? Math.round(toNumber(args.mileage)) : null
   const description = args.description?.trim() || null
   let title = args.title?.trim() || ''
+  const resets = args.kind === 'expense' ? [] : pickResets(car, args.resets)
 
   if (args.kind === 'expense') {
     if (!cost) throw new UserError('Для расхода на машину нужна сумма')
@@ -234,7 +251,10 @@ const addCarService = async ({ rest, ctx, track, entryId, index, args }) => {
     await insertOne(rest, 'car_expenses', { car_id: car.id, date, category: title, description, cost }, track)
   } else {
     if (!title) throw new UserError('Не понял, какие работы по ТО')
-    await insertOne(rest, 'car_maintenance', { car_id: car.id, date, mileage, type: title, description, cost }, track)
+    if (resets.length > 0 && !mileage) throw new UserError('Для замены нужен пробег по одометру — от него пойдёт счётчик')
+    await insertOne(rest, 'car_maintenance', {
+      car_id: car.id, date, mileage, type: title, description, cost, resets: resets.map(r => r.key)
+    }, track)
   }
   await updateMileage(rest, car, mileage, track)
   if (cost) {
@@ -251,6 +271,7 @@ const addCarService = async ({ rest, ctx, track, entryId, index, args }) => {
     `${icon} ${car.label}: ${title}${description ? ` — ${description}` : ''}`,
     cost ? fmtMoney(cost) : '',
     mileage ? `пробег ${fmtNum(mileage)} км` : '',
+    resets.length > 0 ? `счётчик с нуля: ${resets.map(r => r.label).join(', ')}` : '',
     date
   ]
   return parts.filter(Boolean).join(' · ')

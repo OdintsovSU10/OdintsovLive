@@ -6,14 +6,17 @@ import type { JournalEntry, JournalFilter, PeriodPreset, RecordKind } from '../.
 import { buildBreakdown, previousBucketRange } from '../../utils/buckets'
 import type { BreakdownItem } from '../../utils/buckets'
 import { formatDate } from '../../utils/dates'
+import type { UnitCounter } from '../../utils/serviceDue'
 import { CostBreakdown } from '../charts/CostBreakdown'
 import { CostByMonthChart } from '../charts/CostByMonthChart'
 import { FuelChart } from '../charts/FuelChart'
 import { MileageChart } from '../charts/MileageChart'
+import { UnitCounters } from '../data/UnitCounters'
 import { KpiGrid } from './KpiGrid'
 
 interface Props {
   stats: CarStats
+  unitCounters: UnitCounter[]
   entries: JournalEntry[]
   period: PeriodPreset
   onPeriodChange: (period: PeriodPreset) => void
@@ -25,7 +28,7 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-export function OverviewTab({ stats, entries, period, onPeriodChange, onOpenJournal, onAdd }: Props) {
+export function OverviewTab({ stats, unitCounters, entries, period, onPeriodChange, onOpenJournal, onAdd }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const { ranges, kpi, buckets, breakdown, consumption, fuelPrices, mileage, serviceDue } = stats
 
@@ -51,6 +54,8 @@ export function OverviewTab({ stats, entries, period, onPeriodChange, onOpenJour
       </div>
 
       <KpiGrid kpi={kpi} serviceDue={serviceDue} onAddService={() => onAdd('maintenance')} />
+
+      {unitCounters.length > 0 && <UnitCounters counters={unitCounters} />}
 
       {/* Десктоп — сетка 2×2 со строками одной высоты: расходы | структура, топливо | пробег */}
       <div className="car-overview-grid">

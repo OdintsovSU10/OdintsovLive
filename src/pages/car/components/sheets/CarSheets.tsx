@@ -1,8 +1,11 @@
-import type { CarRecord, CarType, ExpenseType, FuelType, PartType, RecordKind, RecordPayload } from '../../types'
+import type {
+  CarRecord, CarType, ExpenseType, FuelType, PartType, RecordKind, RecordPayload, ServiceUnitType
+} from '../../types'
 import { CarForm } from '../forms/CarForm'
 import { FormSheet } from '../forms/FormSheet'
 import { PartForm } from '../forms/PartForm'
 import { RecordSheet } from '../forms/RecordSheet'
+import { UnitForm } from '../forms/UnitForm'
 import { AddMenuSheet } from './AddMenuSheet'
 import { CarListSheet } from './CarListSheet'
 import { ConfirmSheet } from './ConfirmSheet'
@@ -14,6 +17,7 @@ export type SheetState =
   | { type: 'car'; car: CarType | null }
   | { type: 'delete-car'; car: CarType }
   | { type: 'part'; part: PartType | null }
+  | { type: 'unit'; unit: ServiceUnitType | null }
   | null
 
 interface Props {
@@ -23,6 +27,7 @@ interface Props {
   car: CarType | null
   fuel: FuelType[]
   expenses: ExpenseType[]
+  units: ServiceUnitType[]
   onChange: (sheet: SheetState) => void
   onSelectCar: (id: string) => void
   onSaveRecord: (payload: RecordPayload, editingId?: string) => void
@@ -30,12 +35,13 @@ interface Props {
   onSaveCar: (data: Partial<CarType>, editingId?: string) => void
   onDeleteCar: (car: CarType) => void
   onSavePart: (data: Omit<PartType, 'id' | 'car_id'>, editingId?: string) => void
+  onSaveUnit: (data: Omit<ServiceUnitType, 'id' | 'car_id'>, editingId?: string) => void
 }
 
 // Один лист за раз: какой — решает состояние страницы
 export function CarSheets({
-  sheet, saving, cars, car, fuel, expenses, onChange, onSelectCar,
-  onSaveRecord, onDeleteRecord, onSaveCar, onDeleteCar, onSavePart
+  sheet, saving, cars, car, fuel, expenses, units, onChange, onSelectCar,
+  onSaveRecord, onDeleteRecord, onSaveCar, onDeleteCar, onSavePart, onSaveUnit
 }: Props) {
   if (!sheet) return null
   const close = () => onChange(null)
@@ -53,6 +59,7 @@ export function CarSheets({
           car={car}
           fuel={fuel}
           expenses={expenses}
+          units={units}
           saving={saving}
           onSubmit={onSaveRecord}
           onDelete={onDeleteRecord}
@@ -108,5 +115,23 @@ export function CarSheets({
           <PartForm formId="part-form" editing={sheet.part} onSubmit={data => onSavePart(data, sheet.part?.id)} />
         </FormSheet>
       )
+
+    case 'unit':
+      return car ? (
+        <FormSheet
+          title={sheet.unit ? 'Изменить агрегат' : 'Новый агрегат'}
+          formId="unit-form"
+          submitLabel={sheet.unit ? 'Сохранить' : 'Добавить'}
+          saving={saving}
+          onClose={close}
+        >
+          <UnitForm
+            formId="unit-form"
+            editing={sheet.unit}
+            currentMileage={car.current_mileage}
+            onSubmit={data => onSaveUnit(data, sheet.unit?.id)}
+          />
+        </FormSheet>
+      ) : null
   }
 }

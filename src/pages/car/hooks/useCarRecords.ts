@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { RECORD_TABLES } from '../constants'
 import type {
-  CarRecord, CarType, ExpenseType, FuelType, MaintenanceType, PartType, RecordKind, RecordPayload
+  CarRecord, CarType, ExpenseType, FuelType, MaintenanceType, PartType, RecordKind, RecordPayload, ServiceUnitType
 } from '../types'
 
 export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<void>) {
@@ -10,6 +10,7 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
   const [fuel, setFuel] = useState<FuelType[]>([])
   const [expenses, setExpenses] = useState<ExpenseType[]>([])
   const [parts, setParts] = useState<PartType[]>([])
+  const [units, setUnits] = useState<ServiceUnitType[]>([])
   const [loading, setLoading] = useState(true)
   // Ответ для прошлого авто, пришедший после переключения, игнорируем
   const requestRef = useRef(0)
@@ -21,17 +22,19 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
     setFuel([])
     setExpenses([])
     setParts([])
+    setUnits([])
     if (!carId) {
       setLoading(false)
       return
     }
 
     setLoading(true)
-    const [maintenanceRes, fuelRes, expensesRes, partsRes] = await Promise.all([
+    const [maintenanceRes, fuelRes, expensesRes, partsRes, unitsRes] = await Promise.all([
       supabase.from('car_maintenance').select('*').eq('car_id', carId).order('date', { ascending: false }),
       supabase.from('car_fuel').select('*').eq('car_id', carId).order('date', { ascending: false }),
       supabase.from('car_expenses').select('*').eq('car_id', carId).order('date', { ascending: false }),
-      supabase.from('car_parts').select('*').eq('car_id', carId).order('category', { ascending: true })
+      supabase.from('car_parts').select('*').eq('car_id', carId).order('category', { ascending: true }),
+      supabase.from('car_service_units').select('*').eq('car_id', carId).order('created_at', { ascending: true })
     ])
     if (request !== requestRef.current) return
 
@@ -39,6 +42,7 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
     setFuel(fuelRes.data ?? [])
     setExpenses(expensesRes.data ?? [])
     setParts(partsRes.data ?? [])
+    setUnits(unitsRes.data ?? [])
     setLoading(false)
   }, [carId])
 
@@ -63,6 +67,12 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
     if (!carId) return
     const { data } = await supabase.from('car_parts').select('*').eq('car_id', carId).order('category', { ascending: true })
     if (data) setParts(data)
+  }
+
+  const reloadUnits = async () => {
+    if (!carId) return
+    const { data } = await supabase.from('car_service_units').select('*').eq('car_id', carId).order('created_at', { ascending: true })
+    if (data) setUnits(data)
   }
 
   const saveRecord = async (payload: RecordPayload, editingId?: string): Promise<boolean> => {
@@ -131,9 +141,35 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
     return true
   }
 
+  const saveUnit = async (data: Omit<ServiceUnitType, 'id' | 'car_id'>, editingId?: string): Promise<boolean> => {
+    if (!carId) return false
+    const { error } = editingId
+      ? await supabase.from('car_service_units').update(data).eq('id', editingId)
+      : await supabase.from('car_service_units').insert({ ...data, car_id: carId })
+    if (error) return false
+    await reloadUnits()
+    return true
+  }
+
+  const deleteUnit = async (unit: ServiceUnitType): Promise<boolean> => {
+    const { error } = await supabase.from('car_service_units').delete().eq('id', unit.id)
+    if (error) return false
+    await reloadUnits()
+    return true
+  }
+
+  // Тот же id: отметки о замене в записях ТО снова укажут на агрегат
+  const restoreUnit = async (unit: ServiceUnitType): Promise<boolean> => {
+    const { error } = await supabase.from('car_service_units').insert(unit)
+    if (error) return false
+    await reloadUnits()
+    return true
+  }
+
   return {
-    maintenance, fuel, expenses, parts, loading,
+    maintenance, fuel, expenses, parts, units, loading,
     saveRecord, deleteRecord, restoreRecord,
-    savePart, deletePart, restorePart, importParts
+    savePart, deletePart, restorePart, importParts,
+    saveUnit, deleteUnit, restoreUnit
   }
 }

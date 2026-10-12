@@ -20,6 +20,8 @@ export interface MaintenanceType {
   type: string
   description: string | null
   cost: number | null
+  // Чьи счётчики пробега сбрасывает запись: ENGINE_OIL_KEY и/или id агрегата
+  resets: string[]
 }
 
 export interface FuelType {
@@ -49,6 +51,14 @@ export interface PartType {
   name: string
   part_number: string
   notes: string | null
+}
+
+// Агрегат со своим счётчиком пробега от замены: форсунки, масло CVT и т.п.
+export interface ServiceUnitType {
+  id: string
+  car_id: string
+  name: string
+  replaced_mileage: number | null
 }
 
 // Кадр обложки: точка фокуса в долях фото (0–1) и масштаб (1 — фото целиком по меньшей стороне)

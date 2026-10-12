@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { BarChart3, Car, ChevronDown, Info, ListOrdered, Plus } from 'lucide-react'
 import { Toast } from '../../components/ui/Toast'
@@ -18,10 +18,12 @@ import { useCarStats } from './hooks/useCarStats'
 import { useCars } from './hooks/useCars'
 import { useJournalEntries } from './hooks/useJournalEntries'
 import type {
-  CarRecord, CarTab, CarType, JournalFilter, PartType, PeriodPreset, PhotoFrame, RecordKind, RecordPayload
+  CarRecord, CarTab, CarType, JournalFilter, PartType, PeriodPreset, PhotoFrame, RecordKind, RecordPayload,
+  ServiceUnitType
 } from './types'
 import { consumptionForFill } from './utils/consumption'
 import { formatL100 } from './utils/format'
+import { getUnitCounters } from './utils/serviceDue'
 import './styles/car.css'
 import './styles/overview.css'
 import './styles/journal.css'
@@ -50,6 +52,12 @@ export default function CarPage() {
   const stats = useCarStats({
     car, entries, maintenance: records.maintenance, fuel: records.fuel, intervals, period
   })
+
+  const currentMileage = car?.current_mileage ?? 0
+  const unitCounters = useMemo(
+    () => getUnitCounters(records.units, records.maintenance, currentMileage),
+    [records.units, records.maintenance, currentMileage]
+  )
 
   const failToast = (message = 'Не удалось сохранить') => showToast({ message, tone: 'error' })
 
@@ -144,6 +152,23 @@ export default function CarPage() {
     })
   }
 
+  const handleSaveUnit = async (data: Omit<ServiceUnitType, 'id' | 'car_id'>, editingId?: string) => {
+    const ok = await runSaving(() => records.saveUnit(data, editingId))
+    if (!ok) return failToast()
+    setSheet(null)
+  }
+
+  const handleDeleteUnit = async (unit: ServiceUnitType) => {
+    const ok = await records.deleteUnit(unit)
+    if (!ok) return failToast('Не удалось удалить')
+    showToast({
+      message: `${unit.name}: счётчик удалён`,
+      actionLabel: 'Вернуть',
+      duration: UNDO_DURATION_MS,
+      onAction: () => { void records.restoreUnit(unit) }
+    })
+  }
+
   const handleImportParts = async (rows: Omit<PartType, 'id' | 'car_id'>[]) => {
     if (rows.length === 0) return failToast('В файле нет строк: категория, название, артикул')
     const ok = await records.importParts(rows)
@@ -203,6 +228,7 @@ export default function CarPage() {
               ) : (
                 <OverviewTab
                   stats={stats}
+                  unitCounters={unitCounters}
                   entries={entries}
                   period={period}
                   onPeriodChange={setPeriod}
@@ -228,6 +254,7 @@ export default function CarPage() {
               car={car}
               entries={entries}
               parts={records.parts}
+              unitCounters={unitCounters}
               photo={photo.photo}
               photoUploading={photo.uploading}
               onUploadPhoto={file => void handleUploadPhoto(file)}
@@ -238,6 +265,9 @@ export default function CarPage() {
               onEditPart={part => setSheet({ type: 'part', part })}
               onDeletePart={part => void handleDeletePart(part)}
               onImportParts={rows => void handleImportParts(rows)}
+              onAddUnit={() => setSheet({ type: 'unit', unit: null })}
+              onEditUnit={unit => setSheet({ type: 'unit', unit })}
+              onDeleteUnit={unit => void handleDeleteUnit(unit)}
             />
           )}
         </section>
@@ -256,6 +286,7 @@ export default function CarPage() {
         car={car}
         fuel={records.fuel}
         expenses={records.expenses}
+        units={records.units}
         onChange={setSheet}
         onSelectCar={selectCar}
         onSaveRecord={(payload, editingId) => void handleSaveRecord(payload, editingId)}
@@ -263,6 +294,7 @@ export default function CarPage() {
         onSaveCar={(data, editingId) => void handleSaveCar(data, editingId)}
         onDeleteCar={target => void handleDeleteCar(target)}
         onSavePart={(data, editingId) => void handleSavePart(data, editingId)}
+        onSaveUnit={(data, editingId) => void handleSaveUnit(data, editingId)}
       />
 
       <Toast toast={toast} onClose={hideToast} />
