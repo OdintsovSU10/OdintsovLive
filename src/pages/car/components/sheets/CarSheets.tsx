@@ -36,12 +36,13 @@ interface Props {
   onDeleteCar: (car: CarType) => void
   onSavePart: (data: Omit<PartType, 'id' | 'car_id'>, editingId?: string) => void
   onSaveUnit: (data: Omit<ServiceUnitType, 'id' | 'car_id'>, editingId?: string) => void
+  onCreateUnit: (name: string) => Promise<string | null>
 }
 
 // Один лист за раз: какой — решает состояние страницы
 export function CarSheets({
   sheet, saving, cars, car, fuel, expenses, units, onChange, onSelectCar,
-  onSaveRecord, onDeleteRecord, onSaveCar, onDeleteCar, onSavePart, onSaveUnit
+  onSaveRecord, onDeleteRecord, onSaveCar, onDeleteCar, onSavePart, onSaveUnit, onCreateUnit
 }: Props) {
   if (!sheet) return null
   const close = () => onChange(null)
@@ -60,6 +61,7 @@ export function CarSheets({
           fuel={fuel}
           expenses={expenses}
           units={units}
+          onCreateUnit={onCreateUnit}
           saving={saving}
           onSubmit={onSaveRecord}
           onDelete={onDeleteRecord}

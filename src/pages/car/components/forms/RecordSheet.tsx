@@ -21,13 +21,16 @@ interface Props {
   fuel: FuelType[]
   expenses: ExpenseType[]
   units: ServiceUnitType[]
+  onCreateUnit: (name: string) => Promise<string | null>
   saving: boolean
   onSubmit: (payload: RecordPayload, editingId?: string) => void
   onDelete: (record: CarRecord) => void
   onClose: () => void
 }
 
-export function RecordSheet({ kind, record, car, fuel, expenses, units, saving, onSubmit, onDelete, onClose }: Props) {
+export function RecordSheet({
+  kind, record, car, fuel, expenses, units, onCreateUnit, saving, onSubmit, onDelete, onClose
+}: Props) {
   const title = record
     ? `${KIND_META[kind].label} · ${formatDayShort(record.row.date, true)}`
     : NEW_TITLES[kind]
@@ -57,6 +60,7 @@ export function RecordSheet({ kind, record, car, fuel, expenses, units, saving, 
           editing={record?.kind === 'maintenance' ? record.row : null}
           currentMileage={car.current_mileage}
           units={units}
+          onCreateUnit={onCreateUnit}
           onSubmit={submit}
         />
       )}

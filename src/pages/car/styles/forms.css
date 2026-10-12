@@ -105,6 +105,24 @@
   font-weight: 600;
 }
 
+/* «Другое»: свой вариант, поле с названием раскрывается под чипами */
+.car-chip.add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-style: dashed;
+}
+
+.car-chip-create {
+  display: flex;
+  gap: 8px;
+}
+
+.car-chip-create input {
+  flex: 1;
+  min-width: 0;
+}
+
 .car-chip:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;

@@ -14,12 +14,14 @@ interface Props {
   editing: MaintenanceType | null
   currentMileage: number
   units: ServiceUnitType[]
+  // Заводит агрегат и возвращает его id; null — не получилось
+  onCreateUnit: (name: string) => Promise<string | null>
   onSubmit: (payload: RecordPayload) => void
 }
 
 type Errors = Partial<Record<'type' | 'date' | 'mileage' | 'cost', string>>
 
-export function MaintenanceForm({ formId, editing, currentMileage, units, onSubmit }: Props) {
+export function MaintenanceForm({ formId, editing, currentMileage, units, onCreateUnit, onSubmit }: Props) {
   const [type, setType] = useState(editing?.type ?? '')
   const [date, setDate] = useState(editing?.date ?? todayIso())
   const [mileage, setMileage] = useState(toInputValue(editing?.mileage))
@@ -34,6 +36,13 @@ export function MaintenanceForm({ formId, editing, currentMileage, units, onSubm
   ]
   // Отметка удалённого агрегата в записи не сохраняется
   const activeResets = resets.filter(key => resetOptions.some(option => option.key === key))
+
+  // Агрегат с таким названием уже есть — отмечаем его, а не плодим дубль
+  const handleCreateUnit = async (name: string) => {
+    const existing = resetOptions.find(option => option.label.toLowerCase() === name.toLowerCase())
+    const key = existing?.key ?? await onCreateUnit(name)
+    if (key) setResets(prev => (prev.includes(key) ? prev : [...prev, key]))
+  }
 
   const mileageHint = `Текущий: ${formatMileage(currentMileage)}`
 
@@ -76,6 +85,8 @@ export function MaintenanceForm({ formId, editing, currentMileage, units, onSubm
         options={resetOptions}
         values={activeResets}
         onChange={setResets}
+        onCreate={handleCreateUnit}
+        createPlaceholder="Например, свечи"
         hint={activeResets.length > 0
           ? 'Счётчик пробега пойдёт заново с пробега этой записи'
           : 'Ничего не выбрано — покупка или работа, счётчики не меняются'}

@@ -151,6 +151,19 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
     return true
   }
 
+  // Новый агрегат из формы записи: id нужен сразу, чтобы отметить его в этой же записи
+  const createUnit = async (name: string): Promise<string | null> => {
+    if (!carId) return null
+    const { data, error } = await supabase
+      .from('car_service_units')
+      .insert({ car_id: carId, name, replaced_mileage: null })
+      .select('id')
+      .single()
+    if (error || !data) return null
+    await reloadUnits()
+    return data.id
+  }
+
   const deleteUnit = async (unit: ServiceUnitType): Promise<boolean> => {
     const { error } = await supabase.from('car_service_units').delete().eq('id', unit.id)
     if (error) return false
@@ -170,6 +183,6 @@ export function useCarRecords(car: CarType | null, onCarChanged: () => Promise<v
     maintenance, fuel, expenses, parts, units, loading,
     saveRecord, deleteRecord, restoreRecord,
     savePart, deletePart, restorePart, importParts,
-    saveUnit, deleteUnit, restoreUnit
+    saveUnit, createUnit, deleteUnit, restoreUnit
   }
 }

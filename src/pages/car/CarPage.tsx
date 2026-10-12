@@ -158,6 +158,12 @@ export default function CarPage() {
     setSheet(null)
   }
 
+  const handleCreateUnit = async (name: string): Promise<string | null> => {
+    const id = await records.createUnit(name)
+    if (!id) failToast('Не удалось добавить агрегат')
+    return id
+  }
+
   const handleDeleteUnit = async (unit: ServiceUnitType) => {
     const ok = await records.deleteUnit(unit)
     if (!ok) return failToast('Не удалось удалить')
@@ -295,6 +301,7 @@ export default function CarPage() {
         onDeleteCar={target => void handleDeleteCar(target)}
         onSavePart={(data, editingId) => void handleSavePart(data, editingId)}
         onSaveUnit={(data, editingId) => void handleSaveUnit(data, editingId)}
+        onCreateUnit={handleCreateUnit}
       />
 
       <Toast toast={toast} onClose={hideToast} />
