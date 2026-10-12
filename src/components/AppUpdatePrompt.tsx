@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Clock, RefreshCw } from 'lucide-react'
 import './AppUpdatePrompt.css'
 
@@ -11,6 +11,8 @@ interface AppVersionInfo {
 
 const VERSION_URL = '/app-version.json'
 const CHECK_INTERVAL_MS = 2 * 60 * 1000
+// focus и visibilitychange приходят парой — одной проверки на возврат в приложение достаточно
+const MIN_CHECK_GAP_MS = 30 * 1000
 const SNOOZE_MS = 30 * 60 * 1000
 const SNOOZE_STORAGE_KEY = 'app-update-snooze'
 
@@ -44,8 +46,12 @@ function setSnoozedUntil(version: string, until: number) {
 
 function AppUpdatePrompt() {
   const [availableVersion, setAvailableVersion] = useState<AppVersionInfo | null>(null)
+  const lastCheckRef = useRef(0)
 
   const checkForUpdate = useCallback(async () => {
+    if (Date.now() - lastCheckRef.current < MIN_CHECK_GAP_MS) return
+    lastCheckRef.current = Date.now()
+
     try {
       const response = await fetch(`${VERSION_URL}?t=${Date.now()}`, {
         cache: 'no-store',

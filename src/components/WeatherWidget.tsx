@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Plus, X, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, Wind } from 'lucide-react'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import './WeatherWidget.css'
 
@@ -46,13 +47,15 @@ export default function WeatherWidget() {
   const [newCityName, setNewCityName] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
   const initialized = useRef(false)
+  // Города, только что пришедшие из БД, обратно в неё не пишем
+  const skipSave = useRef(false)
 
   // Load user and settings
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-        loadCitiesFromDB(user.id)
+    getUserId().then(uid => {
+      if (uid) {
+        setUserId(uid)
+        loadCitiesFromDB(uid)
       }
     })
   }, [])
@@ -66,6 +69,7 @@ export default function WeatherWidget() {
 
     if (data?.weather_cities && Array.isArray(data.weather_cities) && data.weather_cities.length > 0) {
       const savedCities = data.weather_cities as City[]
+      skipSave.current = true
       setCities(savedCities)
       setActiveCity(savedCities[0].id)
     }
@@ -85,6 +89,10 @@ export default function WeatherWidget() {
 
   // Save to DB when cities change
   useEffect(() => {
+    if (skipSave.current) {
+      skipSave.current = false
+      return
+    }
     if (initialized.current && userId) {
       saveCitiesToDB(cities)
     }

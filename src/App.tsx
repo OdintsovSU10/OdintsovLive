@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { User } from '@supabase/supabase-js'
@@ -82,6 +82,9 @@ function App() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  // Для кого профиль уже загружен или грузится: события сессии при возврате в приложение
+  // не должны перезапрашивать его и при сбое сети сбрасывать экран с открытой формой
+  const profileUserIdRef = useRef<string | null>(null)
   const [idleMode, setIdleMode] = useState(false)
   const [idleDateTime, setIdleDateTime] = useState({ weekday: '', day: '', time: '', period: '', colorIndex: 0 })
   const [theme, setTheme] = useState<Theme>(() => {
@@ -133,11 +136,10 @@ function App() {
       .then(({ data: { session } }) => {
         if (!active) return
 
-        setUser(session?.user ?? null)
-        setProfileError(null)
         if (session?.user) {
-          void loadProfile(session.user.id)
+          syncUser(session.user)
         } else {
+          setUser(null)
           setLoading(false)
         }
       })
@@ -152,11 +154,11 @@ function App() {
       })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setProfileError(null)
       if (session?.user) {
-        void loadProfile(session.user.id)
+        syncUser(session.user)
       } else {
+        profileUserIdRef.current = null
+        setUser(null)
         setProfile(null)
         setProfileError(null)
         setLoading(false)
@@ -168,6 +170,14 @@ function App() {
       subscription.unsubscribe()
     }
   }, [])
+
+  // Тот же пользователь — состояние и профиль не трогаем, новый — грузим профиль один раз
+  const syncUser = (nextUser: User) => {
+    setUser(prev => (prev?.id === nextUser.id ? prev : nextUser))
+    if (profileUserIdRef.current === nextUser.id) return
+    setProfileError(null)
+    void loadProfile(nextUser.id)
+  }
 
   const resetLocalAuth = async () => {
     try {
@@ -181,6 +191,7 @@ function App() {
   }
 
   const loadProfile = async (userId: string, allowSessionRefresh = true): Promise<void> => {
+    profileUserIdRef.current = userId
     setProfileError(null)
 
     try {
@@ -232,6 +243,7 @@ function App() {
         }
       }
 
+      profileUserIdRef.current = null
       setProfile(null)
       setProfileError(getErrorMessage(error, 'Не удалось загрузить профиль'))
     } finally {

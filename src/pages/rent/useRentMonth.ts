@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getUserId } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 import { isFutureMonth } from '../../lib/dateUtils'
 import type { AmountKey } from './PaymentsSection'
@@ -96,10 +97,10 @@ export const useRentMonth = (year: number, month: number) => {
   const [electricityTariffs, setElectricityTariffs] = useState<ElectricityTariffs>({})
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-        loadData(user.id)
+    getUserId().then(uid => {
+      if (uid) {
+        setUserId(uid)
+        loadData(uid)
       }
     })
   }, [year, month])

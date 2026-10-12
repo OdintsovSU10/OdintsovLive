@@ -105,6 +105,18 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_BUILD_VERSION__: JSON.stringify(buildVersion)
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Библиотеки отдельно от кода приложения: их хэш не меняется от деплоя к деплою,
+          // и телефон докачивает только изменившийся код, а не весь бандл
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            supabase: ['@supabase/supabase-js']
+          }
+        }
+      }
+    },
     server: {
       proxy: {
         '/auth/v1': {

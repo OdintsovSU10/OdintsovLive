@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Check, X, Users, Palette, Type, Upload, Trash2, KeyRound, Bot } from 'lucide-react'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import FotTokenSettings from './admin/FotTokenSettings'
 import BotSettings from './admin/BotSettings'
@@ -91,13 +92,13 @@ export default function AdminPage() {
   }
 
   const loadSettings = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     const { data } = await supabase
       .from('user_settings')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .single()
 
     if (data) {
@@ -115,8 +116,8 @@ export default function AdminPage() {
 
   const saveSettings = async () => {
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const uid = await getUserId()
+    if (!uid) {
       setSaving(false)
       return
     }
@@ -124,7 +125,7 @@ export default function AdminPage() {
     await supabase
       .from('user_settings')
       .upsert({
-        user_id: user.id,
+        user_id: uid,
         font_headline: settings.font_headline,
         font_body: settings.font_body,
         font_mono: settings.font_mono,
@@ -187,10 +188,10 @@ export default function AdminPage() {
     const file = e.target.files?.[0]
     if (!file || !customFontName.trim()) return
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
-    const fileName = `${user.id}/${Date.now()}-${file.name}`
+    const fileName = `${uid}/${Date.now()}-${file.name}`
     const { error } = await supabase.storage
       .from('fonts')
       .upload(fileName, file)

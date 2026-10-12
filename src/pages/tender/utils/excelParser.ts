@@ -1,5 +1,7 @@
-import * as XLSX from 'xlsx'
 import type { ParsedEmployee, ParsedTimesheetRow, ParsedTimesheetDay, TimesheetStatus, ParsedSalaryEntry } from '../types'
+
+// xlsx (~330 КБ) нужен только при импорте файла — грузим его в этот момент, а не вместе со страницей
+const loadXlsx = () => import('xlsx')
 
 // Разбивка ФИО на части
 export function splitFullName(fullName: string): { last_name: string; first_name: string; middle_name: string } {
@@ -197,6 +199,7 @@ export function parseTimesheetCell(value: string): { status: TimesheetStatus; ho
 
 // Парсинг списка сотрудников
 export async function parseEmployeesExcel(file: File): Promise<ParsedEmployee[]> {
+  const XLSX = await loadXlsx()
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -251,6 +254,7 @@ export async function parseEmployeesExcel(file: File): Promise<ParsedEmployee[]>
 
 // Парсинг табеля
 export async function parseTimesheetExcel(file: File): Promise<ParsedTimesheetRow[]> {
+  const XLSX = await loadXlsx()
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -359,6 +363,7 @@ const NAME_REGEX = /^([А-ЯЁа-яё-]+)\s+([А-ЯЁ])\.(?:([А-ЯЁ])\.?)?$/
 
 // Парсинг истории окладов из Excel
 export async function parseSalaryHistoryExcel(file: File): Promise<ParsedSalaryEntry[]> {
+  const XLSX = await loadXlsx()
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {

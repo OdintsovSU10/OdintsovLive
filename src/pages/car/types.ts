@@ -59,6 +59,8 @@ export interface ServiceUnitType {
   car_id: string
   name: string
   replaced_mileage: number | null
+  // Приходит из БД; по нему держится порядок списка
+  created_at?: string
 }
 
 // Кадр обложки: точка фокуса в долях фото (0–1) и масштаб (1 — фото целиком по меньшей стороне)

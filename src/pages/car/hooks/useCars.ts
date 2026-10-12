@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { getUserId } from '../../../lib/auth'
 import { supabase } from '../../../lib/supabase'
 import type { CarType } from '../types'
 
@@ -30,8 +31,8 @@ export function useCars() {
   const [loading, setLoading] = useState(true)
 
   const loadCars = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const userId = await getUserId()
+    if (!userId) {
       setLoading(false)
       return
     }
@@ -39,7 +40,7 @@ export function useCars() {
     const { data, error } = await supabase
       .from('cars')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (!error && data) setCars(data)
@@ -58,24 +59,30 @@ export function useCars() {
     storeId(id)
   }, [])
 
-  const saveCar = async (carData: Partial<CarType>, editingId?: string): Promise<boolean> => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
+  // Правка машины в списке без перечитывания: пробег из записи, поля из формы
+  const patchCar = useCallback((id: string, fields: Partial<CarType>) => {
+    setCars(prev => prev.map(car => (car.id === id ? { ...car, ...fields } : car)))
+  }, [])
 
+  // Сохранённая строка возвращается тем же запросом — список правим локально
+  const saveCar = async (carData: Partial<CarType>, editingId?: string): Promise<boolean> => {
     if (editingId) {
-      const { error } = await supabase.from('cars').update(carData).eq('id', editingId)
-      if (error) return false
-    } else {
-      const { data, error } = await supabase
-        .from('cars')
-        .insert({ ...carData, user_id: user.id })
-        .select('id')
-        .single()
+      const { data, error } = await supabase.from('cars').update(carData).eq('id', editingId).select().single()
       if (error || !data) return false
-      selectCar(data.id)
+      patchCar(editingId, data)
+      return true
     }
 
-    await loadCars()
+    const userId = await getUserId()
+    if (!userId) return false
+    const { data, error } = await supabase
+      .from('cars')
+      .insert({ ...carData, user_id: userId })
+      .select()
+      .single()
+    if (error || !data) return false
+    setCars(prev => [data, ...prev])
+    selectCar(data.id)
     return true
   }
 
@@ -94,9 +101,9 @@ export function useCars() {
     }
     if (error) return false
 
-    await loadCars()
+    setCars(prev => prev.filter(car => car.id !== carId))
     return true
   }
 
-  return { cars, selectedCar, selectCar, loading, loadCars, saveCar, deleteCar }
+  return { cars, selectedCar, selectCar, loading, patchCar, saveCar, deleteCar }
 }

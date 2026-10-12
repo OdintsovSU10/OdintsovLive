@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import './WeightPage.css'
 
@@ -25,13 +26,13 @@ export default function WeightPage() {
   }, [])
 
   const loadWeights = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     const { data } = await supabase
       .from('body_weight')
       .select('id, date, weight, created_at')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .order('created_at', { ascending: true })
 
     if (data) {
@@ -44,14 +45,14 @@ export default function WeightPage() {
     const weight = parseFloat(inputValue.replace(',', '.'))
     if (isNaN(weight) || weight <= 0) return
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     setSaving(true)
     const today = new Date().toISOString().split('T')[0]
 
     await supabase.from('body_weight').insert({
-      user_id: user.id,
+      user_id: uid,
       date: today,
       weight
     })

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronRight as Arrow, Plus, Receipt } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { supabase } from '../../lib/supabase'
+import { getUserId } from '../../lib/auth'
 import { MONTHS, YEARS } from '../../lib/constants'
 import { isCurrentMonth } from '../../lib/dateUtils'
 import { parseNumber } from '../../lib/formatUtils'
@@ -47,10 +47,10 @@ export default function SalaryPage() {
   } = useSalaryData()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-        loadSalarySettings(user.id)
+    getUserId().then(uid => {
+      if (uid) {
+        setUserId(uid)
+        loadSalarySettings(uid)
       }
     })
   }, [loadSalarySettings])

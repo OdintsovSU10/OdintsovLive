@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getWorkDaysNorm } from '../lib/workNorms'
 import { MONTHS, WEEKDAYS, YEARS } from '../lib/constants'
@@ -112,14 +113,14 @@ export default function Calendar() {
     enqueueSave(async () => {
       if (readStoredDays(PENDING_DAYS_STORAGE_KEY)[key] !== status) return
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const uid = await getUserId()
+      if (!uid) return
 
       const date = keyToDate(key)
       const { error } = status === 'none'
-        ? await supabase.from('calendar_days').delete().eq('date', date).eq('user_id', user.id)
+        ? await supabase.from('calendar_days').delete().eq('date', date).eq('user_id', uid)
         : await supabase.from('calendar_days').upsert(
-            { user_id: user.id, date, status },
+            { user_id: uid, date, status },
             { onConflict: 'user_id,date' }
           )
 
@@ -133,13 +134,13 @@ export default function Calendar() {
   }, [enqueueSave])
 
   const loadFromSupabase = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     const { data, error } = await supabase
       .from('calendar_days')
       .select('date, status')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
 
     if (error) {
       console.error('Calendar load error:', error)
@@ -209,11 +210,11 @@ export default function Calendar() {
       const pendingDeletions = keysToDelete.filter(key => pending[key] === 'none')
       if (pendingDeletions.length === 0) return
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const uid = await getUserId()
+      if (!uid) return
 
       const dates = pendingDeletions.map(keyToDate)
-      const { error } = await supabase.from('calendar_days').delete().in('date', dates).eq('user_id', user.id)
+      const { error } = await supabase.from('calendar_days').delete().in('date', dates).eq('user_id', uid)
 
       if (error) {
         console.error('Reset month error:', error)

@@ -37,8 +37,8 @@ const TAB_OPTIONS: { value: CarTab; label: string; icon: ReactNode }[] = [
 ]
 
 export default function CarPage() {
-  const { cars, selectedCar: car, selectCar, loading, loadCars, saveCar, deleteCar } = useCars()
-  const records = useCarRecords(car, loadCars)
+  const { cars, selectedCar: car, selectCar, loading, patchCar, saveCar, deleteCar } = useCars()
+  const records = useCarRecords(car, patchCar)
   const { entries, intervals } = useJournalEntries(records.maintenance, records.fuel, records.expenses)
   const photo = useCarPhoto(car?.id ?? null)
 

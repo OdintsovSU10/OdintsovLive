@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { getUserId } from '../../../lib/auth'
 import { supabase } from '../../../lib/supabase'
 import type {
   ExpenseCategoryMapping,
@@ -132,9 +133,9 @@ export function useExpensesData() {
   const [lastImportSummary, setLastImportSummary] = useState<ExpenseImportSummary | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id ?? null)
-      if (!user) {
+    getUserId().then(uid => {
+      setUserId(uid)
+      if (!uid) {
         setLoading(false)
       }
     })

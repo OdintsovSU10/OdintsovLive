@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import './BodyParamsPage.css'
 
@@ -66,13 +67,13 @@ export default function BodyParamsPage() {
   }, [])
 
   const loadRecords = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     const { data } = await supabase
       .from('body_params')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .order('date', { ascending: false })
 
     if (data) {
@@ -110,8 +111,8 @@ export default function BodyParamsPage() {
   }
 
   const handleSave = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     const params: Partial<BodyParams> = { date: formDate }
     PARAMS_CONFIG.forEach(p => {
@@ -127,7 +128,7 @@ export default function BodyParamsPage() {
     } else {
       await supabase
         .from('body_params')
-        .insert({ ...params, user_id: user.id })
+        .insert({ ...params, user_id: uid })
     }
 
     closeModal()

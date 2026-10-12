@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { MONTHS, YEARS } from '../lib/constants'
 import './VacationRatePage.css'
@@ -30,10 +31,10 @@ export default function VacationRatePage() {
   const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-        loadManualRates(user.id).then(() => setInitialLoading(false))
+    getUserId().then(uid => {
+      if (uid) {
+        setUserId(uid)
+        loadManualRates(uid).then(() => setInitialLoading(false))
       }
     })
   }, [])
@@ -68,13 +69,13 @@ export default function VacationRatePage() {
   }
 
   const loadData = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const uid = await getUserId()
+    if (!uid) return
 
     const { data: rateData } = await supabase
       .from('vacation_rate')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .eq('year', year)
       .order('month')
 

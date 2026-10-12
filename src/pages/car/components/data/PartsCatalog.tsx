@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { ChevronDown, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { PART_CATEGORIES } from '../../constants'
 import type { PartType } from '../../types'
 
@@ -13,8 +12,10 @@ interface Props {
   onImport: (rows: Omit<PartType, 'id' | 'car_id'>[]) => void
 }
 
-// Excel: категория, название, артикул, заметка; первая строка — заголовки
-function parseSheet(buffer: ArrayBuffer): Omit<PartType, 'id' | 'car_id'>[] {
+// Excel: категория, название, артикул, заметка; первая строка — заголовки.
+// xlsx (~330 КБ) нужен только здесь — грузим его в момент импорта, а не вместе со страницей
+async function parseSheet(buffer: ArrayBuffer): Promise<Omit<PartType, 'id' | 'car_id'>[]> {
+  const XLSX = await import('xlsx')
   const workbook = XLSX.read(buffer, { type: 'array' })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })
@@ -61,7 +62,7 @@ export function PartsCatalog({ parts, onAdd, onEdit, onDelete, onImport }: Props
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    onImport(parseSheet(await file.arrayBuffer()))
+    onImport(await parseSheet(await file.arrayBuffer()))
   }
 
   return (

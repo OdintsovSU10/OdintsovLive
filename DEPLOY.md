@@ -27,8 +27,8 @@
 ## Что такое live.meridianai.ru
 
 Это **не** приложение Meridian (FastAPI). Это отдельный сайт **odintsovlive**:
-статичный SPA + бэкенд на Supabase. Живёт на сервере **Selectel** за infra-nginx,
-внешний доступ идёт через реверс-прокси YC.
+статичный SPA + бэкенд на Supabase. Живёт на сервере **Selectel** за infra-nginx;
+домен смотрит прямо на Selectel (реверс-прокси YC убран 05.10.2026).
 
 `ssh selectel` → `root@135.106.162.110` (Ubuntu 24.04, 1 vCPU / 1.9 ГБ).
 
@@ -40,7 +40,7 @@
 | Compose портала    | `/opt/sites/docker-compose.yml`       | project `odintsovlive`                 |
 | Supabase (БД/API)  | `/opt/supabase/`                      | db / auth / rest / kong (`:8000`)      |
 | FOT-табели sidecar | `/opt/sites/fot-token-api/`           | `fot-token-api` (node)                 |
-| Внешний edge (TLS) | YC `89.169.191.175` `yc-sites.conf`   | → `https://135.106.162.110`            |
+| Внешний edge (TLS) | `/opt/infra/nginx/conf.d/live.conf`   | `infra-nginx-nginx-1` (443 + HTTP/3 на UDP 8443) |
 
 Сети Docker: `infra_web` (внешний ingress) + `supabase-network` (бэкенд). Обе `external`.
 Инфра-файлы портала: репозиторий `odintsovlive-infra/` (рядом с инфрой).
@@ -117,6 +117,16 @@ ssh selectel 'cd /opt/sites && docker compose up -d --force-recreate web'   # и
 `nginx`-конфиг (`odintsovlive-fot-api.conf`) проксирует к Supabase kong с `$request_uri`
 — не менять на `/auth/v1/` и т.п., иначе теряется хвост пути.
 
+**Сжатие и журнал (12.10.2026):**
+- gzip для статики и ответов API включён в `/opt/sites/odintsovlive-web.conf` (блок `server`).
+  Правка без пересоздания контейнера: писать в файл на месте (`cat new > file`, inode тот же),
+  затем `docker exec odintsovlive-web nginx -t && docker exec odintsovlive-web nginx -s reload`.
+- В `/opt/infra/nginx/conf.d/live.conf` у live свой формат журнала `live_diag`: к обычной строке
+  добавлены `proto=` (HTTP/1.1 или HTTP/3.0), `up=` (время бэкенда), `conn=`/`conn_req=`
+  (соединение и номер запроса в нём), `in=`/`out=` (байты), `rtt=` (мкс, только TCP).
+  По ним разбираются зависания на мобильной сети: `docker logs infra-nginx-nginx-1 | grep live.meridianai.ru`.
+- Бэкапы обоих файлов лежат рядом: `*.bak-2026-10-12-*`.
+
 **FOT-токен (секрет):**
 - НЕ хардкодить в nginx-конфиге. Токен хранится в `/opt/sites/fot-token-api/data/token` (`0600`).
 - Ротация — через страницу `https://live.meridianai.ru/fot-admin` (доступ по `profiles.is_admin`).
@@ -179,5 +189,5 @@ curl -I https://dash.meridianai.ru  # → 200
 
 - **Фронт:** вернуть предыдущую статику из бэкапа
   `ssh selectel 'rsync -az --delete /opt/sites/odintsovlive.bak-<ts>/ /opt/sites/odintsovlive/'`.
-- **Внешний edge (YC):** бэкап конфига `yc-sites.conf.bak-livecutover-*` на `89.169.191.175`.
+- **Конфиги nginx:** вернуть `*.bak-<дата>` рядом с файлом (`cat bak > file`), `nginx -t`, `nginx -s reload`.
 - **Данные Supabase** не трогаются при деплое фронта — откат касается только статики/конфигов.

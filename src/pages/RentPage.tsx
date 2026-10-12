@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { MONTHS, YEARS } from '../lib/constants'
 import { isCurrentMonth, isFutureMonth } from '../lib/dateUtils'
@@ -28,9 +29,9 @@ export default function RentPage() {
   const [allTimeTotals, setAllTimeTotals] = useState({ total: 0, water: 0, electricity: 0 })
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
+    getUserId().then(uid => {
+      if (uid) {
+        setUserId(uid)
       }
     })
   }, [])

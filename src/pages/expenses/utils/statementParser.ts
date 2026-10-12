@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import type { WorkBook } from 'xlsx'
 import type { ExpenseImportError, ParsedStatementResult, PreparedExpenseTransaction } from '../types'
 
 type ColumnKey =
@@ -216,7 +216,10 @@ function decodeText(buffer: ArrayBuffer): string {
   }
 }
 
-function readWorkbook(file: File, buffer: ArrayBuffer): XLSX.WorkBook {
+// xlsx (~330 КБ) нужен только при импорте выписки — грузим его в этот момент, а не вместе со страницей
+type XlsxModule = typeof import('xlsx')
+
+function readWorkbook(XLSX: XlsxModule, file: File, buffer: ArrayBuffer): WorkBook {
   if (/\.csv$/i.test(file.name) || file.type === 'text/csv') {
     // raw: даты и суммы остаются строками — их разбирают parseDateTime/parseNumber
     return XLSX.read(decodeText(buffer), { type: 'string', raw: true })
@@ -283,7 +286,8 @@ export async function parseStatementFile(
   const arrayBuffer = await file.arrayBuffer()
   const fileHash = await sha256Hex(arrayBuffer)
 
-  const workbook = readWorkbook(file, arrayBuffer)
+  const XLSX = await import('xlsx')
+  const workbook = readWorkbook(XLSX, file, arrayBuffer)
   const firstSheetName = workbook.SheetNames[0]
   const sheet = workbook.Sheets[firstSheetName]
 

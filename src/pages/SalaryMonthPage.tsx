@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getWorkDaysNorm as getDefaultWorkDaysNorm } from '../lib/workNorms'
 import './SalaryMonthPage.css'
@@ -52,10 +53,10 @@ export default function SalaryMonthPage() {
   const remaining = totalEarned - totalPaid
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-        loadData(user.id)
+    getUserId().then(uid => {
+      if (uid) {
+        setUserId(uid)
+        loadData(uid)
       }
     })
   }, [year, month])
