@@ -58,22 +58,24 @@ export function useTenderData() {
 
       const employeeIds = employeesData.map(e => e.id)
 
-      const { data: salaryData } = await supabase
-        .from('tender_salary_history')
-        .select('*')
-        .in('employee_id', employeeIds)
-        .order('effective_date', { ascending: false })
-
       const startOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`
       const daysInMonth = new Date(targetYear, targetMonth, 0).getDate()
       const endOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${daysInMonth}`
 
-      const { data: timesheetData } = await supabase
-        .from('tender_timesheet')
-        .select('*')
-        .in('employee_id', employeeIds)
-        .gte('work_date', startOfMonth)
-        .lte('work_date', endOfMonth)
+      // Оклады и табель друг от друга не зависят — запрашиваем одновременно
+      const [{ data: salaryData }, { data: timesheetData }] = await Promise.all([
+        supabase
+          .from('tender_salary_history')
+          .select('*')
+          .in('employee_id', employeeIds)
+          .order('effective_date', { ascending: false }),
+        supabase
+          .from('tender_timesheet')
+          .select('*')
+          .in('employee_id', employeeIds)
+          .gte('work_date', startOfMonth)
+          .lte('work_date', endOfMonth)
+      ])
 
       const roundedTimesheetData = (timesheetData || []).map(entry => ({
         ...entry,
@@ -174,7 +176,9 @@ export function useTenderData() {
         }
       })
 
-      setEmployees(enriched)
+      // Опрос раз в 30 с чаще всего приносит те же данные: прежний массив не трогаем,
+      // чтобы дашборд не перекачивал табель и не пересчитывался зря
+      setEmployees(prev => (JSON.stringify(prev) === JSON.stringify(enriched) ? prev : enriched))
     } catch (err) {
       console.error('Error loading employees:', err)
       if (!silent) {

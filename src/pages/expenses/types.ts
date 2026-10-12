@@ -6,11 +6,12 @@ export type ExpenseSource = 'bank' | 'telegram'
 
 export interface ExpenseTransaction {
   id: string
-  user_id: string
-  import_batch_id: string | null
+  // Служебные поля импорта: в список операций не запрашиваются (см. TRANSACTION_FIELDS)
+  user_id?: string
+  import_batch_id?: string | null
   source_row_number: number
-  dedupe_key: string
-  row_hash: string
+  dedupe_key?: string
+  row_hash?: string
   operation_at: string
   operation_date: string
   payment_date: string | null

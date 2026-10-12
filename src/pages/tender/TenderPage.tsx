@@ -1393,7 +1393,7 @@ export function EmployeeDetail({
 }
 
 export default function TenderPage() {
-  const { employees, loading, error, selectedYear, selectedMonth, setMonth, loadEmployees } = useTenderData()
+  const { employees, loading, error, selectedYear, selectedMonth, setMonth } = useTenderData()
   const [search, setSearch] = useState('')
   const [filterDept, setFilterDept] = useState('all')
   const [filterSubdiv, setFilterSubdiv] = useState('all')
@@ -1462,9 +1462,9 @@ export default function TenderPage() {
     }
   }, [employees, selectedEmployee])
 
+  // Загрузку запускает useTenderData по смене месяца — второй вызов здесь удваивал запросы
   const handleMonthChange = (year: number, month: number) => {
     setMonth(year, month)
-    loadEmployees(year, month)
   }
 
   if (loading) {

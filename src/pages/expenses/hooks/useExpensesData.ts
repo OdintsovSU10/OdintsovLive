@@ -13,6 +13,15 @@ import type {
 import { buildInsights, isFailed } from '../utils/analysis'
 import { normalizeCategoryKey, parseStatementFile } from '../utils/statementParser'
 
+// Без служебных полей импорта (dedupe_key, row_hash, user_id, import_batch_id): два хэша по 64 символа
+// на строку не сжимаются и давали больше половины веса ответа
+const TRANSACTION_FIELDS = [
+  'id', 'source_row_number', 'operation_at', 'operation_date', 'payment_date', 'card_mask', 'status',
+  'operation_amount', 'operation_currency', 'payment_amount', 'payment_currency', 'cashback_amount',
+  'bank_category', 'mcc', 'description', 'bonuses_amount', 'round_up_amount', 'operation_with_rounding_amount',
+  'flow_direction', 'include_in_analytics', 'mapped_category_id', 'source', 'note', 'created_at', 'updated_at'
+].join(', ')
+
 const LOAD_PAGE_SIZE = 1000
 const IMPORT_CHUNK_SIZE = 500
 const IMPORT_ERROR_LIMIT = 200
@@ -181,14 +190,15 @@ export function useExpensesData() {
       for (let from = 0; ; from += LOAD_PAGE_SIZE) {
         const { data, error: queryError } = await supabase
           .from('expense_transactions')
-          .select('*')
+          .select(TRANSACTION_FIELDS)
           .eq('user_id', userId)
           .order('operation_at', { ascending: false })
           .order('id', { ascending: true })
           .range(from, from + LOAD_PAGE_SIZE - 1)
+          .overrideTypes<ExpenseTransaction[], { merge: false }>()
 
         if (queryError) throw queryError
-        rows.push(...((data || []) as ExpenseTransaction[]))
+        rows.push(...(data || []))
         if (!data || data.length < LOAD_PAGE_SIZE) break
       }
 
@@ -330,8 +340,12 @@ export function useExpensesData() {
 
     if (queryError) throw queryError
 
-    await Promise.all([loadCategories(), loadMappings(), loadTransactions()])
-  }, [loadCategories, loadMappings, loadTransactions, userId])
+    // То же, что делает БД по внешним ключам: сопоставления категории удаляются, операции остаются без категории.
+    // Правим на месте — перекачивать всю историю ради этого незачем
+    setCategories(prev => prev.filter(category => category.id !== id))
+    setMappings(prev => prev.filter(mapping => mapping.target_category_id !== id))
+    setAllTransactions(prev => prev.map(row => (row.mapped_category_id === id ? { ...row, mapped_category_id: null } : row)))
+  }, [userId])
 
   const upsertMapping = useCallback(async (bankCategory: string, targetCategoryId: string | null) => {
     if (!userId) return
@@ -339,22 +353,26 @@ export function useExpensesData() {
     const bankCategoryValue = bankCategory.trim()
     if (!bankCategoryValue) return
 
-    if (targetCategoryId) {
-      const { error: mappingError } = await supabase
-        .from('expense_category_mappings')
-        .upsert(
-          {
-            user_id: userId,
-            bank_category: bankCategoryValue,
-            target_category_id: targetCategoryId,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'user_id,bank_category' }
-        )
-
-      if (mappingError) throw mappingError
-
-      const { error: transactionError } = await supabase
+    // Сопоставление и операции правятся одновременно; историю не перекачиваем — меняем категорию на месте
+    const [mappingRes, transactionRes] = await Promise.all([
+      targetCategoryId
+        ? supabase
+            .from('expense_category_mappings')
+            .upsert(
+              {
+                user_id: userId,
+                bank_category: bankCategoryValue,
+                target_category_id: targetCategoryId,
+                updated_at: new Date().toISOString()
+              },
+              { onConflict: 'user_id,bank_category' }
+            )
+        : supabase
+            .from('expense_category_mappings')
+            .delete()
+            .eq('user_id', userId)
+            .eq('bank_category', bankCategoryValue),
+      supabase
         .from('expense_transactions')
         .update({
           mapped_category_id: targetCategoryId,
@@ -362,31 +380,16 @@ export function useExpensesData() {
         })
         .eq('user_id', userId)
         .eq('bank_category', bankCategoryValue)
+    ])
 
-      if (transactionError) throw transactionError
-    } else {
-      const { error: mappingError } = await supabase
-        .from('expense_category_mappings')
-        .delete()
-        .eq('user_id', userId)
-        .eq('bank_category', bankCategoryValue)
+    if (mappingRes.error) throw mappingRes.error
+    if (transactionRes.error) throw transactionRes.error
 
-      if (mappingError) throw mappingError
-
-      const { error: transactionError } = await supabase
-        .from('expense_transactions')
-        .update({
-          mapped_category_id: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('bank_category', bankCategoryValue)
-
-      if (transactionError) throw transactionError
-    }
-
-    await Promise.all([loadMappings(), loadTransactions()])
-  }, [loadMappings, loadTransactions, userId])
+    setAllTransactions(prev => prev.map(row => (
+      row.bank_category === bankCategoryValue ? { ...row, mapped_category_id: targetCategoryId } : row
+    )))
+    await loadMappings()
+  }, [loadMappings, userId])
 
   const importStatement = useCallback(async (file: File): Promise<ExpenseImportSummary> => {
     if (!userId) {

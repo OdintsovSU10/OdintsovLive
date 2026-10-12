@@ -1057,8 +1057,12 @@ export default function AdminTenderPage() {
     }
   }
 
+  // После правок список перечитывается тихо: спиннер на всю страницу размонтировал бы таблицу и открытую форму
+  const reloadEmployees = () => loadEmployees(undefined, undefined, false, true)
+
+  // Сотрудников при открытии грузит сам useTenderData
   const refreshAdminData = async () => {
-    await Promise.all([loadEmployees(), loadSubdivisions(), loadTimesheetSummary()])
+    await Promise.all([loadSubdivisions(), loadTimesheetSummary()])
     await loadArchivedEmployees()
   }
 
@@ -1088,7 +1092,7 @@ export default function AdminTenderPage() {
     setSyncingTimesheet(true)
     try {
       const result = await syncFotTimesheetMonth(year, month, employees)
-      await Promise.all([loadEmployees(year, month), loadTimesheetSummary()])
+      await Promise.all([loadEmployees(year, month, false, true), loadTimesheetSummary()])
       setTimesheetYear(year)
       showToast(`FOT табель: ${result.matched} строк, ${result.failed} ошибок`)
     } catch (err) {
@@ -1184,7 +1188,7 @@ export default function AdminTenderPage() {
       if (error) throw error
 
       setEditingEmployee(null)
-      await loadEmployees()
+      await reloadEmployees()
       showToast('Сотрудник обновлён')
     } catch {
       showToast('Ошибка при сохранении')
@@ -1212,7 +1216,7 @@ export default function AdminTenderPage() {
       if (error) throw error
 
       setShowAddEmployee(false)
-      await loadEmployees()
+      await reloadEmployees()
       showToast('Сотрудник добавлен')
     } catch (err) {
       showToast('Ошибка при добавлении')
@@ -1229,7 +1233,7 @@ export default function AdminTenderPage() {
 
       if (error) throw error
 
-      await loadEmployees()
+      await reloadEmployees()
       setShowConfirmClearSalaryHistory(false)
       showToast('История повышений очищена')
     } catch (err) {
@@ -1361,7 +1365,7 @@ export default function AdminTenderPage() {
       if (selectedEmployee?.id === id) {
         setSelectedEmployee(null)
       }
-      await Promise.all([loadEmployees(), loadArchivedEmployees(), loadTimesheetSummary()])
+      await Promise.all([reloadEmployees(), loadArchivedEmployees(), loadTimesheetSummary()])
       showToast('Сотрудник в архиве')
     } catch (err) {
       console.error('Error archiving employee:', err)
@@ -1388,7 +1392,7 @@ export default function AdminTenderPage() {
         }
       }
 
-      await Promise.all([loadEmployees(), loadArchivedEmployees(), loadTimesheetSummary()])
+      await Promise.all([reloadEmployees(), loadArchivedEmployees(), loadTimesheetSummary()])
       showToast('Сотрудник возвращён из архива')
     } catch (err) {
       console.error('Error restoring employee:', err)
@@ -1776,14 +1780,14 @@ export default function AdminTenderPage() {
       </div>
 
       {showImportEmployees && <ImportEmployeesModal onClose={() => setShowImportEmployees(false)} onSuccess={() => {
-        loadEmployees()
+        reloadEmployees()
         loadSubdivisions()
         loadArchivedEmployees()
         loadTimesheetSummary()
         showToast('Сотрудники синхронизированы')
       }} />}
       {showImportSalaryHistory && <ImportSalaryHistoryModal onClose={() => setShowImportSalaryHistory(false)} onSuccess={() => {
-        loadEmployees()
+        reloadEmployees()
         showToast('История окладов импортирована')
       }} />}
       {showConfirmClearSalaryHistory && (
@@ -1836,7 +1840,7 @@ export default function AdminTenderPage() {
           employee={editingEmployee}
           onClose={() => setEditingEmployee(null)}
           onSave={handleSaveEmployee}
-          onSalaryHistoryChange={() => loadEmployees()}
+          onSalaryHistoryChange={() => reloadEmployees()}
           onArchive={handleArchiveEmployee}
           subdivisions={subdivisionNames}
         />

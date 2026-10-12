@@ -19,7 +19,7 @@ const serviceText = (due: ServiceDue): string => {
 // Выбранная на странице «Машина» машина: ТО, расход и траты за 3 месяца
 export function CarSummaryCard() {
   const { selectedCar: car, loading, patchCar } = useCars()
-  const records = useCarRecords(car, patchCar)
+  const records = useCarRecords(car, patchCar, false)
   const { entries, intervals } = useJournalEntries(records.maintenance, records.fuel, records.expenses)
   const stats = useCarStats({
     car, entries, maintenance: records.maintenance, fuel: records.fuel, intervals, period: '3m'

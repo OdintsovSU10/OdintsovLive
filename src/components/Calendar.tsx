@@ -109,27 +109,44 @@ export default function Calendar() {
     saveQueue.current = saveQueue.current.then(run, run)
   }, [])
 
-  const saveToSupabase = useCallback((key: string, status: DayStatus) => {
+  // Одним заходом уходит всё накопленное: 20 отметок подряд — это 1–2 запроса, а не 20 по очереди
+  const flushPending = useCallback(() => {
     enqueueSave(async () => {
-      if (readStoredDays(PENDING_DAYS_STORAGE_KEY)[key] !== status) return
+      const pending = Object.entries(readStoredDays(PENDING_DAYS_STORAGE_KEY))
+      if (pending.length === 0) return
 
       const uid = await getUserId()
       if (!uid) return
 
-      const date = keyToDate(key)
-      const { error } = status === 'none'
-        ? await supabase.from('calendar_days').delete().eq('date', date).eq('user_id', uid)
-        : await supabase.from('calendar_days').upsert(
-            { user_id: uid, date, status },
-            { onConflict: 'user_id,date' }
-          )
+      const marked = pending.filter(([, status]) => status !== 'none')
+      const cleared = pending.filter(([, status]) => status === 'none').map(([key]) => key)
 
-      if (error) {
-        console.error(status === 'none' ? 'Delete error:' : 'Upsert error:', error)
-        return
+      const [upsertRes, deleteRes] = await Promise.all([
+        marked.length > 0
+          ? supabase.from('calendar_days').upsert(
+              marked.map(([key, status]) => ({ user_id: uid, date: keyToDate(key), status })),
+              { onConflict: 'user_id,date' }
+            )
+          : null,
+        cleared.length > 0
+          ? supabase.from('calendar_days').delete().in('date', cleared.map(keyToDate)).eq('user_id', uid)
+          : null
+      ])
+
+      // «Не сохранено» снимаем только с того, что ушло и не изменилось за время запроса
+      if (upsertRes?.error) {
+        console.error('Upsert error:', upsertRes.error)
+      } else {
+        (['work', 'worked', 'vacation'] as const).forEach(status => {
+          clearPendingChanges(marked.filter(([, value]) => value === status).map(([key]) => key), status)
+        })
       }
 
-      clearPendingChanges([key], status)
+      if (deleteRes?.error) {
+        console.error('Delete error:', deleteRes.error)
+      } else {
+        clearPendingChanges(cleared, 'none')
+      }
     })
   }, [enqueueSave])
 
@@ -162,10 +179,8 @@ export default function Calendar() {
     storeDays(DAYS_STORAGE_KEY, merged)
     setAllDays(merged)
 
-    Object.entries(pending).forEach(([key, status]) => {
-      saveToSupabase(key, status)
-    })
-  }, [saveToSupabase])
+    if (Object.keys(pending).length > 0) flushPending()
+  }, [flushPending])
 
   useEffect(() => {
     loadFromSupabase()
@@ -185,7 +200,7 @@ export default function Calendar() {
       storeDays(DAYS_STORAGE_KEY, updated)
       return updated
     })
-    saveToSupabase(key, next)
+    flushPending()
   }
 
   const resetMonth = (monthIndex: number) => {
@@ -205,24 +220,7 @@ export default function Calendar() {
       return updated
     })
 
-    enqueueSave(async () => {
-      const pending = readStoredDays(PENDING_DAYS_STORAGE_KEY)
-      const pendingDeletions = keysToDelete.filter(key => pending[key] === 'none')
-      if (pendingDeletions.length === 0) return
-
-      const uid = await getUserId()
-      if (!uid) return
-
-      const dates = pendingDeletions.map(keyToDate)
-      const { error } = await supabase.from('calendar_days').delete().in('date', dates).eq('user_id', uid)
-
-      if (error) {
-        console.error('Reset month error:', error)
-        return
-      }
-
-      clearPendingChanges(pendingDeletions, 'none')
-    })
+    flushPending()
   }
 
   const yearDays = Object.entries(allDays).filter(([key]) => key.startsWith(`${year}-`))

@@ -27,9 +27,11 @@ function putPart(rows: PartType[], row: PartType): PartType[] {
     : [...rows, row]
 }
 
+// withCatalog = false — только журнал (ТО, заправки, расходы): карточке на главной каталог и агрегаты не нужны
 export function useCarRecords(
   car: CarType | null,
-  onCarPatched: (id: string, fields: Partial<CarType>) => void
+  onCarPatched: (id: string, fields: Partial<CarType>) => void,
+  withCatalog = true
 ) {
   const [maintenance, setMaintenance] = useState<MaintenanceType[]>([])
   const [fuel, setFuel] = useState<FuelType[]>([])
@@ -62,18 +64,22 @@ export function useCarRecords(
       supabase.from('car_maintenance').select('*').eq('car_id', carId).order('date', { ascending: false }),
       supabase.from('car_fuel').select('*').eq('car_id', carId).order('date', { ascending: false }),
       supabase.from('car_expenses').select('*').eq('car_id', carId).order('date', { ascending: false }),
-      supabase.from('car_parts').select('*').eq('car_id', carId).order('category', { ascending: true }),
-      supabase.from('car_service_units').select('*').eq('car_id', carId).order('created_at', { ascending: true })
+      withCatalog
+        ? supabase.from('car_parts').select('*').eq('car_id', carId).order('category', { ascending: true })
+        : null,
+      withCatalog
+        ? supabase.from('car_service_units').select('*').eq('car_id', carId).order('created_at', { ascending: true })
+        : null
     ])
     if (request !== requestRef.current) return
 
     setMaintenance(maintenanceRes.data ?? [])
     setFuel(fuelRes.data ?? [])
     setExpenses(expensesRes.data ?? [])
-    setParts(partsRes.data ?? [])
-    setUnits(unitsRes.data ?? [])
+    setParts(partsRes?.data ?? [])
+    setUnits(unitsRes?.data ?? [])
     setLoading(false)
-  }, [carId])
+  }, [carId, withCatalog])
 
   useEffect(() => {
     void loadAll()

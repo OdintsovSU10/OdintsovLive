@@ -43,7 +43,12 @@ export function useMoscowDateTime(options: UseMoscowDateTimeOptions = {}): Mosco
   const [dateTime, setDateTime] = useState<MoscowDateTime>(() => formatMoscowDateTime(dateFormat, includeSeconds))
 
   useEffect(() => {
-    const update = () => setDateTime(formatMoscowDateTime(dateFormat, includeSeconds))
+    // Тик раз в секунду, но состояние меняется, только когда изменилась сама строка:
+    // без секунд компонент перерисовывается раз в минуту
+    const update = () => {
+      const next = formatMoscowDateTime(dateFormat, includeSeconds)
+      setDateTime(prev => (prev.dateTime === next.dateTime ? prev : next))
+    }
     update()
 
     const interval = setInterval(update, 1000)
