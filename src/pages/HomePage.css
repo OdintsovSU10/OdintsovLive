@@ -2,7 +2,7 @@
 
 .home-page {
   min-height: 100dvh;
-  padding: 72px 16px calc(24px + env(safe-area-inset-bottom));
+  padding: calc(72px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom));
 }
 
 .home-content {

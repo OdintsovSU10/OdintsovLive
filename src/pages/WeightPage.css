@@ -222,7 +222,7 @@
 }
 
 @media (max-width: 430px) {
-  .weight-page { padding: 72px 16px 16px; }
+  .weight-page { padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 16px; }
   .weight-stats { gap: 8px; }
   .weight-stat { padding: 12px 16px; min-width: 70px; }
   .weight-stat .stat-value { font-size: 1.25rem; }

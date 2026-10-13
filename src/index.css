@@ -43,6 +43,8 @@
 
   /* Верхняя панель (часы, настройки, тема) — контент страниц НЕ должен использовать z-index >= 1000 */
   --z-topbar: 1000;
+  /* Высота мобильной шапки: статус-бар + кнопки меню и логотипа с отступами по 12px */
+  --mobile-topbar-h: calc(env(safe-area-inset-top, 0px) + 64px);
 
   --font-headline: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'DM Sans', sans-serif;
@@ -224,27 +226,27 @@ code, pre {
   color: rgba(26, 26, 26, 0.8) !important;
 }
 
-/* Мобильная верхняя панель с размытием */
+/* Сплошная полоса у верхней кромки: iOS красит статус-бар в её цвет и не размывает верх */
+.app-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: var(--bg-primary);
+  z-index: 90;
+}
+
+/* iOS/iPadOS: минимум, которого хватает, чтобы убрать системное размытие */
+@supports (-webkit-touch-callout: none) {
+  .app-topbar {
+    height: max(env(safe-area-inset-top, 0px), 6px);
+  }
+}
+
+/* Телефон, внутри приложения: шапка под кнопками меню и логотипа */
 @media (max-width: 430px) {
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 96px;
-    background: linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--bg-primary) 70%, transparent) 0%,
-      color-mix(in srgb, var(--bg-primary) 50%, transparent) 50%,
-      color-mix(in srgb, var(--bg-primary) 20%, transparent) 75%,
-      transparent 100%
-    );
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 90;
-    pointer-events: none;
-    mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
+  body:has(.sidebar) .app-topbar {
+    height: var(--mobile-topbar-h);
   }
 }

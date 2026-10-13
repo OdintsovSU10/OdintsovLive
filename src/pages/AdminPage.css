@@ -642,7 +642,7 @@
 
 @media (max-width: 430px) {
   .admin-page {
-    padding: 72px 16px 16px;
+    padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 16px;
   }
 
   .admin-tab span {

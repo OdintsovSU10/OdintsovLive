@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { syncThemeColor } from '../lib/themeColor'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
 import './Sidebar.css'
@@ -59,15 +60,17 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
 
     if (isTenderRoute) {
       document.documentElement.dataset.routeTheme = 'tender'
-      return
+    } else {
+      delete document.documentElement.dataset.routeTheme
     }
 
-    delete document.documentElement.dataset.routeTheme
+    syncThemeColor()
   }, [location.pathname])
 
   useEffect(() => {
     return () => {
       delete document.documentElement.dataset.routeTheme
+      syncThemeColor()
     }
   }, [])
 

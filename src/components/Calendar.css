@@ -148,7 +148,7 @@
 }
 
 @media (max-width: 430px) {
-  .calendar-page { padding: 72px 16px 16px; }
+  .calendar-page { padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 16px; }
 
   .year-btn { display: none; }
 

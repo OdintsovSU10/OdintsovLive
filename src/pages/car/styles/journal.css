@@ -89,7 +89,7 @@
 
 .car-journal-month {
   position: sticky;
-  top: calc(56px + env(safe-area-inset-top, 0px));
+  top: var(--mobile-topbar-h);
   z-index: 5;
   display: flex;
   align-items: baseline;

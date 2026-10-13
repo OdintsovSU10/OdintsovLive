@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
+import { syncThemeColor } from './lib/themeColor'
 import type { User } from '@supabase/supabase-js'
 import { Coffee } from 'lucide-react'
 import './App.css'
@@ -96,6 +97,7 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
+    syncThemeColor()
   }, [theme])
 
   useEffect(() => {
