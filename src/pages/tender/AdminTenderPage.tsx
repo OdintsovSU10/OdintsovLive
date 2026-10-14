@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef, Fragment, type CSSProperties } from 'react'
+import { Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { useTenderData } from './hooks/useTenderData'
 import { ImportEmployeesModal } from './components/ImportEmployeesModal'
 import { ImportSalaryHistoryModal } from './components/ImportSalaryHistoryModal'
+import { QuickAddEmployee } from './components/QuickAddEmployee'
 import { EmployeeDetail } from './TenderPage'
-import type { Employee, EmployeeWithStats, SalaryHistory, TenderEmployeeEvent, TenderSubdivision } from './types'
+import type { Employee, EmployeeWithStats, NewEmployee, SalaryHistory, TenderEmployeeEvent, TenderSubdivision } from './types'
 import { syncFotTimesheetMonth } from './utils/fotTimesheetSync'
 import {
   formatAgeYears,
@@ -20,6 +22,15 @@ import './TenderPage.css'
 import './AdminTenderPage.css'
 
 type AdminTab = 'employees' | 'timesheet' | 'subdivisions' | 'archive' | 'settings'
+
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
+// Причина для архивации корзиной в строке — без диалога
+const QUICK_ARCHIVE_REASON = 'Уволился'
+const UNDO_TOAST_DURATION_MS = 6000
 
 interface TimesheetSummary {
   year: number
@@ -238,20 +249,6 @@ interface NewSalaryEntry {
   salary: number
   effective_date: string
   note: string
-}
-
-interface NewEmployee {
-  full_name: string
-  last_name: string
-  first_name: string
-  middle_name: string
-  position: string
-  department: string
-  subdivision: string
-  current_salary: number
-  monthly_bonus: number
-  hire_date: string
-  company: string
 }
 
 function AddEmployeeModal({ onClose, onSave, subdivisions }: {
@@ -866,7 +863,9 @@ export default function AdminTenderPage() {
   const [clearingSalaryHistory, setClearingSalaryHistory] = useState(false)
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EditableEmployee | null>(null)
-  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null)
+  const [toast, setToast] = useState<{ message: string; isError: boolean; action?: ToastAction } | null>(null)
+  const toastTimerRef = useRef<number | null>(null)
+  const [archivingIds, setArchivingIds] = useState<Set<number>>(() => new Set())
   const [search, setSearch] = useState('')
   const [timesheetSummary, setTimesheetSummary] = useState<TimesheetSummary[]>([])
   const [loadingTimesheet, setLoadingTimesheet] = useState(false)
@@ -1083,10 +1082,28 @@ export default function AdminTenderPage() {
 
   const displayYear = timesheetYear ?? new Date().getFullYear()
 
-  const showToast = (message: string, isError = false) => {
-    setToast({ message, isError })
-    setTimeout(() => setToast(null), isError ? 7000 : 3000)
+  const showToast = (message: string, isError = false, action?: ToastAction) => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current)
+    setToast({ message, isError, action })
+    const duration = action ? UNDO_TOAST_DURATION_MS : isError ? 7000 : 3000
+    toastTimerRef.current = window.setTimeout(() => setToast(null), duration)
   }
+
+  const hideToast = () => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = null
+    setToast(null)
+  }
+
+  const handleToastAction = () => {
+    const action = toast?.action
+    hideToast()
+    action?.onClick()
+  }
+
+  useEffect(() => () => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current)
+  }, [])
 
   const handleSyncTimesheetPeriod = async (year: number, month: number) => {
     setSyncingTimesheet(true)
@@ -1195,7 +1212,7 @@ export default function AdminTenderPage() {
     }
   }
 
-  const handleAddEmployee = async (emp: NewEmployee) => {
+  const handleAddEmployee = async (emp: NewEmployee): Promise<boolean> => {
     try {
       const { error } = await supabase
         .from('tender_employees')
@@ -1218,8 +1235,10 @@ export default function AdminTenderPage() {
       setShowAddEmployee(false)
       await reloadEmployees()
       showToast('Сотрудник добавлен')
+      return true
     } catch (err) {
       showToast('Ошибка при добавлении')
+      return false
     }
   }
 
@@ -1340,7 +1359,8 @@ export default function AdminTenderPage() {
     employeeEventsTableAvailableRef.current = true
   }
 
-  const handleArchiveEmployee = async (id: number, reason: string) => {
+  // undoName — архивация корзиной: тост с ФИО и кнопкой «Отменить»
+  const handleArchiveEmployee = async (id: number, reason: string, undoName?: string) => {
     try {
       if (employeeArchiveRpcAvailableRef.current === false) {
         await archiveEmployeeWithoutRpc(id, reason)
@@ -1366,11 +1386,31 @@ export default function AdminTenderPage() {
         setSelectedEmployee(null)
       }
       await Promise.all([reloadEmployees(), loadArchivedEmployees(), loadTimesheetSummary()])
-      showToast('Сотрудник в архиве')
+      if (undoName) {
+        showToast(`${undoName} — в архиве`, false, { label: 'Отменить', onClick: () => handleRestoreEmployee(id) })
+      } else {
+        showToast('Сотрудник в архиве')
+      }
     } catch (err) {
       console.error('Error archiving employee:', err)
       showToast('Ошибка при архивации')
       throw err
+    }
+  }
+
+  const handleQuickArchive = async (emp: EmployeeWithStats) => {
+    if (archivingIds.has(emp.id)) return
+    setArchivingIds(prev => new Set(prev).add(emp.id))
+    try {
+      await handleArchiveEmployee(emp.id, QUICK_ARCHIVE_REASON, emp.full_name)
+    } catch {
+      // Ошибку уже показал handleArchiveEmployee
+    } finally {
+      setArchivingIds(prev => {
+        const next = new Set(prev)
+        next.delete(emp.id)
+        return next
+      })
     }
   }
 
@@ -1492,8 +1532,14 @@ export default function AdminTenderPage() {
             <div className="admin-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 style={{ margin: 0 }}>Сотрудники ({employees.length})</h3>
-                <button className="btn-primary" onClick={() => setShowAddEmployee(true)}>+ Добавить</button>
+                <button className="btn-secondary" onClick={() => setShowAddEmployee(true)}>Полная форма</button>
               </div>
+              <QuickAddEmployee
+                subdivisions={subdivisionNames}
+                existingNames={employees.map(emp => emp.full_name)}
+                onAdd={handleAddEmployee}
+                onDuplicate={() => showToast('Такой сотрудник уже есть', true)}
+              />
           <div className="tender-filters" style={{ marginBottom: 16 }}>
             <div className="search-box">
               <span>🔍</span>
@@ -1555,8 +1601,18 @@ export default function AdminTenderPage() {
                           </td>
                           <td>{formatRuPhone(emp.phone, { dash: true })}</td>
                           <td>{emp.email || '—'}</td>
-                          <td>
+                          <td className="emp-list-actions">
                             <button className="btn-edit" onClick={event => { event.stopPropagation(); handleEditEmployee(emp) }}>✎</button>
+                            <button
+                              type="button"
+                              className="btn-archive"
+                              title="В архив"
+                              aria-label={`В архив: ${emp.full_name}`}
+                              disabled={archivingIds.has(emp.id)}
+                              onClick={event => { event.stopPropagation(); void handleQuickArchive(emp) }}
+                            >
+                              <Trash2 size={16} strokeWidth={1.5} />
+                            </button>
                           </td>
                         </tr>
                       )
@@ -1853,9 +1909,18 @@ export default function AdminTenderPage() {
         />
       )}
       {toast && (
-        <div className={`toast${toast.isError ? ' error' : ''}`}>
+        <div className={`toast${toast.isError ? ' error' : ''}`} role="status" aria-live="polite">
           <span>{toast.isError ? '!' : '✓'}</span>
           {toast.message}
+          {toast.action && (
+            <button
+              type="button"
+              className="toast-action"
+              onClick={handleToastAction}
+            >
+              {toast.action.label}
+            </button>
+          )}
         </div>
       )}
     </div>

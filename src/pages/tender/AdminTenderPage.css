@@ -441,6 +441,101 @@
   color: #fca5a5;
 }
 
+/* Колонка ✎ и корзины прилипает справа — таблица шире экрана, кнопки всегда под рукой */
+.tender-page .admin-emp-table th:last-child,
+.tender-page .admin-emp-table .emp-list-actions {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.tender-page .admin-emp-table th:last-child {
+  background: #0c1220;
+}
+
+.tender-page .emp-list-actions {
+  white-space: nowrap;
+  background: #0d1424;
+  box-shadow: -10px 0 12px -10px rgba(2, 6, 23, 0.95);
+}
+
+.tender-page .emp-list-row:hover .emp-list-actions {
+  background: linear-gradient(rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.08)), #0d1424;
+}
+
+.tender-page .btn-archive {
+  width: 30px;
+  height: 30px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.tender-page .btn-archive:hover {
+  background: rgba(248, 113, 113, 0.24);
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.tender-page .btn-archive:disabled,
+.tender-page .quick-add-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tender-page .quick-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tender-page .quick-add-name {
+  flex: 2 1 220px;
+}
+
+.tender-page .quick-add-position,
+.tender-page .quick-add-subdivision {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.tender-page .quick-add-row input,
+.tender-page .quick-add-subdivision {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(100, 116, 139, 0.16);
+  background: rgba(15, 23, 42, 0.76);
+  color: #e2e8f0;
+  padding-left: 12px;
+  font-size: 0.84rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.tender-page .quick-add-subdivision {
+  padding-right: 8px;
+}
+
+.tender-page .quick-add-row input::placeholder {
+  color: #475569;
+}
+
+.tender-page .quick-add-row input:focus,
+.tender-page .quick-add-subdivision:focus {
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
 .tender-page .modal-overlay {
   position: fixed;
   inset: 0;
@@ -840,6 +935,25 @@
   color: #f87171;
 }
 
+.tender-page .toast .toast-action {
+  min-height: 32px;
+  margin-left: 4px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(34, 211, 238, 0.12);
+  color: #22d3ee;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tender-page .toast .toast-action:hover {
+  background: rgba(34, 211, 238, 0.22);
+}
+
 .tender-page .tender-loading {
   min-height: 60vh;
   display: flex;
@@ -974,6 +1088,33 @@
 
   .tender-page .search-box {
     max-width: none;
+  }
+
+  .tender-page .quick-add-row {
+    flex-direction: column;
+  }
+
+  .tender-page .quick-add-name,
+  .tender-page .quick-add-position,
+  .tender-page .quick-add-subdivision {
+    flex: 0 0 auto;
+  }
+
+  .tender-page .quick-add-row input,
+  .tender-page .quick-add-subdivision,
+  .tender-page .quick-add-submit {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .tender-page .btn-edit,
+  .tender-page .btn-archive {
+    width: 44px;
+    height: 44px;
+  }
+
+  .tender-page .toast .toast-action {
+    min-height: 44px;
   }
 
   .tender-page .toast {

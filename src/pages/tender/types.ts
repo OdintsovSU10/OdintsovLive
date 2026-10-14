@@ -26,6 +26,20 @@ export interface Employee {
   created_at: string
 }
 
+export interface NewEmployee {
+  full_name: string
+  last_name: string
+  first_name: string
+  middle_name: string
+  position: string
+  department: string
+  subdivision: string
+  current_salary: number
+  monthly_bonus: number
+  hire_date: string
+  company: string
+}
+
 export interface SalaryHistory {
   id: number
   employee_id: number
