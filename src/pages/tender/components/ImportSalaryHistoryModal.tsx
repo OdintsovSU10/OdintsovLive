@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useOverlayClose } from '../../../hooks/useOverlayClose'
 import { useSalaryHistoryImport } from '../hooks/useSalaryHistoryImport'
 import './ImportModal.css'
 
@@ -37,6 +38,7 @@ export function ImportSalaryHistoryModal({ onClose, onSuccess }: Props) {
     clearPreview()
     onClose()
   }
+  const overlayClose = useOverlayClose(handleClose)
 
   const formatDate = (iso: string) => {
     const [year, month] = iso.split('-')
@@ -45,7 +47,7 @@ export function ImportSalaryHistoryModal({ onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="import-overlay" onClick={handleClose}>
+    <div className="import-overlay" {...overlayClose}>
       <div className="import-modal import-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="import-header">
           <h3>Импорт истории окладов</h3>

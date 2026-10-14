@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
+import { useOverlayClose } from '../hooks/useOverlayClose'
 
 interface Props {
   title: string
@@ -19,8 +20,10 @@ export default function ConfirmModal({
   onConfirm,
   onCancel
 }: Props) {
+  const overlayClose = useOverlayClose(onCancel)
+
   return (
-    <div className="modal-overlay confirm-overlay" onClick={onCancel}>
+    <div className="modal-overlay confirm-overlay" {...overlayClose}>
       <div className="confirm-modal" onClick={e => e.stopPropagation()}>
         <div className="confirm-icon">
           <AlertTriangle size={32} />

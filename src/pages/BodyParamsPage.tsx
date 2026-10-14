@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
 import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import { useOverlayClose } from '../hooks/useOverlayClose'
 import './BodyParamsPage.css'
 
 interface BodyParams {
@@ -105,6 +106,7 @@ export default function BodyParamsPage() {
     setShowModal(false)
     setEditingId(null)
   }
+  const overlayClose = useOverlayClose(closeModal)
 
   const handleInputChange = (key: ParamKey, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }))
@@ -235,7 +237,7 @@ export default function BodyParamsPage() {
       )}
 
       {showModal && (
-        <div className="modal-overlay" onClick={closeModal}>
+        <div className="modal-overlay" {...overlayClose}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingId ? 'Редактировать замер' : 'Новый замер'}</h2>

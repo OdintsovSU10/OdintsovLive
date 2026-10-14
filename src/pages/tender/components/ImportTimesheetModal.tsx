@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useOverlayClose } from '../../../hooks/useOverlayClose'
 import { useTimesheetImport } from '../hooks/useTimesheetImport'
 import type { Employee } from '../types'
 import './ImportModal.css'
@@ -49,12 +50,13 @@ export function ImportTimesheetModal({ employees, onClose, onSuccess }: Props) {
     clearPreview()
     onClose()
   }
+  const overlayClose = useOverlayClose(handleClose)
 
   const matchedCount = preview.filter(p => p.matched_employee_id).length
   const unmatchedCount = preview.length - matchedCount
 
   return (
-    <div className="import-overlay" onClick={handleClose}>
+    <div className="import-overlay" {...overlayClose}>
       <div className="import-modal import-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="import-header">
           <h3>Импорт табеля</h3>

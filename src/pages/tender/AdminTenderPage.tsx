@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, Fragment, type CSSProperties } from 'react'
 import { Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useOverlayClose } from '../../hooks/useOverlayClose'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { useTenderData } from './hooks/useTenderData'
 import { ImportEmployeesModal } from './components/ImportEmployeesModal'
@@ -270,6 +271,7 @@ function AddEmployeeModal({ onClose, onSave, subdivisions }: {
     company: ''
   })
   const [saving, setSaving] = useState(false)
+  const overlayClose = useOverlayClose(onClose)
 
   const handleChange = (field: keyof NewEmployee, value: string | number) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -292,7 +294,7 @@ function AddEmployeeModal({ onClose, onSave, subdivisions }: {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayClose}>
       <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Добавить сотрудника</h3>
@@ -538,10 +540,13 @@ function EmployeeModal({ employee, onClose, onSave, onSalaryHistoryChange, onArc
     setArchiveReason('')
   }
 
+  const overlayClose = useOverlayClose(onClose)
+  const archiveOverlayClose = useOverlayClose(closeArchiveReasonModal)
+
   // Режим редактирования
   if (editMode) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" {...overlayClose}>
         <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
           <div className="modal-header">
             <h3>Редактирование</h3>
@@ -647,7 +652,7 @@ function EmployeeModal({ employee, onClose, onSave, onSalaryHistoryChange, onArc
 
   // Режим просмотра
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayClose}>
       <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div className="emp-detail-header">
@@ -806,7 +811,7 @@ function EmployeeModal({ employee, onClose, onSave, onSalaryHistoryChange, onArc
           </div>
 
           {showArchiveReasonModal && (
-            <div className="modal-overlay modal-overlay-inner" onClick={closeArchiveReasonModal}>
+            <div className="modal-overlay modal-overlay-inner" {...archiveOverlayClose}>
               <div className="modal-content archive-reason-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                   <h3>Причина архивации</h3>
@@ -1482,6 +1487,11 @@ export default function AdminTenderPage() {
     return sorted.map(([name, employees]) => ({ name, employees }))
   }, [filteredEmployees])
 
+  const clearSalaryOverlayClose = useOverlayClose(() => {
+    if (!clearingSalaryHistory) setShowConfirmClearSalaryHistory(false)
+  })
+  const clearAllOverlayClose = useOverlayClose(() => setShowConfirmClear(false))
+
   if (loading) return <div className="tender-loading"><div className="tender-spinner" /><div>Загрузка...</div></div>
 
   if (selectedEmployee) {
@@ -1847,7 +1857,7 @@ export default function AdminTenderPage() {
         showToast('История окладов импортирована')
       }} />}
       {showConfirmClearSalaryHistory && (
-        <div className="modal-overlay" onClick={() => !clearingSalaryHistory && setShowConfirmClearSalaryHistory(false)}>
+        <div className="modal-overlay" {...clearSalaryOverlayClose}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="confirm-dialog">
               <p>Удалить всю историю повышений окладов? Сотрудники и табель останутся без изменений.</p>
@@ -1868,7 +1878,7 @@ export default function AdminTenderPage() {
         </div>
       )}
       {showConfirmClear && (
-        <div className="modal-overlay" onClick={() => setShowConfirmClear(false)}>
+        <div className="modal-overlay" {...clearAllOverlayClose}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="confirm-dialog">
               <p>Удалить всех сотрудников и данные табеля?</p>

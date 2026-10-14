@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useOverlayClose } from '../../../hooks/useOverlayClose'
 import {
   DEFAULT_EMPLOYEE_IMPORT_OPTIONS,
   useEmployeeImport
@@ -106,6 +107,7 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
     clearPreview()
     onClose()
   }
+  const overlayClose = useOverlayClose(handleClose)
 
   const handleFotFieldToggle = (
     key: keyof Pick<EmployeeImportOptions, 'work' | 'employment' | 'salary' | 'contacts' | 'documents'>
@@ -119,7 +121,7 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
   const selectedDepartment = departments.find(department => department.id === fotLoadOptions.departmentId)
 
   return (
-    <div className="import-overlay" onClick={handleClose}>
+    <div className="import-overlay" {...overlayClose}>
       <div className="import-modal import-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="import-header">
           <h3>Синхронизация сотрудников FOT</h3>
