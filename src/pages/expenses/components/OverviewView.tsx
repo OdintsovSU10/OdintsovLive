@@ -3,6 +3,7 @@ import type { DashboardStats } from '../hooks/useDashboardStats'
 import type { ExpenseInsights, ExpenseTransaction, ExpenseUserCategory } from '../types'
 import { formatRub, getMappedCategoryName } from '../utils/format'
 import { BudgetCard } from './BudgetCard'
+import type { BudgetLimit } from '../utils/budget'
 import { GroupBreakdown } from './GroupBreakdown'
 import { InsightsSummary } from './InsightsSummary'
 import { MonthlyChart } from './MonthlyChart'
@@ -14,7 +15,8 @@ interface Props {
   stats: DashboardStats
   transactions: ExpenseTransaction[]
   allTransactions: ExpenseTransaction[]
-  categories: ExpenseUserCategory[]
+  budgetLimits: BudgetLimit[]
+  budgetsLoading: boolean
   categoriesById: Map<string, ExpenseUserCategory>
   insights: ExpenseInsights | null
   loading: boolean
@@ -32,7 +34,7 @@ function describeChange(current: number, prev: number | null): { text: string; t
     : { text: `▼ ${percent}% к прошлому периоду`, tone: 'down' }
 }
 
-export function OverviewView({ stats, transactions, allTransactions, categories, categoriesById, insights, loading, periodLabel, onOpenInsights }: Props) {
+export function OverviewView({ stats, transactions, allTransactions, budgetLimits, budgetsLoading, categoriesById, insights, loading, periodLabel, onOpenInsights }: Props) {
   const { totals, groups, monthly, monthGroups } = stats
   const change = describeChange(totals.spent, totals.prevSpent)
   const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null)
@@ -49,7 +51,7 @@ export function OverviewView({ stats, transactions, allTransactions, categories,
 
   return (
     <>
-      <BudgetCard transactions={allTransactions} categories={categories} categoriesById={categoriesById} transactionsLoading={loading} />
+      <BudgetCard transactions={allTransactions} limits={budgetLimits} categoriesById={categoriesById} loading={loading || budgetsLoading} />
 
       {insights && <InsightsSummary insights={insights} onOpen={onOpenInsights} />}
 

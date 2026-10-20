@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { AlertCircle, RefreshCw, Search, Upload } from 'lucide-react'
+import { AlertCircle, PiggyBank, RefreshCw, Search, Upload } from 'lucide-react'
+import { Toast } from '../../components/ui/Toast'
+import { useToast } from '../../hooks/useToast'
 import { AnalyticsView } from './components/AnalyticsView'
+import { BudgetEditor } from './components/BudgetEditor'
 import { CategoryManager } from './components/CategoryManager'
 import { InsightsView } from './components/InsightsView'
 import { OverviewView } from './components/OverviewView'
 import { TransactionsView } from './components/TransactionsView'
+import { useBudgets, type BudgetDraft } from './hooks/useBudgets'
 import { useDashboardStats, type PeriodPreset } from './hooks/useDashboardStats'
 import { useExpensesData } from './hooks/useExpensesData'
 import type { ExpenseUserCategory } from './types'
@@ -72,6 +76,23 @@ export default function ExpensesPage() {
     setMerchantCategory,
     importStatement
   } = useExpensesData()
+
+  const budgets = useBudgets()
+  const { toast, showToast, hideToast } = useToast()
+  const [budgetEditorOpen, setBudgetEditorOpen] = useState(false)
+  const [budgetSaving, setBudgetSaving] = useState(false)
+
+  const handleBudgetSave = async (draft: BudgetDraft) => {
+    setBudgetSaving(true)
+    const ok = await budgets.save(draft)
+    setBudgetSaving(false)
+    if (ok) {
+      setBudgetEditorOpen(false)
+      showToast({ message: 'Бюджеты сохранены' })
+    } else {
+      showToast({ message: 'Не удалось сохранить бюджеты', tone: 'error' })
+    }
+  }
 
   const [view, setView] = useState<DashboardView>('overview')
   const [period, setPeriod] = useState<PeriodPreset>('month')
@@ -148,12 +169,29 @@ export default function ExpensesPage() {
           <p>Выписки банка, подписки и лишние расходы</p>
         </div>
 
-        <label className={`import-btn ${importing ? 'disabled' : ''}`}>
-          <Upload size={18} strokeWidth={1.5} />
-          <span>{importing ? 'Импорт...' : 'Импорт выписки'}</span>
-          <input type="file" accept=".xlsx,.csv" onChange={handleImport} disabled={importing} hidden />
-        </label>
+        <div className="expenses-actions">
+          <button type="button" className="import-btn secondary" onClick={() => setBudgetEditorOpen(true)}>
+            <PiggyBank size={18} strokeWidth={1.5} />
+            <span>{budgets.limits.length > 0 ? 'Бюджеты' : 'Задать бюджеты'}</span>
+          </button>
+          <label className={`import-btn ${importing ? 'disabled' : ''}`}>
+            <Upload size={18} strokeWidth={1.5} />
+            <span>{importing ? 'Импорт...' : 'Импорт выписки'}</span>
+            <input type="file" accept=".xlsx,.csv" onChange={handleImport} disabled={importing} hidden />
+          </label>
+        </div>
       </header>
+
+      {budgetEditorOpen && (
+        <BudgetEditor
+          categories={categories}
+          limits={budgets.limits}
+          saving={budgetSaving}
+          onSave={handleBudgetSave}
+          onClose={() => setBudgetEditorOpen(false)}
+        />
+      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       <nav className="expenses-tabs" aria-label="Разделы">
         {VIEWS.map(item => (
@@ -239,7 +277,8 @@ export default function ExpensesPage() {
           stats={stats}
           transactions={displayTransactions}
           allTransactions={allTransactions}
-          categories={categories}
+          budgetLimits={budgets.limits}
+          budgetsLoading={budgets.loading}
           categoriesById={categoriesById}
           insights={insights}
           loading={loading}

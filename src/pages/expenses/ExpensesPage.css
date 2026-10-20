@@ -96,6 +96,23 @@
   background: var(--primary-hover);
 }
 
+.expenses-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-btn.secondary {
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.import-btn.secondary:hover {
+  background: var(--bg-tertiary);
+}
+
 .import-btn.disabled {
   opacity: 0.6;
   pointer-events: none;
