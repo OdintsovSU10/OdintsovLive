@@ -1,27 +1,375 @@
-/* Страница «Тело» с вкладками: внешние отступы даёт .body-shell */
+/* Страница «Тело»: одна колонка, от 1024px — «Вес» слева, «Замеры» справа */
 .body-shell {
-  padding: 24px 24px 0;
-  max-width: 900px;
+  padding: 24px 24px 24px;
+  max-width: 1200px;
   margin: 0 auto;
   overflow-x: hidden;
 }
 
-/* Вложенные страницы: свои внешние отступы и ширина убраны — обе вкладки во всю ширину раздела */
-.body-shell .weight-page,
-.body-shell .body-params-page {
-  padding: 16px 0 24px;
-  margin: 0;
-  max-width: none;
+.body-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
-/* Заголовок вкладки «Параметры» даёт сама вкладка — остаётся только кнопка замера */
-.body-shell .body-params-page .page-header {
-  justify-content: flex-end;
-  padding-right: 0;
+.body-card {
+  min-width: 0;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.body-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.body-card h2 {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.body-subtitle {
+  margin-bottom: 8px;
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+}
+
+.body-muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.body-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+/* Дельты: снижение — зелёный токен, рост — danger */
+.body-delta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.body-delta.down { color: var(--chart-positive); }
+.body-delta.up { color: var(--danger); }
+
+/* Кнопки и поля */
+.body-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, opacity 0.15s ease-out;
+}
+
+.body-btn.primary {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.body-btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.body-btn:disabled { opacity: 0.5; cursor: default; }
+
+.ui-sheet-footer .body-btn { flex: 1; }
+
+.body-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.body-input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.body-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.body-icon-btn:hover,
+.body-icon-btn:focus-visible {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Вес */
+.body-weight-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.body-weight-now {
+  font-family: var(--font-headline);
+  font-size: 2.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.body-weight-now span {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
+
+.body-weight-changes {
+  display: flex;
+  gap: 16px;
+}
+
+.body-change {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.body-change .body-delta { font-size: 1rem; }
+
+.body-weight-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.body-weight-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.body-date { min-width: 0; }
+
+/* Графики */
+.body-chart-block {
+  margin-top: 16px;
+}
+
+.body-card .ui-segmented button { min-height: 44px; }
+
+.body-chart {
+  width: 100%;
+  height: 220px;
+  margin-top: 12px;
+}
+
+.body-chart-empty {
+  padding: 24px 8px;
+  text-align: center;
+}
+
+/* Раскрывашки и строки */
+.body-fold {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.body-fold-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.body-fold-icon { transition: transform 0.2s ease-out; }
+.body-fold-toggle[aria-expanded='true'] .body-fold-icon { transform: rotate(180deg); }
+
+.body-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.body-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid var(--border-light);
+}
+
+.body-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 44px;
+  padding: 0 4px;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.body-row-main:hover { background: var(--surface-hover); }
+.body-row-main.static { cursor: default; }
+.body-row-date { color: var(--text-secondary); }
+.body-row-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Замеры: плитки */
+.body-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.body-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 76px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: left;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.body-tile:hover { background: var(--surface-hover); }
+
+.body-tile.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.body-tile-label {
+  max-width: 100%;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  overflow-wrap: break-word;
+}
+
+.body-tile-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Форма замера (в BottomSheet) */
+.body-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.body-form p { margin: 0; }
+
+.body-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.body-field-label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.body-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.body-pair {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.body-pair legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 @media (max-width: 430px) {
   .body-shell {
-    padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 0;
+    padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 24px;
+  }
+}
+
+@media (min-width: 480px) {
+  .body-weight-fields { grid-template-columns: minmax(0, 1fr) 190px; }
+}
+
+@media (min-width: 640px) {
+  .body-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .body-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .body-chart { height: 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body-fold-icon,
+  .body-btn,
+  .body-tile,
+  .body-icon-btn {
+    transition: none;
   }
 }

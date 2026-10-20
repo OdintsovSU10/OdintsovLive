@@ -74,3 +74,10 @@ export function calcTenure(hireDate: string): string {
   }
   return `${years} г. ${months} мес.`
 }
+
+// Локальная дата в формате YYYY-MM-DD (toISOString сдвигает день по UTC)
+export function toLocalIsoDate(d: Date = new Date()): string {
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${month}-${day}`
+}
