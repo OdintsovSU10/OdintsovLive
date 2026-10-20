@@ -282,7 +282,9 @@ const SALARY_KINDS = {
   advance: { note: 'Аванс', ask: 'аванс', letter: 'a' },
   bonus: { note: 'Премия', ask: 'премия', letter: 'b' },
   vacation: { note: 'Отпускные', ask: 'отпускные', letter: 'v' },
-  sick: { note: 'Больничные', ask: 'больничные', letter: 'k' }
+  sick: { note: 'Больничные', ask: 'больничные', letter: 'k' },
+  // в тексте только «зачисление» — тип определяем по дню
+  unknown: { note: 'Зарплата', ask: 'зачисление', letter: 'u' }
 }
 
 // Разбор callback_data кнопки выбора месяца (sal:сумма:YYYYMMDD:буква:год-месяц) в аргументы add_salary
@@ -308,11 +310,12 @@ const guessSalaryMonth = (kind, date) => {
     const index = year * 12 + month - 1 + delta
     return { year: Math.floor(index / 12), month: (index % 12) + 1 }
   }
-  if (kind === 'salary') {
-    if (day <= 10) return { ...shift(-1), note: 'Зарплата' }
-    if (day <= 25) return { ...shift(0), note: 'Аванс' }
-  }
-  if (kind === 'advance' && day <= 25) return { ...shift(0), note: 'Аванс' }
+  if (day > 25) return null
+  // тип назван в тексте — он главнее дня: зарплата — за прошлый месяц, аванс — за текущий
+  if (kind === 'salary') return { ...shift(-1), note: 'Зарплата' }
+  if (kind === 'advance') return { ...shift(0), note: 'Аванс' }
+  // не назван: в первых числах — зарплата за прошлый месяц, в середине — аванс за текущий
+  if (kind === 'unknown') return day <= 10 ? { ...shift(-1), note: 'Зарплата' } : { ...shift(0), note: 'Аванс' }
   return null
 }
 
@@ -322,7 +325,7 @@ const addSalary = async ({ rest, ctx, track, args }) => {
   const amount = toNumber(args.amount)
   if (!amount || amount <= 0) throw new UserError('Не понял сумму зарплаты')
   const date = pickDate(ctx, args.date)
-  const kind = SALARY_KINDS[args.kind] ? args.kind : 'salary'
+  const kind = SALARY_KINDS[args.kind] ? args.kind : 'unknown'
   let month = toNumber(args.month)
   let year
   let note = SALARY_KINDS[kind].note
