@@ -165,6 +165,14 @@
   color: var(--text-muted);
 }
 
+.table-row .tender-badge {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
 .table-row .vacation-days {
   color: var(--status-vacation);
   font-weight: 500;

@@ -6,6 +6,8 @@ import type { SalaryHistory, TimesheetStatus } from '../../tender/types'
 import { Payment, MonthStats } from '../types'
 import { buildYearStats } from '../timesheetStats'
 import type { TimesheetDay, PlanDay } from '../timesheetStats'
+import { buildVacationRates } from '../vacationModel'
+import type { VacationMonthInput, VacationMonthResult } from '../vacationModel'
 
 export type SalarySource = 'tender' | 'personal'
 
@@ -32,12 +34,20 @@ export function useSalaryData() {
   const [tenderNorms, setTenderNorms] = useState<{ [key: string]: number }>({})
   const [monthForecastDays, setMonthForecastDays] = useState<{ [key: string]: number }>({})
   const [salarySource, setSalarySource] = useState<SalarySource>('personal')
+  const [monthSource, setMonthSource] = useState<{ [key: string]: SalarySource }>({})
+  const [tenderVacationRates, setTenderVacationRates] = useState<{ [key: string]: number }>({})
+  const [vacationDetails, setVacationDetails] = useState<{ [key: string]: VacationMonthResult }>({})
   // Ключи месяцев, для которых в salary_settings уже есть строка
   const settingsKeysRef = useRef<Set<string>>(new Set())
 
   // Итоговые значения: данные тендерного модуля приоритетнее личных настроек
   const mergedSalaries = useMemo(() => ({ ...monthSalaries, ...tenderSalaries }), [monthSalaries, tenderSalaries])
   const mergedNorms = useMemo(() => ({ ...monthWorkDaysNorm, ...tenderNorms }), [monthWorkDaysNorm, tenderNorms])
+  // Отпускные тендерных месяцев считаются по табелю и перекрывают значения из представления
+  const mergedVacationRates = useMemo(
+    () => ({ ...monthVacationRates, ...tenderVacationRates }),
+    [monthVacationRates, tenderVacationRates]
+  )
   const mergedRef = useRef({ salaries: mergedSalaries, norms: mergedNorms })
   mergedRef.current = { salaries: mergedSalaries, norms: mergedNorms }
 
@@ -111,52 +121,70 @@ export function useSalaryData() {
 
   const loadStatsForYear = useCallback(async (userId: string, year: number) => {
     const prefix = `${year}-`
-    const dropYear = (prev: { [key: string]: number }) =>
+    const dropYear = <T,>(prev: { [key: string]: T }): { [key: string]: T } =>
       Object.fromEntries(Object.entries(prev).filter(([k]) => !k.startsWith(prefix)))
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tender_employee_id')
-      .eq('id', userId)
-      .maybeSingle()
+    const [profileRes, calcRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('tender_employee_id, tender_since')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase
+        .from('salary_calculations')
+        .select('year, month, work_days, worked_days, vacation_days')
+        .eq('user_id', userId)
+        .in('year', [year - 1, year])
+    ])
 
-    const employeeId: number | null = profile?.tender_employee_id ?? null
+    const employeeId: number | null = profileRes.data?.tender_employee_id ?? null
+    const tenderSince: string | null = profileRes.data?.tender_since ?? null
 
-    if (employeeId === null) {
+    // Месяц берётся из табеля тендера, если сотрудник привязан и месяц не раньше tender_since
+    const isTenderMonth = (y: number, m: number): boolean =>
+      employeeId !== null && (tenderSince === null || `${y}-${String(m + 1).padStart(2, '0')}-01` >= tenderSince)
+
+    // Личные цифры из salary_calculations (по месяцам с данными)
+    const personalStats: { [key: string]: MonthStats } = {}
+    ;(calcRes.data || []).forEach(row => {
+      personalStats[`${row.year}-${row.month}`] = {
+        work: row.work_days || 0,
+        worked: row.worked_days || 0,
+        vacation: row.vacation_days || 0
+      }
+    })
+
+    const allPersonalSource = (): { [key: string]: 'tender' | 'personal' } => {
+      const result: { [key: string]: 'tender' | 'personal' } = {}
+      for (let m = 0; m < 12; m++) result[`${year}-${m}`] = 'personal'
+      return result
+    }
+
+    // Ни одного тендерного месяца в году (не привязан или tender_since позже конца года)
+    if (employeeId === null || !isTenderMonth(year, 11)) {
       setSalarySource('personal')
+      setMonthSource(allPersonalSource())
       setTenderSalaries(dropYear)
       setTenderNorms(dropYear)
       setMonthForecastDays(dropYear)
-
-      const { data } = await supabase
-        .from('salary_calculations')
-        .select('month, work_days, worked_days, vacation_days')
-        .eq('user_id', userId)
-        .eq('year', year)
-
-      if (data) {
-        const stats: { [key: string]: MonthStats } = {}
-        data.forEach(row => {
-          stats[`${year}-${row.month}`] = {
-            work: row.work_days || 0,
-            worked: row.worked_days || 0,
-            vacation: row.vacation_days || 0
-          }
-        })
-        setMonthStats(stats)
+      setTenderVacationRates(dropYear)
+      setVacationDetails(dropYear)
+      if (calcRes.data) {
+        setMonthStats(Object.fromEntries(Object.entries(personalStats).filter(([k]) => k.startsWith(prefix))))
       }
       return
     }
 
-    const yearStart = `${year}-01-01`
-    const yearEnd = `${year}-12-31`
-    const [timesheetRes, historyRes, employeeRes, planRes] = await Promise.all([
+    const rangeStartDefault = `${year - 1}-01-01`
+    const rangeStart = tenderSince !== null && tenderSince > rangeStartDefault ? tenderSince : rangeStartDefault
+    const rangeEnd = `${year}-12-31`
+    const [timesheetRes, historyRes, employeeRes, planRes, settingsRes] = await Promise.all([
       supabase
         .from('tender_timesheet')
         .select('work_date, status, hours_worked')
         .eq('employee_id', employeeId)
-        .gte('work_date', yearStart)
-        .lte('work_date', yearEnd),
+        .gte('work_date', rangeStart)
+        .lte('work_date', rangeEnd),
       supabase
         .from('tender_salary_history')
         .select('salary, effective_date')
@@ -170,8 +198,13 @@ export function useSalaryData() {
         .from('calendar_days')
         .select('date, status')
         .eq('user_id', userId)
-        .gte('date', yearStart)
-        .lte('date', yearEnd)
+        .gte('date', rangeStart)
+        .lte('date', rangeEnd),
+      supabase
+        .from('salary_settings')
+        .select('year, month, base_salary, bonus, transport_base_cost, work_days_norm')
+        .eq('user_id', userId)
+        .in('year', [year - 1, year])
     ])
 
     const timesheet: TimesheetDay[] = (timesheetRes.data || []).map(row => ({
@@ -192,20 +225,93 @@ export function useSalaryData() {
     }))
     const currentSalary = Number(employeeRes.data?.current_salary) || 0
 
-    const { stats, forecastDays } = buildYearStats(year, timesheet, plan, toLocalIso(new Date()))
+    const todayIso = toLocalIso(new Date())
+    const current = buildYearStats(year, timesheet, plan, todayIso)
+    const previous = buildYearStats(year - 1, timesheet, plan, todayIso)
+    const tenderStatsAll: { [key: string]: MonthStats } = { ...previous.stats, ...current.stats }
 
+    const stats: { [key: string]: MonthStats } = {}
+    const source: { [key: string]: 'tender' | 'personal' } = {}
     const salaries: { [key: string]: number } = {}
     const norms: { [key: string]: number } = {}
+    const forecast: { [key: string]: number } = {}
     for (let m = 0; m < 12; m++) {
       const key = `${year}-${m}`
-      salaries[key] = getSalaryForMonth(history, currentSalary, year, m + 1)
-      norms[key] = getDefaultWorkDaysNorm(year, m)
+      if (isTenderMonth(year, m)) {
+        source[key] = 'tender'
+        stats[key] = current.stats[key]
+        salaries[key] = getSalaryForMonth(history, currentSalary, year, m + 1)
+        norms[key] = getDefaultWorkDaysNorm(year, m)
+        forecast[key] = current.forecastDays[key] ?? 0
+      } else {
+        source[key] = 'personal'
+        stats[key] = personalStats[key] ?? { work: 0, worked: 0, vacation: 0 }
+      }
     }
 
+    // Отпускные: окно из 12 месяцев с данными за год-1 и год
+    const settingsByKey = new Map<string, { salary: number; bonus: number; transport: number; norm: number }>()
+    ;(settingsRes.data || []).forEach(row => {
+      settingsByKey.set(`${row.year}-${row.month}`, {
+        salary: Number(row.base_salary),
+        bonus: Number(row.bonus) || 0,
+        transport: Number(row.transport_base_cost) || 0,
+        norm: Number(row.work_days_norm) || getDefaultWorkDaysNorm(row.year, row.month)
+      })
+    })
+
+    const vacationInputs: VacationMonthInput[] = []
+    for (const y of [year - 1, year]) {
+      for (let m = 0; m < 12; m++) {
+        const key = `${y}-${m}`
+        const setting = settingsByKey.get(key)
+        if (isTenderMonth(y, m)) {
+          const st = tenderStatsAll[key]
+          vacationInputs.push({
+            year: y,
+            month: m,
+            salary: getSalaryForMonth(history, currentSalary, y, m + 1),
+            norm: getDefaultWorkDaysNorm(y, m),
+            bonus: setting?.bonus ?? 0,
+            transport: setting?.transport ?? 0,
+            work: st.work,
+            worked: st.worked,
+            vacation: st.vacation
+          })
+        } else if (personalStats[key]) {
+          const st = personalStats[key]
+          vacationInputs.push({
+            year: y,
+            month: m,
+            salary: setting && !Number.isNaN(setting.salary) ? setting.salary : DEFAULT_BASE_SALARY,
+            norm: setting?.norm ?? getDefaultWorkDaysNorm(y, m),
+            bonus: setting?.bonus ?? 0,
+            transport: setting?.transport ?? 0,
+            work: st.work,
+            worked: st.worked,
+            vacation: st.vacation
+          })
+        }
+      }
+    }
+
+    const vacationRates: { [key: string]: number } = {}
+    const details: { [key: string]: VacationMonthResult } = {}
+    buildVacationRates(vacationInputs).forEach(res => {
+      if (res.year !== year) return
+      const key = `${res.year}-${res.month}`
+      if (source[key] !== 'tender') return
+      vacationRates[key] = res.dailyRate
+      details[key] = res
+    })
+
     setMonthStats(stats)
-    setMonthForecastDays(prev => ({ ...dropYear(prev), ...forecastDays }))
+    setMonthSource(source)
+    setMonthForecastDays(prev => ({ ...dropYear(prev), ...forecast }))
     setTenderSalaries(prev => ({ ...dropYear(prev), ...salaries }))
     setTenderNorms(prev => ({ ...dropYear(prev), ...norms }))
+    setTenderVacationRates(prev => ({ ...dropYear(prev), ...vacationRates }))
+    setVacationDetails(prev => ({ ...dropYear(prev), ...details }))
     setSalarySource('tender')
   }, [])
 
@@ -340,7 +446,7 @@ export function useSalaryData() {
     monthBonuses,
     monthTransport,
     monthWorkDaysNorm: mergedNorms,
-    monthVacationRates,
+    monthVacationRates: mergedVacationRates,
     salaryInputs,
     setSalaryInputs,
     monthPayments,
@@ -348,6 +454,8 @@ export function useSalaryData() {
     monthStats,
     monthForecastDays,
     salarySource,
+    monthSource,
+    vacationDetails,
     loadSalarySettings,
     loadPaymentsForYear,
     loadStatsForYear,

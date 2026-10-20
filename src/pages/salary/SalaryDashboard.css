@@ -16,10 +16,6 @@
   touch-action: manipulation;
 }
 
-.sd-page .salary-header {
-  margin-bottom: 0;
-}
-
 .sd-muted {
   color: var(--text-muted);
 }

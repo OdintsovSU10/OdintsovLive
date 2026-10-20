@@ -22,6 +22,28 @@ export interface YearStats {
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 
+// Чем считается день по строке табеля (null — не считается).
+// Правила повторяют calculateSalary в tender/utils/salaryCalculator.ts
+export const timesheetDayKind = (row: TimesheetDay, date: Date): 'work' | 'worked' | 'vacation' | null => {
+  const isOff = isWeekendOrHoliday(date)
+  switch (row.status) {
+    case 'work':
+    case 'sick_worked':
+      if (isOff) return roundTimesheetHours(row.hours_worked) >= 3 ? 'worked' : null
+      return 'work'
+    case 'remote': {
+      const hours = roundTimesheetHours(row.hours_worked) || getDailyHoursNorm(date)
+      if (isOff) return hours >= 3 ? 'worked' : null
+      return 'work'
+    }
+    case 'vacation':
+    case 'educational_leave':
+      return 'vacation'
+    default:
+      return null
+  }
+}
+
 // Дни года из табеля (прошлое) и личного плана календаря (будущее).
 // Правила повторяют calculateSalary в tender/utils/salaryCalculator.ts
 export const buildYearStats = (
@@ -54,31 +76,8 @@ export const buildYearStats = (
       const row = timesheetByDate.get(dateIso)
       if (row) {
         // Табель приоритетнее плана, в том числе для будущих дат
-        switch (row.status) {
-          case 'work':
-          case 'sick_worked':
-            if (isOff) {
-              if (roundTimesheetHours(row.hours_worked) >= 3) st.worked++
-            } else {
-              st.work++
-            }
-            break
-          case 'remote': {
-            const hours = roundTimesheetHours(row.hours_worked) || getDailyHoursNorm(date)
-            if (isOff) {
-              if (hours >= 3) st.worked++
-            } else {
-              st.work++
-            }
-            break
-          }
-          case 'vacation':
-          case 'educational_leave':
-            st.vacation++
-            break
-          default:
-            break
-        }
+        const kind = timesheetDayKind(row, date)
+        if (kind !== null) st[kind]++
         continue
       }
 

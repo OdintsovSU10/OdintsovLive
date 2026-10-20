@@ -714,3 +714,96 @@
     padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 0;
   }
 }
+
+/* Строка «вкладки + год»: всегда в одну линию, без переноса */
+.salary-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.salary-toolbar .page-tabs {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  align-self: center;
+}
+
+.salary-toolbar .page-tab {
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+
+.year-switch {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.year-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background var(--transition), color var(--transition);
+}
+
+.year-switch-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.year-switch-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.year-switch-select {
+  min-height: 44px;
+  padding: 0 2px;
+  font-family: var(--font-headline);
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.year-switch-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+@media (min-width: 431px) {
+  .salary-toolbar {
+    gap: 12px;
+  }
+
+  .salary-toolbar .page-tab {
+    padding: 0 14px;
+    font-size: 0.9rem;
+  }
+
+  .year-switch-btn {
+    width: 44px;
+  }
+
+  .year-switch-select {
+    padding: 0 8px;
+    font-size: 1.25rem;
+  }
+}

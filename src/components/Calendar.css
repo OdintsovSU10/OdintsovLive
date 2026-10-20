@@ -129,6 +129,13 @@
 .dot.worked { background: var(--status-worked); }
 .dot.vacation { background: var(--status-vacation); }
 
+.calendar-note {
+  margin: -16px 0 24px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -304,6 +311,10 @@
   opacity: 1;
 }
 
+.reset-month-btn:disabled {
+  visibility: hidden;
+}
+
 .reset-month-btn:hover {
   background: var(--bg-tertiary);
   color: var(--primary);
@@ -392,4 +403,15 @@
 
 .day.today {
   box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+/* Прошедшие дни из табеля: правка запрещена */
+.day.from-timesheet {
+  cursor: default;
+  outline: 1px dashed currentColor;
+  outline-offset: -3px;
+}
+
+.day.none.from-timesheet:hover {
+  background: var(--bg-tertiary);
 }

@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getWorkDaysNorm } from '../lib/workNorms'
 import { MONTHS, WEEKDAYS, YEARS } from '../lib/constants'
+import { timesheetDayKind } from '../pages/salary/timesheetStats'
+import type { TimesheetDay } from '../pages/salary/timesheetStats'
+import type { TimesheetStatus } from '../pages/tender/types'
 import { getDaysInMonth, getFirstDayOfMonth, isWeekend, isHoliday, isToday, isCurrentMonth } from '../lib/dateUtils'
 import './Calendar.css'
 
@@ -86,11 +89,38 @@ function dateToKey(date: string) {
   return `${year}-${month - 1}-${day}`
 }
 
-export default function Calendar() {
+const pad2 = (n: number): string => String(n).padStart(2, '0')
+
+// Локальная дата YYYY-MM-DD (без сдвига UTC)
+const toLocalIso = (d: Date): string => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+
+// Привязка к табелю тендера и его строки за год
+interface ITenderState {
+  year: number
+  linked: boolean
+  since: string | null
+  rows: TimesheetDay[]
+}
+
+const formatSince = (iso: string): string => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+    .toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    .replace(/\s*г\.$/, '')
+}
+
+interface ICalendarProps {
+  // Год снаружи: тогда переключатель года внутри не показываем
+  year?: number
+}
+
+export default function Calendar({ year: yearProp }: ICalendarProps) {
   const navigate = useNavigate()
-  const [year, setYear] = useState(() => new Date().getFullYear())
+  const [ownYear, setYear] = useState(() => new Date().getFullYear())
+  const year = yearProp ?? ownYear
   const [allDays, setAllDays] = useState<DayData>(() => readStoredDays(DAYS_STORAGE_KEY))
   const [saving, setSaving] = useState(false)
+  const [tender, setTender] = useState<ITenderState | null>(null)
   const localChanges = useRef<DayData>({})
   const saveQueue = useRef<Promise<void>>(Promise.resolve())
 
@@ -186,7 +216,96 @@ export default function Calendar() {
     loadFromSupabase()
   }, [loadFromSupabase])
 
+  // Привязка к тендеру и табель за год
+  useEffect(() => {
+    let cancelled = false
+
+    const loadTender = async () => {
+      const uid = await getUserId()
+      if (!uid) return
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tender_employee_id, tender_since')
+        .eq('id', uid)
+        .maybeSingle()
+      if (cancelled) return
+
+      const employeeId: number | null = profile?.tender_employee_id ?? null
+      const since: string | null = profile?.tender_since ?? null
+      if (employeeId === null) {
+        setTender({ year, linked: false, since: null, rows: [] })
+        return
+      }
+
+      const { data: rows, error } = await supabase
+        .from('tender_timesheet')
+        .select('work_date, status, hours_worked')
+        .eq('employee_id', employeeId)
+        .gte('work_date', `${year}-01-01`)
+        .lte('work_date', `${year}-12-31`)
+      if (cancelled) return
+      if (error) {
+        console.error('Timesheet load error:', error)
+        return
+      }
+
+      setTender({
+        year,
+        linked: true,
+        since,
+        rows: (rows || []).map(row => ({
+          work_date: row.work_date as string,
+          status: row.status as TimesheetStatus,
+          hours_worked: row.hours_worked === null || row.hours_worked === undefined ? null : Number(row.hours_worked)
+        }))
+      })
+    }
+
+    loadTender()
+    return () => { cancelled = true }
+  }, [year])
+
+  const tenderActive = tender !== null && tender.year === year && tender.linked
+  const tenderSince = tenderActive ? tender.since : null
+
+  // Прошедшие дни тендерного периода: статус берётся из табеля, правка запрещена
+  const lockedDays = useMemo<DayData>(() => {
+    if (!tender || tender.year !== year || !tender.linked) return {}
+
+    const byDate = new Map<string, TimesheetDay>()
+    tender.rows.forEach(row => byDate.set(row.work_date, row))
+
+    const todayIso = toLocalIso(new Date())
+    const locked: DayData = {}
+    for (let m = 0; m < 12; m++) {
+      const daysInMonth = new Date(year, m + 1, 0).getDate()
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateIso = `${year}-${pad2(m + 1)}-${pad2(d)}`
+        if (dateIso >= todayIso) break
+        if (tender.since !== null && dateIso < tender.since) continue
+        const row = byDate.get(dateIso)
+        locked[`${year}-${m}-${d}`] = row ? (timesheetDayKind(row, new Date(year, m, d)) ?? 'none') : 'none'
+      }
+    }
+    return locked
+  }, [tender, year])
+
+  // Что показываем и считаем: личные дни, поверх них — табель для прошедших дней
+  const displayDays = useMemo<DayData>(() => {
+    const merged: DayData = { ...allDays }
+    Object.entries(lockedDays).forEach(([key, status]) => {
+      if (status === 'none') {
+        delete merged[key]
+      } else {
+        merged[key] = status
+      }
+    })
+    return merged
+  }, [allDays, lockedDays])
+
   const cycleStatus = (key: string) => {
+    if (key in lockedDays) return
     const current = allDays[key] || 'none'
     const next: DayStatus =
       current === 'none' ? 'work' :
@@ -205,7 +324,7 @@ export default function Calendar() {
 
   const resetMonth = (monthIndex: number) => {
     const prefix = `${year}-${monthIndex}-`
-    const keysToDelete = Object.keys(allDays).filter(k => k.startsWith(prefix))
+    const keysToDelete = Object.keys(allDays).filter(k => k.startsWith(prefix) && !(k in lockedDays))
 
     if (keysToDelete.length === 0) return
 
@@ -223,7 +342,7 @@ export default function Calendar() {
     flushPending()
   }
 
-  const yearDays = Object.entries(allDays).filter(([key]) => key.startsWith(`${year}-`))
+  const yearDays = Object.entries(displayDays).filter(([key]) => key.startsWith(`${year}-`))
   const counts = yearDays.reduce(
     (acc, [, status]) => {
       if (status === 'work') acc.work++
@@ -236,6 +355,7 @@ export default function Calendar() {
 
   return (
     <div className="calendar-page">
+      {yearProp === undefined ? (
       <div className="calendar-header">
         <button
           className="year-btn"
@@ -262,6 +382,11 @@ export default function Calendar() {
         </button>
         {saving && <span className="saving-indicator">Сохранение...</span>}
       </div>
+      ) : saving && (
+        <div className="calendar-header">
+          <span className="saving-indicator">Сохранение...</span>
+        </div>
+      )}
 
       <div className="stats">
         <div className="stat work">
@@ -285,10 +410,17 @@ export default function Calendar() {
         <span><i className="dot vacation"></i> Отпуск</span>
       </div>
 
+      {tenderActive && (
+        <p className="calendar-note">
+          {tenderSince ? `Прошедшие дни с ${formatSince(tenderSince)}` : 'Прошедшие дни'} — из табеля тендерного управления. Будущие дни — план для прогноза.
+        </p>
+      )}
+
       <div className="calendar-grid">
         {MONTHS.map((monthName, monthIndex) => {
           const prefix = `${year}-${monthIndex}-`
-          const monthDays = Object.entries(allDays).filter(([k]) => k.startsWith(prefix))
+          const monthDays = Object.entries(displayDays).filter(([k]) => k.startsWith(prefix))
+          const hasEditable = Object.keys(allDays).some(k => k.startsWith(prefix) && !(k in lockedDays))
           const workCount = monthDays.filter(([, s]) => s === 'work').length
           const workedCount = monthDays.filter(([, s]) => s === 'worked').length
           const vacationCount = monthDays.filter(([, s]) => s === 'vacation').length
@@ -311,6 +443,7 @@ export default function Calendar() {
               <button
                 className="reset-month-btn"
                 onClick={() => resetMonth(monthIndex)}
+                disabled={!hasEditable}
                 title="Сбросить месяц"
               >
                 <RotateCcw size={14} />
@@ -328,15 +461,18 @@ export default function Calendar() {
               {Array.from({ length: getDaysInMonth(year, monthIndex) }).map((_, i) => {
                 const day = i + 1
                 const key = `${year}-${monthIndex}-${day}`
-                const status = allDays[key] || 'none'
+                const status = displayDays[key] || 'none'
+                const locked = key in lockedDays
                 const weekend = isWeekend(year, monthIndex, day)
                 const holiday = isHoliday(monthIndex, day)
                 const today = isToday(year, monthIndex, day)
                 return (
                   <span
                     key={key}
-                    className={`day ${status} ${weekend ? 'weekend' : ''} ${holiday ? 'holiday' : ''} ${today ? 'today' : ''}`}
-                    onClick={() => cycleStatus(key)}
+                    className={`day ${status} ${weekend ? 'weekend' : ''} ${holiday ? 'holiday' : ''} ${today ? 'today' : ''} ${locked ? 'from-timesheet' : ''}`}
+                    onClick={locked ? undefined : () => cycleStatus(key)}
+                    aria-disabled={locked || undefined}
+                    title={locked ? 'Из табеля — правится в ФОТ' : undefined}
                   >
                     {day}
                   </span>

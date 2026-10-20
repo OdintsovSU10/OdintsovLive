@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { getUserId } from '../../lib/auth'
-import { YEARS } from '../../lib/constants'
 import { isCurrentMonth, isFutureMonth } from '../../lib/dateUtils'
 import { useSalaryData } from './hooks/useSalaryData'
 import { getMonthStats, getSalary, getBonus, getTransport, getWorkDaysNorm, getVacationRate, calcEarned } from './utils'
@@ -16,21 +14,20 @@ import type { Payment } from './types'
 import '../SalaryPage.css'
 import './SalaryDashboard.css'
 
-const parseYearParam = (value: string | null): number => {
-  const year = Number(value)
-  return value !== null && YEARS.includes(year) ? year : new Date().getFullYear()
-}
-
 const parseMonthParam = (value: string | null): number | null => {
   if (value === null || value === '') return null
   const month = Number(value)
   return Number.isInteger(month) && month >= 0 && month <= 11 ? month : null
 }
 
-export default function SalaryDashboardTab() {
+interface ISalaryDashboardTabProps {
+  year: number
+}
+
+export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
   const [searchParams] = useSearchParams()
-  const [year, setYear] = useState(() => parseYearParam(searchParams.get('year')))
   const [expanded, setExpanded] = useState<number | null>(() => parseMonthParam(searchParams.get('month')))
+  const [prevYear, setPrevYear] = useState(year)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -127,8 +124,9 @@ export default function SalaryDashboardTab() {
     }
   }, [rows])
 
-  const changeYear = (next: number) => {
-    setYear(next)
+  // При смене года раскрытый месяц сбрасываем
+  if (prevYear !== year) {
+    setPrevYear(year)
     setExpanded(null)
   }
 
@@ -164,35 +162,6 @@ export default function SalaryDashboardTab() {
 
   return (
     <div className="sd-page">
-      <div className="salary-header">
-        <button
-          type="button"
-          className="year-btn"
-          aria-label="Предыдущий год"
-          onClick={() => changeYear(Math.max(YEARS[0], year - 1))}
-          disabled={year === YEARS[0]}
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <select
-          className="year-select"
-          aria-label="Год"
-          value={year}
-          onChange={e => changeYear(Number(e.target.value))}
-        >
-          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <button
-          type="button"
-          className="year-btn"
-          aria-label="Следующий год"
-          onClick={() => changeYear(Math.min(YEARS[YEARS.length - 1], year + 1))}
-          disabled={year === YEARS[YEARS.length - 1]}
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
       {loading ? (
         <div className="loading">Загрузка...</div>
       ) : (

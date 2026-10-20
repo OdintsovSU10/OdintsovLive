@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { getUserId } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
-import { MONTHS, YEARS } from '../../lib/constants'
+import { MONTHS } from '../../lib/constants'
+import { useSalaryData } from './hooks/useSalaryData'
 import '../VacationRatePage.css'
 
 interface MonthData {
@@ -20,8 +20,11 @@ function isManualMonth(year: number, month: number): boolean {
   return year < 2025 || (year === 2025 && month <= 2)
 }
 
-export default function VacationRateTab() {
-  const [year, setYear] = useState(new Date().getFullYear())
+interface IVacationRateTabProps {
+  year: number
+}
+
+export default function VacationRateTab({ year }: IVacationRateTabProps) {
   const [userId, setUserId] = useState<string | null>(null)
   const [data, setData] = useState<MonthData[]>([])
   const [dataYear, setDataYear] = useState<number | null>(null)
@@ -29,6 +32,7 @@ export default function VacationRateTab() {
   const [rateInputs, setRateInputs] = useState<{ [key: string]: string }>({})
   const [loading, setLoading] = useState(true)
   const [initialLoading, setInitialLoading] = useState(true)
+  const { monthSource, vacationDetails, loadStatsForYear } = useSalaryData()
 
   useEffect(() => {
     getUserId().then(uid => {
@@ -46,6 +50,11 @@ export default function VacationRateTab() {
       loadData()
     }
   }, [year, userId])
+
+  // Тендерные месяцы считаются по табелю в хуке
+  useEffect(() => {
+    if (userId) loadStatsForYear(userId, year)
+  }, [year, userId, loadStatsForYear])
 
   const loadManualRates = async (uid: string) => {
     const { data } = await supabase
@@ -86,8 +95,35 @@ export default function VacationRateTab() {
     setLoading(false)
   }
 
+  // Строки месяцев: тендерные — из табеля, остальные — из представления
+  const rows = useMemo<MonthData[]>(() => {
+    const result: MonthData[] = []
+    for (let m = 0; m < 12; m++) {
+      const key = `${year}-${m}`
+      const detail = vacationDetails[key]
+      if (monthSource[key] === 'tender' && detail) {
+        result.push({
+          month: m,
+          base_salary: detail.totalPayment,
+          worked_days: detail.workedDays,
+          vacation_days: detail.vacationDays,
+          calendar_days: detail.calendarDays,
+          adjusted_days: detail.adjustedDays,
+          daily_vacation_rate: detail.dailyRate
+        })
+        continue
+      }
+      const viewRow = data.find(d => d.month === m)
+      if (viewRow) result.push(viewRow)
+    }
+    return result
+  }, [data, monthSource, vacationDetails, year])
+
+  const isTenderRow = (monthIndex: number): boolean =>
+    monthSource[`${year}-${monthIndex}`] === 'tender' && !!vacationDetails[`${year}-${monthIndex}`]
+
   const getMonthData = (monthIndex: number): MonthData | null => {
-    return data.find(d => d.month === monthIndex) || null
+    return rows.find(d => d.month === monthIndex) || null
   }
 
   const getManualRate = (monthIndex: number): number | null => {
@@ -138,8 +174,8 @@ export default function VacationRateTab() {
     return 0
   })()
 
-  const totalVacationDays = data.reduce((sum, d) => sum + (d.vacation_days || 0), 0)
-  const totalVacationPay = data.reduce((sum, d) => {
+  const totalVacationDays = rows.reduce((sum, d) => sum + (d.vacation_days || 0), 0)
+  const totalVacationPay = rows.reduce((sum, d) => {
     const rate = getEffectiveRate(d.month)
     return sum + (d.vacation_days || 0) * rate
   }, 0)
@@ -161,32 +197,6 @@ export default function VacationRateTab() {
 
   return (
     <div className="vacation-rate-page">
-      <div className="vacation-header">
-        <button
-          className="year-btn"
-          onClick={() => setYear(y => Math.max(YEARS[0], y - 1))}
-          disabled={year === YEARS[0]}
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <select
-          className="year-select"
-          value={year}
-          onChange={e => setYear(Number(e.target.value))}
-        >
-          {YEARS.map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <button
-          className="year-btn"
-          onClick={() => setYear(y => Math.min(YEARS[YEARS.length - 1], y + 1))}
-          disabled={year === YEARS[YEARS.length - 1]}
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
       <div className="vacation-summary">
         <div className="summary-card">
           <span className="summary-label">Текущая ставка</span>
@@ -252,7 +262,10 @@ export default function VacationRateTab() {
 
             return (
               <div key={i} className={`table-row ${isEmpty ? 'empty' : ''}`}>
-                <span className="month-name">{monthName}</span>
+                <span className="month-name">
+                  {monthName}
+                  {isTenderRow(i) && <span className="tender-badge">табель</span>}
+                </span>
                 <span>{month ? Math.round(month.base_salary).toLocaleString('ru-RU') : '—'} ₽</span>
                 <span className="center">{month ? month.worked_days : '—'}</span>
                 <span className="vacation-days center">{month?.vacation_days || '—'}</span>
