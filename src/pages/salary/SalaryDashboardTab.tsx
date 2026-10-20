@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getUserId } from '../../lib/auth'
 import { isCurrentMonth, isFutureMonth } from '../../lib/dateUtils'
@@ -8,9 +8,8 @@ import { KpiTiles } from './components/KpiTiles'
 import { QuickPayment } from './components/QuickPayment'
 import { MonthsTable } from './components/MonthsTable'
 import type { IMonthRow } from './components/MonthsTable'
-import { MonthDetails } from './components/MonthDetails'
+import { MonthSummarySheet } from './components/MonthSummarySheet'
 import { PaymentsChart } from './components/PaymentsChart'
-import type { Payment } from './types'
 import '../SalaryPage.css'
 import './SalaryDashboard.css'
 
@@ -26,7 +25,7 @@ interface ISalaryDashboardTabProps {
 
 export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
   const [searchParams] = useSearchParams()
-  const [expanded, setExpanded] = useState<number | null>(() => parseMonthParam(searchParams.get('month')))
+  const [openMonth, setOpenMonth] = useState<number | null>(() => parseMonthParam(searchParams.get('month')))
   const [prevYear, setPrevYear] = useState(year)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,6 +41,7 @@ export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
     monthStats,
     monthForecastDays,
     salarySource,
+    monthSource,
     loadSalarySettings,
     loadPaymentsForYear,
     loadStatsForYear,
@@ -99,7 +99,8 @@ export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
         balance: earned - paid,
         forecastDays: monthForecastDays[key] ?? 0,
         isCurrent: isCurrentMonth(year, monthIndex),
-        isFuture: isFutureMonth(year, monthIndex)
+        isFuture: isFutureMonth(year, monthIndex),
+        source: monthSource[key] ?? 'personal'
       }
     })
   }, [
@@ -111,7 +112,8 @@ export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
     monthWorkDaysNorm,
     monthVacationRates,
     monthPayments,
-    monthForecastDays
+    monthForecastDays,
+    monthSource
   ])
 
   const totals = useMemo(() => {
@@ -124,15 +126,11 @@ export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
     }
   }, [rows])
 
-  // При смене года раскрытый месяц сбрасываем
+  // При смене года открытую сводку месяца закрываем
   if (prevYear !== year) {
     setPrevYear(year)
-    setExpanded(null)
+    setOpenMonth(null)
   }
-
-  const toggleMonth = useCallback((monthIndex: number) => {
-    setExpanded(prev => (prev === monthIndex ? null : monthIndex))
-  }, [])
 
   const handleAddPayment = (monthIndex: number, amount: number, note: string, date: string): Promise<boolean> =>
     userId ? addPayment(userId, year, monthIndex, amount, note, date) : Promise.resolve(false)
@@ -146,19 +144,7 @@ export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
   ): Promise<boolean> =>
     userId ? saveMonthSettings(userId, year, monthIndex, patch) : Promise.resolve(false)
 
-  const renderDetails = (row: IMonthRow) => {
-    const payments: Payment[] = monthPaymentsList[`${year}-${row.monthIndex}`] ?? []
-    return (
-      <MonthDetails
-        id={`sd-details-${row.monthIndex}`}
-        row={row}
-        payments={payments}
-        salarySource={salarySource}
-        onSaveSettings={patch => handleSaveSettings(row.monthIndex, patch)}
-        onDeletePayment={id => handleDeletePayment(row.monthIndex, id)}
-      />
-    )
-  }
+  const openRow = openMonth === null || loading ? null : rows[openMonth]
 
   return (
     <div className="sd-page">
@@ -178,17 +164,25 @@ export default function SalaryDashboardTab({ year }: ISalaryDashboardTabProps) {
           <QuickPayment year={year} rows={rows} onAddPayment={handleAddPayment} />
 
           <div className="sd-main">
-            <MonthsTable
-              rows={rows}
-              expanded={expanded}
-              onToggle={toggleMonth}
-              renderDetails={renderDetails}
-            />
+            <MonthsTable rows={rows} onOpen={setOpenMonth} />
             <div className="sd-chart-col">
               <PaymentsChart rows={rows} />
             </div>
           </div>
         </>
+      )}
+
+      {openRow && (
+        <MonthSummarySheet
+          key={openRow.monthIndex}
+          year={year}
+          row={openRow}
+          payments={monthPaymentsList[`${year}-${openRow.monthIndex}`] ?? []}
+          onClose={() => setOpenMonth(null)}
+          onAddPayment={(amount, note, date) => handleAddPayment(openRow.monthIndex, amount, note, date)}
+          onDeletePayment={id => handleDeletePayment(openRow.monthIndex, id)}
+          onSaveSettings={patch => handleSaveSettings(openRow.monthIndex, patch)}
+        />
       )}
     </div>
   )

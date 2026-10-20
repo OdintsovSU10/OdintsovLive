@@ -11,8 +11,9 @@ import {
   getLivePayrollPauseLabel,
   getExtraBonusKey,
   getSavedTransport,
+  loadTransportSetting,
   parseExtraBonuses,
-  TRANSPORT_KEY
+  saveTransportSetting
 } from '../utils/livePayroll'
 import './DepartmentFOT.css'
 
@@ -114,6 +115,17 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
     parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month)))
   ))
   const [expandedDepartments, setExpandedDepartments] = useState<Record<string, boolean>>({})
+
+  // Подтягиваем единую ставку проезда из БД
+  useEffect(() => {
+    let cancelled = false
+    loadTransportSetting().then(value => {
+      if (!cancelled) setBaseTransport(value)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     setExtraBonuses(parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month))))
@@ -303,7 +315,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
   const handleTransportChange = (value: number) => {
     const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0
     setBaseTransport(safeValue)
-    localStorage.setItem(TRANSPORT_KEY, String(safeValue))
+    void saveTransportSetting(safeValue)
   }
 
   const handleExtraBonusChange = (employeeId: number, value: number) => {

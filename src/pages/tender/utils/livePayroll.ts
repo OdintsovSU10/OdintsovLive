@@ -1,3 +1,4 @@
+import { supabase } from '../../../lib/supabase'
 import type { EmployeeWithStats } from '../types'
 import { getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday } from './salaryCalculator'
 
@@ -64,6 +65,57 @@ export function parseExtraBonuses(raw: string | null): Record<number, number> {
 export function getSavedTransport(): number {
   const saved = Number(localStorage.getItem(TRANSPORT_KEY))
   return Number.isFinite(saved) && saved > 0 ? saved : DEFAULT_TRANSPORT
+}
+
+const TRANSPORT_SETTING_KEY = 'base_transport'
+
+// Единая ставка проезда хранится в БД (tender_settings); localStorage — кэш для синхронного чтения
+export async function loadTransportSetting(): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('tender_settings')
+      .select('value')
+      .eq('key', TRANSPORT_SETTING_KEY)
+      .maybeSingle()
+    if (error) return getSavedTransport()
+
+    const dbValue = data ? Number(data.value) : NaN
+    if (data && Number.isFinite(dbValue) && dbValue > 0) {
+      localStorage.setItem(TRANSPORT_KEY, String(dbValue))
+      return dbValue
+    }
+
+    // В БД значения нет — переносим сохранённое в браузере
+    if (!data) {
+      const local = Number(localStorage.getItem(TRANSPORT_KEY))
+      if (Number.isFinite(local) && local > 0) {
+        await supabase
+          .from('tender_settings')
+          .upsert(
+            { key: TRANSPORT_SETTING_KEY, value: local, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+          )
+        return local
+      }
+    }
+    return DEFAULT_TRANSPORT
+  } catch {
+    return getSavedTransport()
+  }
+}
+
+export async function saveTransportSetting(value: number): Promise<void> {
+  localStorage.setItem(TRANSPORT_KEY, String(value))
+  try {
+    await supabase
+      .from('tender_settings')
+      .upsert(
+        { key: TRANSPORT_SETTING_KEY, value, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      )
+  } catch {
+    // Значение уже в localStorage; в БД уйдёт при следующем изменении
+  }
 }
 
 export function calculateMonthlyPayrollPlan(

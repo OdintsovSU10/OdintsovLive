@@ -1,0 +1,427 @@
+/* Сводка месяца в BottomSheet (рендерится в портале — вне .sd-page).
+   Mobile-first: база 360 px, дальше min-width. */
+
+.ms-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 4px;
+}
+
+.ms-root button,
+.ms-root input,
+.ms-root summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ms-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.ms-card-title {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.ms-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.ms-error {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+/* Поля внутри карточек на фоне --bg-secondary */
+.ms-root .sd-input {
+  background: var(--surface);
+}
+
+/* ===== Шапка: три крупные цифры ===== */
+
+.ms-hero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ms-hero-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ms-hero-label {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+
+.ms-hero-value {
+  font-family: var(--font-headline);
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.ms-hero-value.debt {
+  color: var(--danger);
+}
+
+.ms-hero-value.over,
+.ms-hero-hint.over {
+  color: var(--chart-positive);
+}
+
+.ms-hero-value.muted,
+.ms-hero-hint.muted,
+.ms-hero-text.muted {
+  color: var(--text-muted);
+}
+
+.ms-hero-hint {
+  font-size: 0.72rem;
+}
+
+.ms-hero-text {
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+.ms-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.ms-bar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transform-origin: left center;
+  transition: transform 0.2s ease-out;
+}
+
+.ms-progress-caption {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-source {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* ===== Дни ===== */
+
+.ms-days {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ms-day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.ms-day-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.ms-day-value {
+  font-size: 1.2rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ms-dot.work {
+  background: var(--status-work);
+}
+
+.ms-dot.worked {
+  background: var(--status-worked);
+}
+
+.ms-dot.vacation {
+  background: var(--status-vacation);
+}
+
+/* ===== Начисления ===== */
+
+.ms-accruals {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.ms-accrual {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ms-accrual-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 40px;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.88rem;
+}
+
+.ms-accrual-amount,
+.ms-accrual-share {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ms-accrual-amount {
+  font-weight: 500;
+}
+
+.ms-accrual-share {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.ms-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.ms-accrual-caption {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.ms-total-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ===== Выплаты ===== */
+
+.ms-payments {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.ms-payment {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) 44px;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-payment-date {
+  color: var(--text-muted);
+}
+
+.ms-payment-amount {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ms-payment-note {
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: color 0.15s ease-out, background 0.15s ease-out;
+}
+
+.ms-icon-btn:hover:not(:disabled),
+.ms-icon-btn:focus-visible {
+  background: var(--surface-hover);
+  color: var(--danger);
+}
+
+.ms-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ms-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.ms-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+/* Четыре типа влезают в 360 px без прокрутки */
+.ms-add-kind .ui-segmented.sm button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 2px;
+  font-size: 0.78rem;
+}
+
+.ms-add-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ms-add-submit {
+  margin-left: auto;
+}
+
+/* ===== Настройки месяца ===== */
+
+.ms-settings {
+  padding: 0;
+  gap: 0;
+}
+
+.ms-settings-summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ms-settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 4px 12px 12px;
+}
+
+.ms-settings .ms-error {
+  padding: 0 12px 12px;
+}
+
+/* ===== Планшет и десктоп ===== */
+
+@media (min-width: 480px) {
+  .ms-hero-value {
+    font-size: 1.15rem;
+  }
+
+  .ms-days {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  /* Окно шире стандартных 560 px у BottomSheet */
+  .ui-sheet-root.modal .ui-sheet:has(.ms-root) {
+    width: 680px;
+  }
+
+  .ms-root {
+    gap: 14px;
+  }
+
+  .ms-card {
+    padding: 14px 16px;
+  }
+
+  .ms-hero-value {
+    font-size: 1.4rem;
+  }
+
+  .ms-add-kind .ui-segmented.sm button {
+    min-height: 40px;
+    font-size: 0.85rem;
+  }
+
+  .ms-card.ms-settings {
+    padding: 0;
+  }
+
+  .ms-settings-summary {
+    padding: 0 16px;
+  }
+
+  .ms-settings-fields {
+    padding: 4px 16px 16px;
+  }
+
+  .ms-settings .ms-error {
+    padding: 0 16px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-bar-fill,
+  .ms-icon-btn {
+    transition: none;
+  }
+}

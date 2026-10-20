@@ -20,13 +20,13 @@ export interface IMonthRow {
   forecastDays: number
   isCurrent: boolean
   isFuture: boolean
+  // Откуда данные месяца: табель тендера или личные настройки
+  source: 'tender' | 'personal'
 }
 
 interface IMonthsTableProps {
   rows: IMonthRow[]
-  expanded: number | null
-  onToggle: (monthIndex: number) => void
-  renderDetails: (row: IMonthRow) => ReactNode
+  onOpen: (monthIndex: number) => void
 }
 
 // Остаток: долг, «✓» или переплата
@@ -41,7 +41,7 @@ const renderBalance = (balance: number): ReactNode => {
   )
 }
 
-export const MonthsTable = ({ rows, expanded, onToggle, renderDetails }: IMonthsTableProps) => {
+export const MonthsTable = ({ rows, onOpen }: IMonthsTableProps) => {
   const past = rows.filter(row => !row.isFuture)
   const totalEarned = past.reduce((sum, row) => sum + row.earned, 0)
   const totalPaid = past.reduce((sum, row) => sum + row.paid, 0)
@@ -58,8 +58,7 @@ export const MonthsTable = ({ rows, expanded, onToggle, renderDetails }: IMonths
       </div>
 
       {rows.map(row => {
-        const isOpen = expanded === row.monthIndex
-        const classes = ['sd-row-wrap', row.isCurrent ? 'current' : '', row.isFuture ? 'future' : '', isOpen ? 'open' : '']
+        const classes = ['sd-row-wrap', row.isCurrent ? 'current' : '', row.isFuture ? 'future' : '']
           .filter(Boolean)
           .join(' ')
 
@@ -68,9 +67,8 @@ export const MonthsTable = ({ rows, expanded, onToggle, renderDetails }: IMonths
             <button
               type="button"
               className="sd-row"
-              aria-expanded={isOpen}
-              aria-controls={`sd-details-${row.monthIndex}`}
-              onClick={() => onToggle(row.monthIndex)}
+              aria-haspopup="dialog"
+              onClick={() => onOpen(row.monthIndex)}
             >
               <span className="sd-month">
                 <span className="sd-month-name">{MONTHS[row.monthIndex]}</span>
@@ -88,8 +86,6 @@ export const MonthsTable = ({ rows, expanded, onToggle, renderDetails }: IMonths
               </span>
               <span className="sd-num sd-balance">{renderBalance(row.balance)}</span>
             </button>
-
-            {isOpen && <div className="sd-details-wrap">{renderDetails(row)}</div>}
           </div>
         )
       })}
