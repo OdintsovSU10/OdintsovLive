@@ -117,6 +117,11 @@
   --primary-hover: #A5B4FC;
   --primary-light: rgba(129, 140, 248, 0.18);
 
+  --chart-2: #7EA0D6;
+  --chart-positive: #5BC48A;
+  --chart-negative: #F07B72;
+  --chart-warning: #F6AD55;
+
   --bg-primary: #080E1A;
   --bg-secondary: #0C1425;
   --bg-tertiary: #111C31;
@@ -155,6 +160,17 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Место под полосу прокрутки занято всегда: блокировка прокрутки модалками не сдвигает страницу */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Полосы прокрутки в цветах темы; скрытые (scrollbar-width: none) на классах перекрывают это */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-muted) 55%, transparent) transparent;
 }
 
 body {
