@@ -410,7 +410,8 @@ function normalizeStatus(value, hours) {
   return null
 }
 
-function normalizeFotHours(hours, _status, _workDate, _hoursOverridden) {
+function normalizeFotHours(hours, status, _workDate, _hoursOverridden) {
+  if (status === 'remote' && hours === null) return 9
   if (hours === null) return null
 
   // FOT API уже вычел обеденную квоту. Округляем готовое нетто-время,
@@ -430,8 +431,9 @@ function extractRows(payload) {
   return []
 }
 
-function extractPublicTimesheetRows(payload, dateRange) {
-  const rows = []
+function extractPublicTimesheetData(payload, dateRange) {
+  const timesheetRows = []
+  const planRows = []
   const departments = Array.isArray(payload?.departments) ? payload.departments : []
 
   for (const department of departments) {
@@ -450,7 +452,7 @@ function extractPublicTimesheetRows(payload, dateRange) {
         const hasHours = day.hours !== undefined && day.hours !== null && String(day.hours).trim() !== ''
         if (!hasStatus && !hasHours) continue
 
-        rows.push({
+        timesheetRows.push({
           fot_employee_id: employee.id,
           employee_id: employee.id,
           full_name: employee.full_name,
@@ -460,13 +462,44 @@ function extractPublicTimesheetRows(payload, dateRange) {
           status: day.status,
           hours: day.hours,
           corrected: day.corrected,
-          hours_overridden: day.hours_overridden
+          hours_overridden: day.hours_overridden,
+          correction_reason: day.correction?.reason,
+          correction_author: day.correction?.corrected_by_name,
+          correction_at: day.correction?.corrected_at,
+          correction_approval_status: day.correction?.approval_status,
+          correction_source_type: day.correction?.source_type
+        })
+      }
+
+      const plans = employee?.plans && typeof employee.plans === 'object' && !Array.isArray(employee.plans)
+        ? employee.plans
+        : {}
+      for (const [workDate, plan] of Object.entries(plans)) {
+        if (!plan || typeof plan !== 'object' || Array.isArray(plan)) continue
+        if (!String(plan.schedule_id || '').trim()) continue
+
+        planRows.push({
+          employeeId: String(employee.id || '').trim(),
+          sigurEmployeeId: String(employee.sigur_employee_id || '').trim(),
+          tabNumber: String(employee.tab_number || '').trim(),
+          employeeName: String(employee.full_name || '').trim(),
+          workDate,
+          scheduleId: String(plan.schedule_id),
+          scheduleName: plan.schedule_name == null ? null : String(plan.schedule_name),
+          scheduleType: String(plan.schedule_type || 'office'),
+          scheduleSource: String(plan.schedule_source || 'default'),
+          isWorkingDay: Boolean(plan.is_working_day),
+          plannedHours: Number(plan.planned_hours) || 0,
+          fullDayThresholdHours: Number(plan.full_day_threshold_hours) || 0,
+          workStart: plan.work_start == null ? null : String(plan.work_start),
+          workEnd: plan.work_end == null ? null : String(plan.work_end),
+          lunchMinutes: Math.max(0, Math.round(Number(plan.lunch_minutes) || 0))
         })
       }
     }
   }
 
-  return rows
+  return { timesheetRows, planRows }
 }
 
 async function fetchJson(url, options = {}) {
@@ -570,6 +603,7 @@ async function fetchPublicTimesheetRows(config, dateRange, localEmployees) {
   }
 
   const rows = []
+  const planRows = []
 
   for (const month of getMonthKeys(dateRange)) {
     const url = new URL(config.timesheetApi)
@@ -580,10 +614,12 @@ async function fetchPublicTimesheetRows(config, dateRange, localEmployees) {
     const payload = await fetchJson(url, {
       headers: getFotHeaders(config)
     })
-    rows.push(...extractPublicTimesheetRows(payload, dateRange))
+    const extracted = extractPublicTimesheetData(payload, dateRange)
+    rows.push(...extracted.timesheetRows)
+    planRows.push(...extracted.planRows)
   }
 
-  return rows
+  return { rows, planRows }
 }
 
 async function fetchTableTimesheetRows(config, dateRange) {
@@ -614,7 +650,7 @@ async function fetchTableTimesheetRows(config, dateRange) {
     offset += pageLimit
   }
 
-  return rows
+  return { rows, planRows: [] }
 }
 
 async function fetchFotTimesheetRows(config, dateRange, localEmployees) {
@@ -742,7 +778,12 @@ function normalizeTimesheetRow(row, dateField) {
     workDate,
     status,
     hours,
-    isCorrection
+    isCorrection,
+    correctionReason: pickString(record, ['correction_reason']),
+    correctionAuthor: pickString(record, ['correction_author']),
+    correctionAt: pickString(record, ['correction_at']),
+    correctionApprovalStatus: pickString(record, ['correction_approval_status']),
+    correctionSourceType: pickString(record, ['correction_source_type'])
   }
 }
 
@@ -779,7 +820,12 @@ function calculateStats(rows) {
 
     const date = new Date(`${row.work_date}T12:00:00`)
     const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const hours = Number(row.hours_worked || 0)
+    const hours = Number(normalizeFotHours(
+      row.hours_worked == null ? null : Number(row.hours_worked),
+      row.status,
+      row.work_date,
+      false
+    ) || 0)
 
     if (row.status === 'work' || row.status === 'remote' || row.status === 'sick_worked') {
       if (isWeekend) {
@@ -935,9 +981,10 @@ async function main() {
   }
 
   const localEmployees = await loadLocalEmployees(config)
-  const rawRows = await fetchFotTimesheetRows(config, dateRange, localEmployees)
+  const { rows: rawRows, planRows: rawPlanRows } = await fetchFotTimesheetRows(config, dateRange, localEmployees)
   const indexes = createEmployeeIndexes(localEmployees)
   const upsertPayload = []
+  const workPlanPayload = []
   const errors = []
   let ignoredUnmatched = 0
 
@@ -959,7 +1006,32 @@ async function main() {
       work_date: normalized.workDate,
       status: normalized.status,
       hours_worked: normalized.hours,
-      is_correction: normalized.isCorrection
+      is_correction: normalized.isCorrection,
+      correction_reason: normalized.correctionReason || null,
+      correction_author: normalized.correctionAuthor || null,
+      correction_at: normalized.correctionAt || null,
+      correction_approval_status: normalized.correctionApprovalStatus || null,
+      correction_source_type: normalized.correctionSourceType || null
+    })
+  }
+
+  for (const plan of rawPlanRows) {
+    const employee = resolveEmployee(plan, indexes)
+    if (!employee) continue
+    workPlanPayload.push({
+      employee_id: employee.id,
+      work_date: plan.workDate,
+      schedule_id: plan.scheduleId,
+      schedule_name: plan.scheduleName,
+      schedule_type: plan.scheduleType,
+      schedule_source: plan.scheduleSource,
+      is_working_day: plan.isWorkingDay,
+      planned_hours: plan.plannedHours,
+      full_day_threshold_hours: plan.fullDayThresholdHours,
+      work_start: plan.workStart,
+      work_end: plan.workEnd,
+      lunch_minutes: plan.lunchMinutes,
+      updated_at: new Date().toISOString()
     })
   }
 
@@ -969,12 +1041,14 @@ async function main() {
     matched: upsertPayload.length,
     failed: errors.length,
     ignored_unmatched: ignoredUnmatched,
+    plans: workPlanPayload.length,
     localEmployees: localEmployees.length,
     dryRun: config.dryRun
   }
 
   if (!config.dryRun) {
     await upsertRows(config, 'tender_timesheet', ['employee_id', 'work_date'], upsertPayload)
+    await upsertRows(config, 'tender_work_plans', ['employee_id', 'work_date'], workPlanPayload)
     await upsertRows(config, 'tender_timesheet_stats', ['employee_id', 'year', 'month'], await buildStatsFromDatabase(config, upsertPayload))
     if (!config.skipImportLog) {
       await logImport(config, dateRange, summary, errors)

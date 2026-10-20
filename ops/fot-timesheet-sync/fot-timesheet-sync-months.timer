@@ -1,0 +1,12 @@
+[Unit]
+Description=Run OdintsovLive FOT timesheet month resync every hour
+
+[Timer]
+OnBootSec=5min
+OnCalendar=hourly
+RandomizedDelaySec=120
+Persistent=true
+Unit=fot-timesheet-sync-months.service
+
+[Install]
+WantedBy=timers.target
