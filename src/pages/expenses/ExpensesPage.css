@@ -127,7 +127,7 @@
   border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   overflow-x: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
 
@@ -241,7 +241,7 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
   padding-bottom: 4px;
   scrollbar-width: thin;
 }
@@ -549,7 +549,7 @@
 
 .table-wrap {
   overflow-x: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
   margin: 0 -16px;
   padding: 0 16px;
 }
