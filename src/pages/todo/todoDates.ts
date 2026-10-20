@@ -35,7 +35,8 @@ export function formatDueLabel(iso: string, today: string): string {
 
 export function formatRemindLabel(iso: string, today: string): string {
   const dt = new Date(iso)
-  const time = moscowTime(iso)
+  // 12-часовой формат для показа: «2:00 PM»
+  const time = dt.toLocaleTimeString('en-US', { timeZone: TIME_ZONE, hour: 'numeric', minute: '2-digit', hour12: true })
   const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(dt)
   return `${formatDueLabel(dateStr, today)} ${time}`
 }
