@@ -235,6 +235,7 @@ export default function VacationRateTab({ year }: IVacationRateTabProps) {
                 stroke="var(--primary)"
                 strokeWidth={2}
                 fill="url(#colorVacation)"
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>

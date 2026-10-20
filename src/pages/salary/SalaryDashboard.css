@@ -54,11 +54,11 @@
 
 .sd-kpi-value {
   font-family: var(--font-headline);
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 500;
   font-variant-numeric: lining-nums tabular-nums;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .sd-kpi-value.debt {
