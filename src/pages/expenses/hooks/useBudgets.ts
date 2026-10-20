@@ -3,17 +3,13 @@ import { getUserId } from '../../../lib/auth'
 import { supabase } from '../../../lib/supabase'
 import type { BudgetLimit } from '../utils/budget'
 
-const DEFAULT_PAYDAY = 1
-
 export interface BudgetDraft {
-  payday: number
   // category_id → лимит; null — лимит снят
   limits: Map<string, number | null>
 }
 
 export function useBudgets() {
   const [limits, setLimits] = useState<BudgetLimit[]>([])
-  const [payday, setPayday] = useState(DEFAULT_PAYDAY)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -23,15 +19,10 @@ export function useBudgets() {
       return
     }
 
-    const [budgets, settings] = await Promise.all([
-      supabase.from('expense_budgets').select('category_id, monthly_limit').eq('user_id', userId),
-      supabase.from('expense_budget_settings').select('payday').eq('user_id', userId).maybeSingle()
-    ])
-
+    const budgets = await supabase.from('expense_budgets').select('category_id, monthly_limit').eq('user_id', userId)
     if (!budgets.error) {
       setLimits((budgets.data || []).map(row => ({ category_id: row.category_id as string, monthly_limit: Number(row.monthly_limit) })))
     }
-    if (!settings.error && settings.data) setPayday(Number(settings.data.payday))
     setLoading(false)
   }, [])
 
@@ -39,7 +30,7 @@ export function useBudgets() {
     void load()
   }, [load])
 
-  /** Сохраняет только переданное: upsert лимитов, удаление снятых, upsert дня зарплаты. Возвращает успех. */
+  /** Сохраняет только переданное: upsert лимитов и удаление снятых. Возвращает успех. */
   const save = useCallback(async (draft: BudgetDraft): Promise<boolean> => {
     const userId = await getUserId()
     if (!userId) return false
@@ -50,13 +41,6 @@ export function useBudgets() {
     for (const [categoryId, value] of draft.limits) {
       if (value === null) toDelete.push(categoryId)
       else toUpsert.push({ user_id: userId, category_id: categoryId, monthly_limit: value, updated_at: now })
-    }
-
-    if (draft.payday !== payday) {
-      const { error } = await supabase
-        .from('expense_budget_settings')
-        .upsert({ user_id: userId, payday: draft.payday, updated_at: now }, { onConflict: 'user_id' })
-      if (error) return false
     }
 
     if (toUpsert.length > 0) {
@@ -75,7 +59,7 @@ export function useBudgets() {
 
     await load()
     return true
-  }, [load, payday])
+  }, [load])
 
-  return { limits, payday, loading, save }
+  return { limits, loading, save }
 }

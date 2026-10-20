@@ -1,4 +1,4 @@
-// Траты по правилам портала и бюджет «от зарплаты до зарплаты». Выборку трат используют и ответы бота
+// Траты по правилам портала и бюджет по календарному месяцу. Выборку трат используют и ответы бота
 // на вопросы (reads.mjs), и напоминания.
 import { merchantKey } from './merchants.mjs'
 
@@ -55,37 +55,24 @@ export const loadOperations = async (rest, userId, from, toExclusive) => {
   })
 }
 
-const daysInMonth = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate()
-
-// День зарплаты в месяце (month 1..12, может выйти за 1..12 — год сдвигается); в коротком месяце — последний день
-const paydayIn = (year, month, payday) => {
-  const shifted = new Date(Date.UTC(year, month - 1, 1))
-  const y = shifted.getUTCFullYear()
-  const m = shifted.getUTCMonth() + 1
-  const day = String(Math.min(payday, daysInMonth(y, m))).padStart(2, '0')
-  return `${y}-${String(m).padStart(2, '0')}-${day}`
-}
-
-// Период бюджета: start — последняя зарплата ≤ today, next — следующая после неё
-export const budgetPeriod = (today, payday) => {
+// Период бюджета — календарный месяц [1-е, 1-е следующего): зарплата приходит траншами в плавающие дни
+export const budgetPeriod = today => {
   const [year, month] = today.split('-').map(Number)
-  const thisMonth = paydayIn(year, month, payday)
-  const start = thisMonth <= today ? thisMonth : paydayIn(year, month - 1, payday)
-  const [startYear, startMonth] = start.split('-').map(Number)
-  const next = paydayIn(startYear, startMonth + 1, payday)
+  const pad = n => String(n).padStart(2, '0')
+  const start = `${year}-${pad(month)}-01`
+  const next = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`
   const daysLeft = Math.max(1, Math.round((Date.parse(next) - Date.parse(today)) / DAY_MS))
   return { start, next, daysLeft }
 }
 
 export const budgetStatus = async (rest, userId, today) => {
-  const [budgets, [settings], categoryNames] = await Promise.all([
+  const [budgets, categoryNames] = await Promise.all([
     rest(`expense_budgets?user_id=eq.${userId}&select=category_id,monthly_limit`),
-    rest(`expense_budget_settings?user_id=eq.${userId}&select=payday`),
     loadCategoryNames(rest, userId)
   ])
   if (budgets.length === 0) return { configured: false }
 
-  const { start, next, daysLeft } = budgetPeriod(today, Number(settings?.payday) || 1)
+  const { start, next, daysLeft } = budgetPeriod(today)
   const spentByCategory = new Map()
   for (const op of await loadOperations(rest, userId, start, next)) {
     if (op.direction !== 'out' || !op.categoryId) continue

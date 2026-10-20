@@ -4,7 +4,7 @@ import { Toast } from '../../../components/ui/Toast'
 import { useToast } from '../../../hooks/useToast'
 import { useBudgets, type BudgetDraft } from '../hooks/useBudgets'
 import type { ExpenseTransaction, ExpenseUserCategory } from '../types'
-import { calculateBudget, formatBudgetDate } from '../utils/budget'
+import { calculateBudget } from '../utils/budget'
 import { formatRub } from '../utils/format'
 import { BudgetEditor } from './BudgetEditor'
 
@@ -18,12 +18,12 @@ interface Props {
 }
 
 export function BudgetCard({ transactions, categories, categoriesById, transactionsLoading }: Props) {
-  const { limits, payday, loading, save } = useBudgets()
+  const { limits, loading, save } = useBudgets()
   const { toast, showToast, hideToast } = useToast()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const summary = useMemo(() => calculateBudget(transactions, limits, payday), [transactions, limits, payday])
+  const summary = useMemo(() => calculateBudget(transactions, limits), [transactions, limits])
 
   const handleSave = async (draft: BudgetDraft) => {
     setSaving(true)
@@ -43,7 +43,7 @@ export function BudgetCard({ transactions, categories, categoriesById, transacti
     <section className="section-card budget-card">
       {summary.rows.length === 0 ? (
         <div className="budget-empty">
-          <p>Задайте лимиты по категориям — покажу, сколько можно тратить в день до зарплаты.</p>
+          <p>Задайте лимиты по категориям — покажу, сколько можно тратить в день до конца месяца.</p>
           <button type="button" className="budget-btn primary" onClick={() => setEditing(true)}>Задать бюджеты</button>
         </div>
       ) : (
@@ -51,7 +51,7 @@ export function BudgetCard({ transactions, categories, categoriesById, transacti
           <div className="budget-head">
             <div>
               <div className="budget-allowance">Можно тратить {formatRub(summary.allowancePerDay)} в день</div>
-              <div className="budget-until">до {formatBudgetDate(summary.next)} · осталось {summary.daysLeft} дн.</div>
+              <div className="budget-until">до конца месяца · осталось {summary.daysLeft} дн.</div>
             </div>
             <button type="button" className="budget-btn" onClick={() => setEditing(true)}>
               <Settings2 size={16} strokeWidth={1.5} />
@@ -79,7 +79,6 @@ export function BudgetCard({ transactions, categories, categoriesById, transacti
         <BudgetEditor
           categories={categories}
           limits={limits}
-          payday={payday}
           saving={saving}
           onSave={handleSave}
           onClose={() => setEditing(false)}

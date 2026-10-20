@@ -10,7 +10,6 @@ const FORM_ID = 'budget-editor-form'
 interface Props {
   categories: ExpenseUserCategory[]
   limits: BudgetLimit[]
-  payday: number
   saving: boolean
   onSave: (draft: BudgetDraft) => void
   onClose: () => void
@@ -24,14 +23,13 @@ function parseLimit(value: string): number | null | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : undefined
 }
 
-export function BudgetEditor({ categories, limits, payday, saving, onSave, onClose }: Props) {
+export function BudgetEditor({ categories, limits, saving, onSave, onClose }: Props) {
   const initial = useMemo(
     () => new Map(limits.map(item => [item.category_id, String(item.monthly_limit)])),
     [limits]
   )
   const activeCategories = useMemo(() => categories.filter(category => category.is_active), [categories])
 
-  const [paydayText, setPaydayText] = useState(String(payday))
   const [values, setValues] = useState<Map<string, string>>(initial)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,12 +39,6 @@ export function BudgetEditor({ categories, limits, payday, saving, onSave, onClo
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-
-    const nextPayday = Number(paydayText)
-    if (!Number.isInteger(nextPayday) || nextPayday < 1 || nextPayday > 31) {
-      setError('День зарплаты — число от 1 до 31')
-      return
-    }
 
     // В draft попадает только изменённое
     const changed = new Map<string, number | null>()
@@ -62,7 +54,7 @@ export function BudgetEditor({ categories, limits, payday, saving, onSave, onClo
     }
 
     setError(null)
-    onSave({ payday: nextPayday, limits: changed })
+    onSave({ limits: changed })
   }
 
   return (
@@ -76,22 +68,8 @@ export function BudgetEditor({ categories, limits, payday, saving, onSave, onClo
       }
     >
       <form id={FORM_ID} className="budget-form" onSubmit={handleSubmit}>
-        <div className="budget-field">
-          <label htmlFor="budget-payday">День зарплаты</label>
-          <ClearableInput
-            id="budget-payday"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="1–31"
-            value={paydayText}
-            onChange={event => setPaydayText(event.target.value.replace(/\D/g, '').slice(0, 2))}
-            onClear={() => setPaydayText('')}
-            clearLabel="Очистить день зарплаты"
-          />
-          <p className="budget-hint">Период считается от зарплаты до зарплаты. В коротком месяце — последний день.</p>
-        </div>
-
         <h3>Лимиты на месяц</h3>
+        <p className="budget-hint">Считаются по календарному месяцу: остаток делится на дни до конца месяца.</p>
         {activeCategories.length === 0 ? (
           <p className="budget-hint">Нет категорий. Создайте их во вкладке «Аналитика».</p>
         ) : (

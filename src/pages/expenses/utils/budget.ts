@@ -52,24 +52,15 @@ export function getMoscowToday(now: Date = new Date()): string {
   return now.toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' })
 }
 
-// День зарплаты в месяце: в коротких месяцах — последний день
-function paydayIso(year: number, monthIndex: number, payday: number): string {
-  const normalizedYear = year + Math.floor(monthIndex / 12)
-  const normalizedMonth = ((monthIndex % 12) + 12) % 12
-  const daysInMonth = new Date(Date.UTC(normalizedYear, normalizedMonth + 1, 0)).getUTCDate()
-  return `${normalizedYear}-${pad(normalizedMonth + 1)}-${pad(Math.min(payday, daysInMonth))}`
-}
-
-/** Период «от зарплаты до зарплаты»: [start, next), daysLeft включает сегодняшний день (минимум 1) */
-export function getBudgetPeriod(today: string, payday: number): BudgetPeriod {
+/**
+ * Период — календарный месяц [1-е, 1-е следующего): зарплата приходит несколькими траншами в плавающие дни,
+ * поэтому «до зарплаты» не считаем. daysLeft включает сегодняшний день
+ */
+export function getBudgetPeriod(today: string): BudgetPeriod {
   const year = Number(today.slice(0, 4))
-  const monthIndex = Number(today.slice(5, 7)) - 1
-
-  const thisMonth = paydayIso(year, monthIndex, payday)
-  const startMonthIndex = thisMonth <= today ? monthIndex : monthIndex - 1
-  const start = paydayIso(year, startMonthIndex, payday)
-  const next = paydayIso(year, startMonthIndex + 1, payday)
-
+  const month = Number(today.slice(5, 7))
+  const start = `${year}-${pad(month)}-01`
+  const next = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`
   const daysLeft = Math.max(1, Math.round((parseIso(next) - parseIso(today)) / DAY_MS))
   return { start, next, daysLeft }
 }
@@ -86,10 +77,9 @@ export function getBudgetStatus(share: number): BudgetStatus {
 export function calculateBudget(
   transactions: BudgetTransaction[],
   limits: BudgetLimit[],
-  payday: number,
   today: string = getMoscowToday()
 ): BudgetSummary {
-  const period = getBudgetPeriod(today, payday)
+  const period = getBudgetPeriod(today)
 
   const spentByCategory = new Map<string, number>()
   for (const transaction of transactions) {
@@ -118,9 +108,4 @@ export function calculateBudget(
   const allowancePerDay = Math.floor(Math.max(0, totalLimit - totalSpent) / period.daysLeft)
 
   return { ...period, rows, totalLimit, totalSpent, allowancePerDay }
-}
-
-/** «10 ноября» из YYYY-MM-DD */
-export function formatBudgetDate(iso: string): string {
-  return new Date(parseIso(iso)).toLocaleDateString('ru-RU', { timeZone: 'UTC', day: 'numeric', month: 'long' })
 }

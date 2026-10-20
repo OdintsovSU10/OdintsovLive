@@ -6,7 +6,6 @@ import { addDays, budgetStatus, loadCategoryNames, loadOperations, round2 } from
 import { READ_HANDLERS } from './reads.mjs'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 const TASKS_LIMIT = 5
 const SERVICE_KM_SOON = 500
 const SERVICE_MONTHS_SOON = 1
@@ -36,7 +35,6 @@ const markSent = (rest, userId, key) => once(rest, userId, key, async () => {})
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS)
 const ruDate = date => date.slice(5).split('-').reverse().join('.')
 const ruDateFull = date => date.split('-').reverse().join('.')
-const ruDay = date => `${Number(date.slice(8, 10))} ${MONTHS_GEN[Number(date.slice(5, 7)) - 1]}`
 const signed = n => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmtNum(Math.abs(n))}`
 
 const loadCars = async (rest, userId, today) => (await READ_HANDLERS.get_car(rest, { userId, today }, {})).cars || []
@@ -79,7 +77,7 @@ const buildMorning = async (rest, config, today) => {
   const blocks = []
 
   if (budget.configured) {
-    blocks.push(`💰 Можно тратить ${fmtNum(budget.allowancePerDay)} ₽/день до ${ruDay(budget.next)} (осталось ${budget.daysLeft} дн.)`)
+    blocks.push(`💰 Можно тратить ${fmtNum(budget.allowancePerDay)} ₽/день до конца месяца (осталось ${budget.daysLeft} дн.)`)
   }
 
   if (tasks.length > 0) {
@@ -194,7 +192,7 @@ export const budgetLimits = async (rest, config, today, bot) => {
       await markSent(rest, config.userId, key80)
     } else {
       const pct = Math.round(c.share * 100)
-      await once(rest, config.userId, key80, () => send(config, bot, `⚠️ ${c.name}: ${fmtNum(c.spent)} из ${fmtNum(c.limit)} ₽ (${pct}%). Осталось ${fmtNum(c.left)} ₽ до ${ruDay(budget.next)}`))
+      await once(rest, config.userId, key80, () => send(config, bot, `⚠️ ${c.name}: ${fmtNum(c.spent)} из ${fmtNum(c.limit)} ₽ (${pct}%). Осталось ${fmtNum(c.left)} ₽ до конца месяца`))
     }
   }
   return null
