@@ -4,6 +4,7 @@ import { getUserId } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import FotTokenSettings from './admin/FotTokenSettings'
 import BotSettings from './admin/BotSettings'
+import ReminderSettings from './admin/ReminderSettings'
 import './AdminPage.css'
 
 interface UserProfile {
@@ -466,6 +467,7 @@ export default function AdminPage() {
       {activeTab === 'bot' && (
         <div className="tab-content">
           <BotSettings />
+          <ReminderSettings />
         </div>
       )}
     </div>

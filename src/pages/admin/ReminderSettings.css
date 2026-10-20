@@ -1,0 +1,221 @@
+/* Блок «Напоминания» в Админке → Telegram-бот; общий вид — классы fot-token-* из AdminPage.css */
+.reminder-settings {
+  margin-top: 24px;
+}
+
+.reminder-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.reminder-group {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+.reminder-group h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.reminder-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.reminder-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  align-content: start;
+}
+
+.reminder-field-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.reminder-group input[type='number'],
+.reminder-group input[type='time'],
+.reminder-group select {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+.reminder-group input:focus,
+.reminder-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.reminder-group input:disabled,
+.reminder-group select:disabled {
+  opacity: 0.55;
+}
+
+.reminder-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reminder-row input[type='time'],
+.reminder-row input[type='number'] {
+  flex: 1 1 0;
+}
+
+.reminder-row select {
+  flex: 0 0 90px;
+  width: 90px;
+}
+
+.reminder-offset-fixed {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.reminder-empty {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.reminder-icon-btn {
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reminder-icon-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--danger);
+}
+
+.reminder-add-btn,
+.reminder-secondary-btn {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 500;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.reminder-add-btn {
+  justify-self: start;
+}
+
+.reminder-add-btn:hover:not(:disabled),
+.reminder-secondary-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface-hover);
+}
+
+.reminder-add-btn:disabled,
+.reminder-secondary-btn:disabled,
+.reminder-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.reminder-checks {
+  display: grid;
+  gap: 2px;
+}
+
+.reminder-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reminder-check input {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.reminder-check span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reminder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.reminder-actions .fot-token-save {
+  min-height: 44px;
+}
+
+@media (min-width: 600px) {
+  .reminder-actions {
+    flex-direction: row;
+  }
+
+  .reminder-actions .fot-token-save {
+    min-width: 185px;
+  }
+
+  .reminder-checks {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reminder-add-btn,
+  .reminder-secondary-btn {
+    transition: none;
+  }
+}

@@ -10,6 +10,7 @@ import { createEntry, createRest, emptyContext, executeTools, loadContext, parse
 import { askLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
+import { normalizeReminderSettings } from './reminderSettings.mjs'
 import { startReminders } from './reminders.mjs'
 import { startMeterAlerts } from './meterAlerts.mjs'
 import { startTodoAlerts } from './todoAlerts.mjs'
@@ -72,7 +73,7 @@ const loadEnv = () => {
 
 const loadSettings = async (base, rest) => {
   const [row = {}] = await rest(
-    'bot_settings?id=eq.1&select=owner_user_id,telegram_bot_token,telegram_owner_id,openrouter_api_key,openrouter_model,elevenlabs_api_key'
+    'bot_settings?id=eq.1&select=owner_user_id,telegram_bot_token,telegram_owner_id,openrouter_api_key,openrouter_model,elevenlabs_api_key,reminder_settings'
   )
   const config = {
     ...base,
@@ -82,7 +83,8 @@ const loadSettings = async (base, rest) => {
     userId: row.owner_user_id || base.fallback.userId,
     openrouterKey: row.openrouter_api_key || base.fallback.openrouterKey,
     elevenlabsKey: row.elevenlabs_api_key || base.fallback.elevenlabsKey,
-    model: row.openrouter_model || base.fallback.model || DEFAULT_MODEL
+    model: row.openrouter_model || base.fallback.model || DEFAULT_MODEL,
+    reminders: normalizeReminderSettings(row.reminder_settings)
   }
   const missing = [['token', 'Telegram-токен'], ['openrouterKey', 'ключ OpenRouter'], ['userId', 'владелец']]
     .filter(([key]) => !config[key])

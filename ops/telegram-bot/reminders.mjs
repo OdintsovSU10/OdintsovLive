@@ -3,13 +3,11 @@
 // напоминание, которое всё ещё актуально, придёт один раз заново.
 import { setTimeout as sleep } from 'node:timers/promises'
 import { nowInZone } from './actions.mjs'
+import { DEFAULT_REMINDER_SETTINGS } from './reminderSettings.mjs'
 import { askNextTransferNote } from './transferNotes.mjs'
 import { budgetLimits, insuranceExpiring, morningBrief, serviceSoon, weeklyDigest } from './notify.mjs'
 
 const TICK_MS = 10 * 60_000
-// Не будим ночью и не пишем вечером
-const FROM_HOUR = 10
-const TO_HOUR = 21
 const DAY_MS = 24 * 60 * 60 * 1000
 
 const STALE_STATEMENT_DAYS = 7
@@ -47,8 +45,11 @@ export const startReminders = (rest, getConfig, getBot, log) => {
         if (config?.userId && config.ownerTelegramId && bot) {
           const { today, time } = nowInZone(config.timeZone)
           const hour = Number(time.slice(0, 2))
-          if (hour >= FROM_HOUR && hour < TO_HOUR) {
+          // не будим ночью и не пишем вечером: окно и набор проверок — из настроек
+          const { fromHour, toHour, checks } = (config.reminders || DEFAULT_REMINDER_SETTINGS).daily
+          if (hour >= fromHour && hour < toHour) {
             for (const check of CHECKS) {
+              if (checks[check.key] === false) continue
               const last = sentOn.get(check.key)
               if (last && daysAgo(today, last) < check.repeatDays) continue
               try {
