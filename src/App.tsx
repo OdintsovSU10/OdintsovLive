@@ -395,7 +395,7 @@ function App() {
               <Route path="/body/params" element={<Navigate to="/body" replace />} />
               <Route path="/car" element={<CarPage />} />
               <Route path="/tender" element={<TenderPage isAdmin={!!profile?.is_admin} />} />
-              <Route path="/tender/admin" element={<Navigate to={profile?.is_admin ? '/tender?tab=employees' : '/tender'} replace />} />
+              <Route path="/tender/admin" element={<Navigate to={profile?.is_admin ? '/tender?tab=admin' : '/tender'} replace />} />
               {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
             </Routes>
           </Suspense>

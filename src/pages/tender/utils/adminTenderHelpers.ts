@@ -114,3 +114,28 @@ export interface EditableEmployee {
   company: string
   country: string
 }
+
+type SupabaseErrorLike = { code?: string; message?: string | null; details?: string | null; hint?: string | null } | null
+
+export function isMissingRpcError(error: SupabaseErrorLike, status?: number | null): boolean {
+  if (status === 404) return true
+  if (!error) return false
+  if (error.code === 'PGRST202') return true
+  const combined = `${error.message || ''} ${error.details || ''}`.toLowerCase()
+  return combined.includes('could not find the function') || combined.includes('schema cache')
+}
+
+export function isMissingRelationError(error: SupabaseErrorLike, status?: number | null): boolean {
+  if (status === 404) return true
+  if (!error) return false
+  if (error.code === '42P01' || error.code === 'PGRST205') return true
+  const combined = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`.toLowerCase()
+  return combined.includes('does not exist') || combined.includes('could not find the table') || combined.includes('not found')
+}
+
+export function isMissingEmployeeEventsTableError(error: SupabaseErrorLike, status?: number | null): boolean {
+  if (!isMissingRelationError(error, status)) return false
+  if (status === 404) return true
+  const combined = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
+  return combined.includes('tender_employee_events')
+}

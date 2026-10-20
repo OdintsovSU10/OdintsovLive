@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Archive, Settings } from 'lucide-react'
 import { useTenderData } from './hooks/useTenderData'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
 import { DashboardOverview } from './components/DashboardOverview'
 import { EmployeeDetail } from './components/EmployeeDetail'
-import AdminTenderPanel, { type AdminTab } from './AdminTenderPanel'
+import { ArchiveSheet } from './components/ArchiveSheet'
+import { SettingsSheet } from './components/SettingsSheet'
+import AdminTenderPanel from './AdminTenderPanel'
 import type { EmployeeWithStats } from './types'
 import './TenderPage.css'
 
-type ShellTab = 'dashboard' | 'timesheet' | 'fot' | AdminTab
+type ShellTab = 'dashboard' | 'timesheet' | 'fot' | 'admin'
+type SheetKind = 'archive' | 'settings'
 
 const monthNames = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -23,15 +27,16 @@ const BASE_TABS: Array<{ key: ShellTab; label: string }> = [
 ]
 
 const ADMIN_TABS: Array<{ key: ShellTab; label: string }> = [
-  { key: 'employees', label: 'Сотрудники' },
-  { key: 'subdivisions', label: 'Подразделения' },
-  { key: 'archive', label: 'Архив' },
-  { key: 'settings', label: 'Настройки' }
+  { key: 'admin', label: 'Администрирование' }
 ]
 
-const ADMIN_TAB_KEYS: ReadonlyArray<ShellTab> = ADMIN_TABS.map(tab => tab.key)
-
-const isAdminTab = (tab: ShellTab): tab is AdminTab => ADMIN_TAB_KEYS.includes(tab)
+// Старые адреса ?tab=… ведут на «Администрирование»; архив и настройки открываются листами
+const LEGACY_ADMIN_TABS = new Map<string, { sheet: SheetKind | null }>([
+  ['employees', { sheet: null }],
+  ['subdivisions', { sheet: null }],
+  ['archive', { sheet: 'archive' }],
+  ['settings', { sheet: 'settings' }]
+])
 
 function MonthSelector({
   year,
@@ -65,14 +70,38 @@ function MonthSelector({
 }
 
 export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
-  const { employees, loading, error, selectedYear, selectedMonth, setMonth, loadEmployees } = useTenderData()
+  const { employees, loading, error, selectedYear, selectedMonth, setMonth, loadEmployees, clearAllEmployees } = useTenderData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
+  const [sheet, setSheet] = useState<SheetKind | null>(null)
+  const [adminRefreshKey, setAdminRefreshKey] = useState(0)
+  const sheetChangedRef = useRef(false)
 
   const tabsOrder = isAdmin ? [...BASE_TABS, ...ADMIN_TABS] : BASE_TABS
-  const tabParam = searchParams.get('tab')
+  const rawTabParam = searchParams.get('tab')
+  const legacyTarget = rawTabParam ? LEGACY_ADMIN_TABS.get(rawTabParam) : undefined
+  const tabParam = legacyTarget ? 'admin' : rawTabParam
   const activeTab: ShellTab = tabsOrder.find(tab => tab.key === tabParam)?.key ?? 'dashboard'
-  const adminTabActive = isAdminTab(activeTab)
+  const adminTabActive = activeTab === 'admin'
+
+  useEffect(() => {
+    if (!isAdmin || !legacyTarget) return
+    setSearchParams({ tab: 'admin' }, { replace: true })
+    if (legacyTarget.sheet) setSheet(legacyTarget.sheet)
+  }, [isAdmin, legacyTarget, setSearchParams])
+
+  // Лист что-то поменял — при закрытии перечитываем данные оболочки и список в админ-панели
+  const handleSheetChanged = () => {
+    sheetChangedRef.current = true
+  }
+
+  const closeSheet = () => {
+    setSheet(null)
+    if (!sheetChangedRef.current) return
+    sheetChangedRef.current = false
+    void loadEmployees(undefined, undefined, false, true)
+    setAdminRefreshKey(key => key + 1)
+  }
 
   // При уходе с админской вкладки подтягиваем изменения, сделанные в админке
   const prevAdminTabActiveRef = useRef(adminTabActive)
@@ -113,96 +142,142 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     setSelectedEmployee(null)
   }
 
+  // Листы стоят рядом с содержимым и переживают перезагрузку данных (например «Удалить всё»), не теряя состояния
+  const sheets = isAdmin && (
+    <>
+      {sheet === 'archive' && <ArchiveSheet onChanged={handleSheetChanged} onClose={closeSheet} />}
+      {sheet === 'settings' && (
+        <SettingsSheet
+          employees={employees}
+          clearAllEmployees={clearAllEmployees}
+          onChanged={handleSheetChanged}
+          onClose={closeSheet}
+        />
+      )}
+    </>
+  )
+
   if (loading) {
     return (
-      <div className="tender-state-container">
-        <div className="tender-spinner" />
-        <span>Загрузка данных тендерного управления…</span>
-      </div>
+      <>
+        <div key="loading" className="tender-state-container">
+          <div className="tender-spinner" />
+          <span>Загрузка данных тендерного управления…</span>
+        </div>
+        {sheets}
+      </>
     )
   }
 
   if (error) {
     return (
-      <div className="tender-state-container error">
-        <span>⚠️</span>
-        <strong>{error}</strong>
-      </div>
+      <>
+        <div key="error" className="tender-state-container error">
+          <span>⚠️</span>
+          <strong>{error}</strong>
+        </div>
+        {sheets}
+      </>
     )
   }
 
   return (
-    <div className="tender-shell">
-      <header className="tender-shell-header">
-        <div className="tender-shell-top">
-          <div className="tender-brand">
-            <span className="tender-brand-icon">Т</span>
-            <div>
-              <h1>Тендерное управление</h1>
-              <p>Управление • Аналитика • Контроль</p>
+    <>
+      <div key="shell" className="tender-shell">
+        <header className="tender-shell-header">
+          <div className="tender-shell-top">
+            <div className="tender-brand">
+              <span className="tender-brand-icon">Т</span>
+              <div>
+                <h1>Тендерное управление</h1>
+                <p>Управление • Аналитика • Контроль</p>
+              </div>
             </div>
+            {!adminTabActive && (
+              <div className="tender-shell-controls">
+                <span className="tender-period-badge">{monthNames[selectedMonth - 1]} {selectedYear}</span>
+                <MonthSelector year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
+              </div>
+            )}
+            {isAdmin && (
+              <div className="tender-shell-shortcuts">
+                <button
+                  type="button"
+                  className="tender-shell-icon-btn"
+                  onClick={() => setSheet('archive')}
+                  aria-label="Архив"
+                  title="Архив"
+                >
+                  <Archive size={20} strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  className="tender-shell-icon-btn"
+                  onClick={() => setSheet('settings')}
+                  aria-label="Настройки"
+                  title="Настройки"
+                >
+                  <Settings size={20} strokeWidth={1.5} />
+                </button>
+              </div>
+            )}
           </div>
-          {!adminTabActive && (
-            <div className="tender-shell-controls">
-              <span className="tender-period-badge">{monthNames[selectedMonth - 1]} {selectedYear}</span>
-              <MonthSelector year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
-            </div>
+          <nav ref={tabsRef} className="tender-shell-tabs">
+            {tabsOrder.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                className={`tender-shell-tab ${activeTab === tab.key ? 'active' : ''}`}
+                onClick={() => handleTabClick(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        <main className="tender-shell-main">
+          {adminTabActive ? (
+            <AdminTenderPanel refreshKey={adminRefreshKey} />
+          ) : selectedEmployee ? (
+            <EmployeeDetail
+              employee={selectedEmployee}
+              year={selectedYear}
+              month={selectedMonth}
+              onBack={() => setSelectedEmployee(null)}
+            />
+          ) : (
+            <>
+              {activeTab === 'dashboard' && (
+                <DashboardOverview
+                  employees={employees}
+                  year={selectedYear}
+                  month={selectedMonth}
+                  onSelectEmployee={setSelectedEmployee}
+                />
+              )}
+
+              {activeTab === 'timesheet' && (
+                <TimesheetGrid
+                  employees={employees}
+                  year={selectedYear}
+                  month={selectedMonth}
+                />
+              )}
+
+              {activeTab === 'fot' && (
+                <DepartmentFOT
+                  employees={employees}
+                  year={selectedYear}
+                  month={selectedMonth}
+                  onSelectEmployee={setSelectedEmployee}
+                />
+              )}
+            </>
           )}
-        </div>
-        <nav ref={tabsRef} className="tender-shell-tabs">
-          {tabsOrder.map(tab => (
-            <button
-              key={tab.key}
-              type="button"
-              className={`tender-shell-tab ${activeTab === tab.key ? 'active' : ''}`}
-              onClick={() => handleTabClick(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main className="tender-shell-main">
-        {adminTabActive ? (
-          <AdminTenderPanel tab={activeTab} />
-        ) : selectedEmployee ? (
-          <EmployeeDetail
-            employee={selectedEmployee}
-            year={selectedYear}
-            month={selectedMonth}
-            onBack={() => setSelectedEmployee(null)}
-          />
-        ) : (
-          <>
-            {activeTab === 'dashboard' && (
-              <DashboardOverview
-                employees={employees}
-                year={selectedYear}
-                month={selectedMonth}
-                onSelectEmployee={setSelectedEmployee}
-              />
-            )}
-
-            {activeTab === 'timesheet' && (
-              <TimesheetGrid
-                employees={employees}
-                year={selectedYear}
-                month={selectedMonth}
-              />
-            )}
-
-            {activeTab === 'fot' && (
-              <DepartmentFOT
-                employees={employees}
-                year={selectedYear}
-                month={selectedMonth}
-                onSelectEmployee={setSelectedEmployee}
-              />
-            )}
-          </>
-        )}
-      </main>
-    </div>
+        </main>
+      </div>
+      {sheets}
+    </>
   )
 }

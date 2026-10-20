@@ -1,13 +1,17 @@
-import { useState } from 'react'
-import { useOverlayClose } from '../../../hooks/useOverlayClose'
+import { useState, type FormEvent } from 'react'
+import { BottomSheet } from '../../../components/ui/BottomSheet'
+import { ClearableInput } from '../../../components/ui/ClearableInput'
 import type { NewEmployee } from '../types'
-import { formatMoneyInput, parseMoneyInput } from '../utils/adminTenderHelpers'
-import '../TenderPage.css'
-import '../AdminTenderPanel.css'
+import { formatMoneyInput, getTodayIsoDate, parseMoneyInput } from '../utils/adminTenderHelpers'
+import './AdminSheets.css'
+
+const FORM_ID = 'tender-add-employee-form'
+
+type NamePart = 'last_name' | 'first_name' | 'middle_name'
 
 export function AddEmployeeModal({ onClose, onSave, subdivisions }: {
   onClose: () => void
-  onSave: (emp: NewEmployee) => void
+  onSave: (emp: NewEmployee) => void | Promise<unknown>
   subdivisions: string[]
 }) {
   const [form, setForm] = useState<NewEmployee>({
@@ -20,24 +24,28 @@ export function AddEmployeeModal({ onClose, onSave, subdivisions }: {
     subdivision: '',
     current_salary: 0,
     monthly_bonus: 0,
-    hire_date: new Date().toISOString().split('T')[0],
+    hire_date: getTodayIsoDate(),
     company: ''
   })
   const [saving, setSaving] = useState(false)
-  const overlayClose = useOverlayClose(onClose)
 
   const handleChange = (field: keyof NewEmployee, value: string | number) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  const updateFullName = (lastName: string, firstName: string, middleName: string) => {
-    const parts = [lastName, firstName, middleName].filter(Boolean)
-    setForm(prev => ({ ...prev, full_name: parts.join(' ') }))
+  // ФИО собирается из трёх частей
+  const handleNamePart = (field: NamePart, value: string) => {
+    setForm(prev => {
+      const next = { ...prev, [field]: value }
+      return { ...next, full_name: [next.last_name, next.first_name, next.middle_name].filter(Boolean).join(' ') }
+    })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const canSubmit = form.full_name.trim().length > 0 && form.position.trim().length > 0
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!form.full_name.trim() || !form.position.trim()) return
+    if (!canSubmit) return
     setSaving(true)
     try {
       await onSave(form)
@@ -47,83 +55,133 @@ export function AddEmployeeModal({ onClose, onSave, subdivisions }: {
   }
 
   return (
-    <div className="modal-overlay" {...overlayClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Добавить сотрудника</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="edit-form-grid">
-            <div className="form-group">
-              <label>Фамилия *</label>
-              <input value={form.last_name} onChange={e => { handleChange('last_name', e.target.value); updateFullName(e.target.value, form.first_name, form.middle_name) }} />
-            </div>
-            <div className="form-group">
-              <label>Имя *</label>
-              <input value={form.first_name} onChange={e => { handleChange('first_name', e.target.value); updateFullName(form.last_name, e.target.value, form.middle_name) }} />
-            </div>
-            <div className="form-group">
-              <label>Отчество</label>
-              <input value={form.middle_name} onChange={e => { handleChange('middle_name', e.target.value); updateFullName(form.last_name, form.first_name, e.target.value) }} />
-            </div>
-            <div className="form-group">
-              <label>Дата приёма</label>
-              <input type="date" value={form.hire_date} onChange={e => handleChange('hire_date', e.target.value)} />
-            </div>
-            <div className="form-group form-group-full">
-              <label>Должность *</label>
-              <input value={form.position} onChange={e => handleChange('position', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Отдел</label>
-              <input value={form.department} onChange={e => handleChange('department', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Подразделение</label>
-              <select value={form.subdivision} onChange={e => handleChange('subdivision', e.target.value)}>
-                <option value="">— Без подразделения —</option>
-                {subdivisions.map(subdivision => (
-                  <option key={subdivision} value={subdivision}>
-                    {subdivision}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Оклад</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={formatMoneyInput(form.current_salary)}
-                onChange={e => handleChange('current_salary', parseMoneyInput(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            <div className="form-group">
-              <label>Ежемес. бонус</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={formatMoneyInput(form.monthly_bonus)}
-                onChange={e => handleChange('monthly_bonus', parseMoneyInput(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            <div className="form-group">
-              <label>Компания</label>
-              <input value={form.company} onChange={e => handleChange('company', e.target.value)} />
-            </div>
-          </div>
-          <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={onClose}>Отмена</button>
-            <button type="submit" className="btn-primary" disabled={saving || !form.full_name.trim() || !form.position.trim()}>
-              {saving ? 'Сохранение...' : 'Добавить'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <BottomSheet
+      title="Добавить сотрудника"
+      onClose={onClose}
+      footer={
+        <button type="submit" form={FORM_ID} className="tsh-btn primary grow" disabled={saving || !canSubmit}>
+          {saving ? 'Сохраняю…' : 'Добавить'}
+        </button>
+      }
+    >
+      <form id={FORM_ID} className="tsh-form" onSubmit={handleSubmit}>
+        <label className="tsh-form-field">
+          <span>Фамилия *</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            value={form.last_name}
+            onChange={e => handleNamePart('last_name', e.target.value)}
+            onClear={() => handleNamePart('last_name', '')}
+            clearLabel="Очистить фамилию"
+            autoComplete="off"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Имя *</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            value={form.first_name}
+            onChange={e => handleNamePart('first_name', e.target.value)}
+            onClear={() => handleNamePart('first_name', '')}
+            clearLabel="Очистить имя"
+            autoComplete="off"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Отчество</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            value={form.middle_name}
+            onChange={e => handleNamePart('middle_name', e.target.value)}
+            onClear={() => handleNamePart('middle_name', '')}
+            clearLabel="Очистить отчество"
+            autoComplete="off"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Дата приёма</span>
+          <input
+            className="tsh-control"
+            type="date"
+            value={form.hire_date}
+            onChange={e => handleChange('hire_date', e.target.value)}
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Должность *</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            value={form.position}
+            onChange={e => handleChange('position', e.target.value)}
+            onClear={() => handleChange('position', '')}
+            clearLabel="Очистить должность"
+            autoComplete="off"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Отдел</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            value={form.department}
+            onChange={e => handleChange('department', e.target.value)}
+            onClear={() => handleChange('department', '')}
+            clearLabel="Очистить отдел"
+            autoComplete="off"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Подразделение</span>
+          <select
+            className="tsh-control"
+            value={form.subdivision}
+            onChange={e => handleChange('subdivision', e.target.value)}
+          >
+            <option value="">— Без подразделения —</option>
+            {subdivisions.map(subdivision => (
+              <option key={subdivision} value={subdivision}>
+                {subdivision}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="tsh-form-field">
+          <span>Оклад</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            type="text"
+            inputMode="numeric"
+            value={formatMoneyInput(form.current_salary)}
+            onChange={e => handleChange('current_salary', parseMoneyInput(e.target.value))}
+            onClear={() => handleChange('current_salary', 0)}
+            clearLabel="Очистить оклад"
+            placeholder="0"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Ежемес. бонус</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            type="text"
+            inputMode="numeric"
+            value={formatMoneyInput(form.monthly_bonus)}
+            onChange={e => handleChange('monthly_bonus', parseMoneyInput(e.target.value))}
+            onClear={() => handleChange('monthly_bonus', 0)}
+            clearLabel="Очистить бонус"
+            placeholder="0"
+          />
+        </label>
+        <label className="tsh-form-field">
+          <span>Компания</span>
+          <ClearableInput
+            wrapperClassName="tsh-field"
+            value={form.company}
+            onChange={e => handleChange('company', e.target.value)}
+            onClear={() => handleChange('company', '')}
+            clearLabel="Очистить компанию"
+            autoComplete="off"
+          />
+        </label>
+      </form>
+    </BottomSheet>
   )
 }
-

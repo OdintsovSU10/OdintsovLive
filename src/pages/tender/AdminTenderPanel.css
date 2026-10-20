@@ -66,44 +66,6 @@
   font-weight: 700;
 }
 
-.tender-page .settings-list {
-  width: 100%;
-  border-top: 1px solid rgba(100, 116, 139, 0.14);
-}
-
-.tender-page .settings-row {
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 14px 2px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.14);
-}
-
-.tender-page .settings-row-copy {
-  min-width: 0;
-}
-
-.tender-page .settings-row-copy h3 {
-  margin: 0;
-  color: #e2e8f0;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.tender-page .settings-row-copy p {
-  margin: 4px 0 0;
-  color: #64748b;
-  font-size: 0.78rem;
-}
-
-.tender-page .settings-row > .btn-primary,
-.tender-page .settings-row > .btn-danger {
-  min-width: 132px;
-  flex: 0 0 auto;
-}
-
 .tender-page .tender-tabs {
   display: inline-flex;
   gap: 4px;
@@ -138,41 +100,95 @@
   gap: 10px;
 }
 
-.tender-page .search-box {
+.tender-page .admin-section-head {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tender-page .admin-section-head h3 {
+  margin: 0;
+}
+
+.tender-page .admin-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tender-page .admin-head-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tender-page .admin-filters {
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tender-page .admin-search {
+  flex: 1 1 240px;
+  max-width: 380px;
+}
+
+.tender-page .admin-search .ui-clearable-input {
+  height: 44px;
+  padding-left: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.16);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.76);
+  color: #e2e8f0;
+  font-family: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.tender-page .admin-search .ui-clearable-input::placeholder {
+  color: #475569;
+}
+
+.tender-page .admin-search .ui-clearable-input:focus {
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.tender-page .admin-check {
+  min-height: 44px;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  max-width: 380px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.16);
-  background: rgba(15, 23, 42, 0.76);
-}
-
-.tender-page .search-box span {
-  color: #64748b;
-}
-
-.tender-page .search-box input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: #e2e8f0;
+  color: #cbd5e1;
   font-size: 0.84rem;
-  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.tender-page .search-box input::placeholder {
-  color: #475569;
+.tender-page .admin-check input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #818cf8;
+  cursor: pointer;
+}
+
+.tender-page .admin-empty {
+  padding: 40px;
 }
 
 .tender-page .emp-list-wrapper {
   overflow: auto;
   border: 1px solid rgba(100, 116, 139, 0.12);
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.68);
+  /* Сплошной цвет (rgba(15, 23, 42, 0.68) поверх фона страницы): липкая колонка ровно в тон */
+  background: #0e1628;
 }
 
 .tender-page .emp-list-table {
@@ -251,119 +267,6 @@
   margin-bottom: 8px;
 }
 
-.tender-page .timesheet-year-nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.tender-page .timesheet-year-title {
-  min-width: 96px;
-  text-align: center;
-  color: #c7d2fe;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.tender-page .month-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  background: rgba(15, 23, 42, 0.78);
-  color: #e2e8f0;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.tender-page .month-btn:hover {
-  border-color: rgba(129, 140, 248, 0.5);
-}
-
-.tender-page .settings-row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 10px;
-  flex: 0 0 auto;
-}
-
-.tender-page .settings-period-control {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tender-page .settings-period-control span {
-  color: #94a3b8;
-  font-size: 0.76rem;
-}
-
-.tender-page .settings-period-control select,
-.tender-page .settings-period-control input {
-  min-width: 150px;
-  height: 38px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.86);
-  color: #e2e8f0;
-  padding: 0 10px;
-  font: inherit;
-}
-
-.tender-page .settings-period-control.settings-period-year input {
-  min-width: 96px;
-  width: 110px;
-}
-
-.tender-page .timesheet-months-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.tender-page .timesheet-month-card {
-  border: 1px solid rgba(100, 116, 139, 0.16);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.76);
-  padding: 12px;
-}
-
-.tender-page .timesheet-month-card.loaded {
-  border-color: rgba(34, 211, 238, 0.32);
-}
-
-.tender-page .timesheet-month-name {
-  color: #e2e8f0;
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
-.tender-page .timesheet-month-status {
-  margin-top: 7px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tender-page .timesheet-check {
-  color: #22d3ee;
-  font-weight: 700;
-}
-
-.tender-page .timesheet-cross {
-  color: #64748b;
-  font-weight: 700;
-}
-
-.tender-page .timesheet-count {
-  color: #94a3b8;
-  font-size: 0.76rem;
-}
-
 .tender-page .btn-link {
   border: none;
   background: transparent;
@@ -427,6 +330,12 @@
 .tender-page .btn-edit {
   width: 30px;
   height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   background: rgba(129, 140, 248, 0.12);
   border-color: rgba(129, 140, 248, 0.35);
   color: #c7d2fe;
@@ -441,26 +350,49 @@
   color: #fca5a5;
 }
 
-/* Колонка ✎ и корзины прилипает справа — таблица шире экрана, кнопки всегда под рукой */
+/* Колонка ✎ и корзины прилипает справа на узких экранах — кнопки всегда под рукой.
+   Фон сплошной и совпадает с фоном обёртки, иначе под кнопками видна плашка другого цвета */
 .tender-page .admin-emp-table th:last-child,
 .tender-page .admin-emp-table .emp-list-actions {
   position: sticky;
   right: 0;
   z-index: 1;
+  border-left: 1px solid rgba(100, 116, 139, 0.12);
 }
 
 .tender-page .admin-emp-table th:last-child {
-  background: #0c1220;
+  background: #0c1221;
 }
 
 .tender-page .emp-list-actions {
   white-space: nowrap;
-  background: #0d1424;
-  box-shadow: -10px 0 12px -10px rgba(2, 6, 23, 0.95);
+  background: #0e1628;
 }
 
 .tender-page .emp-list-row:hover .emp-list-actions {
-  background: linear-gradient(rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.08)), #0d1424;
+  background: linear-gradient(rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.08)), #0e1628;
+}
+
+/* От 1280px таблица помещается — колонка обычная, без прилипания */
+@media (min-width: 1280px) {
+  .tender-page .admin-emp-table th:last-child,
+  .tender-page .admin-emp-table .emp-list-actions {
+    position: static;
+    border-left: none;
+  }
+
+  .tender-page .admin-emp-table th:last-child {
+    background: rgba(12, 18, 32, 0.9);
+  }
+
+  .tender-page .admin-emp-table .emp-list-actions,
+  .tender-page .emp-list-row:hover .emp-list-actions {
+    background: transparent;
+  }
+}
+
+.tender-page .emp-list-table td.is-missing {
+  color: #f87171;
 }
 
 .tender-page .btn-archive {
@@ -486,54 +418,9 @@
   border-color: rgba(248, 113, 113, 0.6);
 }
 
-.tender-page .btn-archive:disabled,
-.tender-page .quick-add-submit:disabled {
+.tender-page .btn-archive:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-.tender-page .quick-add-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.tender-page .quick-add-name {
-  flex: 2 1 220px;
-}
-
-.tender-page .quick-add-position,
-.tender-page .quick-add-subdivision {
-  flex: 1 1 160px;
-  min-width: 0;
-}
-
-.tender-page .quick-add-row input,
-.tender-page .quick-add-subdivision {
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(100, 116, 139, 0.16);
-  background: rgba(15, 23, 42, 0.76);
-  color: #e2e8f0;
-  padding-left: 12px;
-  font-size: 0.84rem;
-  font-family: inherit;
-  outline: none;
-}
-
-.tender-page .quick-add-subdivision {
-  padding-right: 8px;
-}
-
-.tender-page .quick-add-row input::placeholder {
-  color: #475569;
-}
-
-.tender-page .quick-add-row input:focus,
-.tender-page .quick-add-subdivision:focus {
-  border-color: rgba(129, 140, 248, 0.5);
 }
 
 .tender-page .modal-overlay {
@@ -825,60 +712,6 @@
   font-size: 0.9rem;
 }
 
-.tender-page .subdivisions-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.tender-page .subdivisions-count {
-  color: #94a3b8;
-  font-size: 0.8rem;
-}
-
-.tender-page .subdivision-create-form {
-  margin-bottom: 14px;
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.tender-page .subdivision-create-form .form-group {
-  flex: 1;
-}
-
-.tender-page .subdivision-list {
-  border: 1px solid rgba(100, 116, 139, 0.12);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.68);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 520px;
-  overflow-y: auto;
-}
-
-.tender-page .subdivision-item {
-  border: 1px solid rgba(100, 116, 139, 0.16);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.72);
-  padding: 10px 12px;
-  color: #e2e8f0;
-  font-size: 0.83rem;
-}
-
-.tender-page .archive-list-table {
-  min-width: 980px;
-}
-
-.tender-page .archive-reason-cell {
-  color: #94a3b8;
-  max-width: 340px;
-  white-space: normal;
-}
-
 .tender-page .modal-overlay.modal-overlay-inner {
   position: fixed;
   z-index: 1500;
@@ -903,55 +736,6 @@
 
 .tender-page .archive-reason-input:focus {
   border-color: rgba(129, 140, 248, 0.5);
-}
-
-.tender-page .toast {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 1400;
-  border: 1px solid rgba(34, 211, 238, 0.3);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.92);
-  color: #c7d2fe;
-  padding: 9px 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-}
-
-.tender-page .toast span {
-  color: #22d3ee;
-  font-weight: 700;
-}
-
-.tender-page .toast.error {
-  border-color: rgba(248, 113, 113, 0.42);
-  color: #fecaca;
-}
-
-.tender-page .toast.error span {
-  color: #f87171;
-}
-
-.tender-page .toast .toast-action {
-  min-height: 32px;
-  margin-left: 4px;
-  padding: 0 10px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(34, 211, 238, 0.12);
-  color: #22d3ee;
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.tender-page .toast .toast-action:hover {
-  background: rgba(34, 211, 238, 0.22);
 }
 
 .tender-page .tender-loading {
@@ -980,9 +764,6 @@
 }
 
 @media (max-width: 1180px) {
-  .tender-page .timesheet-months-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
   .tender-page .emp-detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -996,25 +777,6 @@
 
   .tender-page .tender-content {
     padding: 14px 12px 24px;
-  }
-
-  .tender-page .timesheet-months-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .tender-page .settings-row-timesheet {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .tender-page .settings-row-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .tender-page .subdivision-create-form {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .tender-page .edit-form-grid,
@@ -1047,36 +809,6 @@
     font-size: 0.7rem;
   }
 
-  .tender-page .timesheet-months-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tender-page .settings-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px 2px;
-  }
-
-  .tender-page .settings-row > .btn-primary,
-  .tender-page .settings-row > .btn-danger {
-    min-width: 0;
-  }
-
-  .tender-page .settings-row-actions {
-    align-items: stretch;
-  }
-
-  .tender-page .settings-period-control {
-    flex: 1 1 150px;
-  }
-
-  .tender-page .settings-period-control select,
-  .tender-page .settings-period-control input,
-  .tender-page .settings-period-control.settings-period-year input {
-    width: 100%;
-  }
-
   .tender-page .tender-tabs {
     width: 100%;
     overflow-x: auto;
@@ -1086,42 +818,15 @@
     min-width: 120px;
   }
 
-  .tender-page .search-box {
-    max-width: none;
-  }
-
-  .tender-page .quick-add-row {
-    flex-direction: column;
-  }
-
-  .tender-page .quick-add-name,
-  .tender-page .quick-add-position,
-  .tender-page .quick-add-subdivision {
-    flex: 0 0 auto;
-  }
-
-  .tender-page .quick-add-row input,
-  .tender-page .quick-add-subdivision,
-  .tender-page .quick-add-submit {
-    height: 44px;
-    font-size: 16px;
-  }
-
   .tender-page .btn-edit,
   .tender-page .btn-archive {
     width: 44px;
     height: 44px;
   }
 
-  .tender-page .toast .toast-action {
-    min-height: 44px;
-  }
-
-  .tender-page .toast {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    justify-content: center;
+  .tender-page .admin-search {
+    flex-basis: 100%;
+    max-width: none;
   }
 }
 
@@ -1134,16 +839,4 @@
 
 .tender-page.admin-panel .tender-content {
   padding: 0;
-}
-
-.tender-page .settings-timesheet-status {
-  padding: 14px 2px 18px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.14);
-}
-
-.tender-page .settings-timesheet-status h3 {
-  margin: 0 0 12px;
-  color: #e2e8f0;
-  font-size: 0.9rem;
-  font-weight: 700;
 }

@@ -23,9 +23,14 @@
 }
 
 .tender-brand {
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.tender-brand > div {
   min-width: 0;
 }
 
@@ -64,6 +69,34 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.tender-shell-shortcuts {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tender-shell-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  background: linear-gradient(135deg, rgba(18, 31, 56, 0.9), rgba(15, 23, 42, 0.74));
+  color: #cbd5e1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.tender-shell-icon-btn:hover {
+  border-color: rgba(129, 140, 248, 0.58);
+  color: #ffffff;
 }
 
 .tender-period-badge {
@@ -1519,7 +1552,12 @@
     padding: 14px 12px 20px;
   }
 
+  .tender-shell-shortcuts {
+    order: 1;
+  }
+
   .tender-shell-controls {
+    order: 2;
     width: 100%;
     justify-content: space-between;
   }
@@ -1710,8 +1748,8 @@
 
   .tender-shell-top {
     display: grid;
-    grid-template-columns: 1fr;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     margin-bottom: 10px;
     gap: 10px;
   }
@@ -1722,6 +1760,7 @@
   }
 
   .tender-shell-controls {
+    grid-column: 1 / -1;
     width: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;

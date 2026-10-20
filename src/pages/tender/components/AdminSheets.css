@@ -1,0 +1,371 @@
+/* Листы администрирования тендера (архив, подразделения, настройки, новый сотрудник).
+   Лист выводится порталом в body, поэтому стили не завязаны на .tender-page; цвета — токены темы. */
+
+.tsh-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.tsh-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.tsh-btn.primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.tsh-btn.primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.tsh-btn.danger {
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
+}
+
+.tsh-btn.grow {
+  flex: 1 1 auto;
+}
+
+.tsh-btn:disabled,
+.tsh-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tsh-icon-btn {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out;
+}
+
+.tsh-icon-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tsh-icon-btn.danger {
+  color: var(--danger);
+}
+
+/* Поля: 16px — иначе Safari зумит форму при фокусе */
+.tsh-field .ui-clearable-input,
+.tsh-control {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.tsh-field .ui-clearable-input {
+  padding-right: 40px;
+}
+
+.tsh-field .ui-clearable-input:focus,
+.tsh-control:focus {
+  border-color: var(--primary);
+}
+
+.tsh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  list-style: none;
+}
+
+.tsh-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.tsh-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tsh-card-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tsh-card-title strong {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.tsh-card-title span,
+.tsh-card-meta {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.tsh-reason {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tsh-reason-text {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.tsh-reason-form,
+.tsh-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tsh-reason-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tsh-add-btn {
+  width: 100%;
+}
+
+.tsh-confirm-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.tsh-empty {
+  padding: 32px 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.tsh-loading {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Форма нового сотрудника */
+.tsh-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tsh-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tsh-form-field > span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* Настройки */
+.tsh-settings {
+  display: flex;
+  flex-direction: column;
+}
+
+.tsh-setting {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tsh-setting:last-child {
+  border-bottom: none;
+}
+
+.tsh-setting-copy h3 {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.tsh-setting-copy p {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.tsh-year-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tsh-year-nav .tsh-icon-btn {
+  border: 1px solid var(--border);
+}
+
+.tsh-year-title {
+  min-width: 72px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.tsh-months-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tsh-month-card {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.tsh-month-card.loaded {
+  border-color: var(--chart-positive);
+}
+
+.tsh-month-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.tsh-month-status {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.tsh-check {
+  color: var(--chart-positive);
+  font-weight: 700;
+}
+
+.tsh-cross {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.tsh-period {
+  display: flex;
+  gap: 10px;
+}
+
+.tsh-period-field {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tsh-period-field > span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.tsh-period-field input,
+.tsh-period-field select {
+  width: 100%;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+}
+
+.tsh-period-year {
+  flex: 0 0 96px;
+}
+
+/* Подтверждения поверх листа настроек: выше листа (500), ниже тоста (600) */
+.tsh-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 590;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--overlay);
+}
+
+.tsh-confirm {
+  width: min(420px, 100%);
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.tsh-confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
