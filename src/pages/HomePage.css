@@ -220,6 +220,12 @@ a.home-card:focus-visible {
   white-space: nowrap;
 }
 
+/* Второй показатель в карточке — под чертой */
+.home-split {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
 .home-share {
   display: flex;
   flex-direction: column;

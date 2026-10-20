@@ -7,7 +7,6 @@ import { HomeClock } from './home/HomeClock'
 import { RentCard } from './home/RentCard'
 import { SalaryCard } from './home/SalaryCard'
 import { useSalarySummary } from './home/useSalarySummary'
-import { VacationCard } from './home/VacationCard'
 import { WorkDaysCard } from './home/WorkDaysCard'
 import './HomePage.css'
 
@@ -29,7 +28,6 @@ export default function HomePage({ userId }: Props) {
         <div className="home-grid">
           <ExpensesCard userId={userId} />
           <WorkDaysCard summary={salary} />
-          <VacationCard summary={salary} />
           <SalaryCard summary={salary} />
           <RentCard userId={userId} />
           <CarSummaryCard />
