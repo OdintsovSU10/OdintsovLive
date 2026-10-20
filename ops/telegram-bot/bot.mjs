@@ -11,6 +11,7 @@ import { callLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { startReminders } from './reminders.mjs'
+import { askNextTransferNote, saveTransferNote } from './transferNotes.mjs'
 import { importStatement } from './statement.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -194,6 +195,8 @@ const createBot = config => {
       })
       if (added > 0) await reply(msg, `🏷 Новых мерчантов размечено: ${added}. Поправить категорию можно в «Траты» → Операции`)
     }
+
+    await askNextTransferNote(rest, config, tg).catch(err => log('transfer notes:', err.message || err))
   }
 
   const handleMessage = async msg => {
@@ -250,6 +253,16 @@ const createBot = config => {
       return
     }
     const heardLine = heard ? `🎙 «${heard}»\n\n` : ''
+
+    // ответ на вопрос «за что перевод?» — в заметку операции, а не в разбор записей
+    if (msg.reply_to_message && typeof content === 'string') {
+      const noted = await saveTransferNote(rest, config, msg.reply_to_message.message_id, content)
+      if (noted) {
+        await reply(msg, heardLine + (noted.skipped ? 'Пропустил' : `✍️ Записал: «${noted.note}»`))
+        await askNextTransferNote(rest, config, tg)
+        return
+      }
+    }
 
     chat.history.push({ role: 'user', content })
     chat.messageIds.push(msg.message_id)
