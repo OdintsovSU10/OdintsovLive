@@ -2,12 +2,12 @@ import { useMemo, useState, type CSSProperties, type FC } from 'react'
 import type { LivePayrollSnapshot } from '../../utils/livePayroll'
 import type { IEmployeeTrend, IMonthSlot } from './dashboardTypes'
 import {
+  formatCompactMoney,
   formatRub,
-  formatShortMoney,
   formatSignedPercent,
   formatSignedRub
 } from './dashboardFormat'
-import { getGrowthPercent, type IScopeSummary } from './dashboardMetrics'
+import { getGrowthPercent, isPayrollOverrun, type IScopeSummary } from './dashboardMetrics'
 
 interface IMoneyPanelProps {
   monthSlots: IMonthSlot[]
@@ -62,10 +62,13 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
             onMouseEnter={() => setActiveIndex(index)}
             onFocus={() => setActiveIndex(index)}
           >
-            <span className="dash-bar-value">{formatShortMoney(item.fact)}</span>
+            <span className="dash-bar-value">{formatCompactMoney(item.fact)}</span>
             <span className="dash-bar-area">
               <span className="dash-bar plan" style={{ '--h': item.plan / max } as CSSProperties} />
-              <span className="dash-bar fact" style={{ '--h': item.fact / max } as CSSProperties} />
+              <span
+                className={`dash-bar fact${isPayrollOverrun(item.fact, item.plan) ? ' is-bad' : ''}`}
+                style={{ '--h': item.fact / max } as CSSProperties}
+              />
             </span>
             <span className="dash-bar-month">{item.slot.short}</span>
           </button>

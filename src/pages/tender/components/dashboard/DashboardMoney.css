@@ -28,8 +28,11 @@
 }
 
 .dash-bar-value {
+  max-width: 100%;
+  overflow: hidden;
   font-size: 0.62rem;
   line-height: 1;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
@@ -59,6 +62,11 @@
 
 .dash-bar.fact {
   background: var(--primary);
+}
+
+/* Факт выше плана больше чем на 2% */
+.dash-bar.fact.is-bad {
+  background: var(--tone-bad);
 }
 
 .dash-bar-month {

@@ -151,6 +151,44 @@
 .dash-up { color: var(--chart-positive); }
 .dash-down { color: var(--chart-negative); }
 
+/* Тон состояния: ok / warn / bad задают --tone и --tone-fill, дальше их берут блоки.
+   Нормальное состояние тона не имеет и остаётся нейтральным */
+
+.dashboard-surface .is-ok {
+  --tone: var(--tone-ok);
+  --tone-fill: var(--tone-ok-bg);
+}
+
+.dashboard-surface .is-warn {
+  --tone: var(--tone-warn);
+  --tone-fill: var(--tone-warn-bg);
+}
+
+.dashboard-surface .is-bad {
+  --tone: var(--tone-bad);
+  --tone-fill: var(--tone-bad-bg);
+}
+
+.tone-text {
+  color: var(--tone);
+}
+
+.is-warn-text {
+  color: var(--tone-warn);
+}
+
+/* Плитка «Пульса» с отклонением: полоса слева, цвет значения, лёгкий фон */
+
+.dash-pulse-tile:is(.is-ok, .is-warn, .is-bad) {
+  padding-left: 10px;
+  background: linear-gradient(var(--tone-fill), var(--tone-fill)), var(--surface);
+  border-left: 3px solid var(--tone);
+}
+
+.dash-pulse-tile:is(.is-ok, .is-warn, .is-bad) .dash-pulse-value {
+  color: var(--tone);
+}
+
 @media (min-width: 768px) {
   .dash-pulse {
     grid-template-columns: repeat(4, minmax(0, 1fr));

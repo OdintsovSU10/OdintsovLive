@@ -2,13 +2,22 @@ import type { CSSProperties, FC } from 'react'
 import type { LivePayrollSnapshot } from '../../utils/livePayroll'
 import {
   formatHours,
-  formatMillions,
   formatPercent,
   formatShortMoney,
   formatSignedHours,
   getPercentOf
 } from './dashboardFormat'
-import { countAbsentNow, countOnSite, type PresenceCounts, type IScopeSummary } from './dashboardMetrics'
+import {
+  countAbsentNow,
+  countOnSite,
+  getAttendanceTone,
+  getOnSiteTone,
+  getOvertimeTone,
+  getPayrollTone,
+  type PresenceCounts,
+  type IScopeSummary,
+  type Tone
+} from './dashboardMetrics'
 
 interface IDashboardPulseProps {
   isCurrentMonth: boolean
@@ -25,10 +34,12 @@ interface IPulseTileProps {
   value: string
   sub?: string
   progress?: number
+  // Тон только при отклонении; в норме плитка нейтральная
+  tone?: Tone | null
 }
 
-const PulseTile: FC<IPulseTileProps> = ({ label, value, sub, progress }) => (
-  <div className="dash-pulse-tile">
+const PulseTile: FC<IPulseTileProps> = ({ label, value, sub, progress, tone }) => (
+  <div className={`dash-pulse-tile${tone ? ` is-${tone}` : ''}`}>
     <span className="dash-pulse-label">{label}</span>
     <span className="dash-pulse-value">{value}</span>
     {progress !== undefined && (
@@ -51,11 +62,12 @@ export const DashboardPulse: FC<IDashboardPulseProps> = ({
 }) => {
   const fact = live.isLive ? live.accrued : summary.accrued
   const plan = live.isLive ? live.planned : summary.plan
-  const payrollValue = plan >= 1_000_000
-    ? `${formatMillions(fact)} / ${formatMillions(plan)} млн`
-    : `${formatShortMoney(fact)} / ${formatShortMoney(plan)}`
+  // Крупно — только начисленное; план и процент — мелко под полосой
+  const payrollValue = formatShortMoney(fact)
+  const payrollSub = plan > 0 ? `из ${formatShortMoney(plan)} · ${formatPercent(getPercentOf(fact, plan))}` : undefined
 
   const overtimeDiff = summary.overtime - summary.previousOvertime
+  const presenceKnown = !presenceLoading
 
   return (
     <div className="dash-pulse">
@@ -63,11 +75,13 @@ export const DashboardPulse: FC<IDashboardPulseProps> = ({
         <PulseTile
           label="На месте"
           value={presenceLoading ? '…' : `${countOnSite(presence)}/${accountedCount}`}
+          tone={presenceKnown ? getOnSiteTone(presence, accountedCount) : null}
         />
       ) : (
         <PulseTile
           label="Явка"
           value={summary.normDays > 0 ? formatPercent(getPercentOf(summary.workedDays, summary.normDays)) : '—'}
+          tone={getAttendanceTone(summary.workedDays, summary.normDays)}
         />
       )}
 
@@ -75,19 +89,22 @@ export const DashboardPulse: FC<IDashboardPulseProps> = ({
         label="ФОТ"
         value={payrollValue}
         progress={plan > 0 ? fact / plan : 0}
-        sub={plan > 0 ? formatPercent(getPercentOf(fact, plan)) : undefined}
+        sub={payrollSub}
+        tone={getPayrollTone(fact, plan, live.isLive)}
       />
 
       <PulseTile
         label="Переработки"
         value={`${formatHours(summary.overtime)} ч`}
         sub={`${formatSignedHours(overtimeDiff)} ч к прошлому месяцу`}
+        tone={getOvertimeTone(summary.overtime, summary.previousOvertime)}
       />
 
       {isCurrentMonth ? (
         <PulseTile
           label="Отсутствуют"
           value={presenceLoading ? '…' : String(countAbsentNow(presence))}
+          tone={presenceKnown && presence.noMark > 0 ? 'bad' : null}
         />
       ) : (
         <PulseTile label="Пропуски, дн" value={String(summary.missedDays)} />

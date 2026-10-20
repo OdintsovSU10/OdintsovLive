@@ -1,11 +1,5 @@
-/* Подразделения: карточки на телефоне, таблица от 768px */
-
-.dash-filter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
+/* Секция «Сотрудники»: таблица подразделений (карточки на телефоне, таблица от 768px)
+   и компактный список подразделений слева от панели людей (от 1024px) */
 
 .dash-filter-chip {
   min-height: 44px;
@@ -17,7 +11,7 @@
   border-radius: 999px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.2s ease-out;
+  transition: background 0.2s ease-out, border-color 0.2s ease-out;
 }
 
 .dash-filter-chip[aria-pressed='true'] {
@@ -26,11 +20,43 @@
   border-color: var(--primary);
 }
 
-.dash-filter-current {
-  min-width: 0;
-  font-size: 0.8rem;
-  color: var(--primary);
+/* Маркер тяжести и бейдж пунктов внимания */
+
+.sev-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
+
+.sev-dot:is(.is-ok, .is-warn, .is-bad) {
+  background: var(--tone);
+  box-shadow: none;
+}
+
+.sub-badge {
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 22px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: 11px;
+}
+
+.sub-badge:is(.is-warn, .is-bad) {
+  color: var(--tone);
+  background: var(--tone-fill);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 40%, transparent);
+}
+
+/* Таблица подразделений */
 
 .dash-subs {
   display: flex;
@@ -63,11 +89,6 @@ button.dash-sub-row:hover {
   background: var(--surface-hover);
 }
 
-.dash-sub-row[aria-pressed='true'] {
-  background: var(--primary-light);
-  border-color: var(--primary);
-}
-
 .dash-sub-row.total {
   background: transparent;
   border-color: var(--border);
@@ -76,6 +97,14 @@ button.dash-sub-row:hover {
 
 .dash-sub-name {
   grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-sub-title {
+  min-width: 0;
   font-weight: 600;
 }
 
@@ -104,108 +133,76 @@ button.dash-sub-row:hover {
   opacity: 0.8;
 }
 
-/* Сотрудники подразделения */
+/* Компактный список подразделений (виден только рядом с панелью людей) */
 
-.dash-emp-list {
+.sub-list {
   display: flex;
   flex-direction: column;
-}
-
-.dash-emp-row {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 56px;
-  padding: 8px 2px;
-  color: var(--text-primary);
-  text-align: left;
-  background: transparent;
-  border-bottom: 1px solid var(--border);
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition: background 0.2s ease-out;
-}
-
-.dash-emp-row:last-child {
-  border-bottom: none;
-}
-
-.dash-emp-row:hover {
-  background: var(--primary-light);
-}
-
-.dash-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--primary);
-  background: var(--primary-light);
-  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
-  border-radius: var(--radius-sm);
-}
-
-.dash-emp-info {
-  display: flex;
-  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
-.dash-emp-name,
-.dash-emp-meta {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sub-list-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'dot name badge'
+    '. meta badge';
+  align-items: center;
+  gap: 0 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  color: var(--text-primary);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease-out, border-color 0.2s ease-out;
 }
 
-.dash-emp-name {
+.sub-list-item:hover {
+  background: var(--surface-hover);
+}
+
+.sub-list-item[aria-pressed='true'] {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.sub-list-item .sev-dot {
+  grid-area: dot;
+}
+
+.sub-list-item .sub-badge {
+  grid-area: badge;
+}
+
+.sub-list-name {
+  grid-area: name;
+  min-width: 0;
   font-size: 0.86rem;
   font-weight: 600;
 }
 
-.dash-emp-meta {
+.sub-list-meta {
+  grid-area: meta;
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--text-muted);
 }
 
-.dash-emp-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-family: var(--font-mono);
-  white-space: nowrap;
-}
+/* Сетка «подразделения | люди» */
 
-.dash-emp-main {
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.dash-emp-sub {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-}
-
-.dash-emp-sub.alert {
-  color: var(--chart-negative);
-}
-
-.dash-emp-trend {
-  display: none;
-  color: var(--primary);
-}
-
-.dash-sparkline {
-  display: block;
-}
-
-.dash-sparkline-empty {
-  color: var(--text-muted);
+.dash-emp-split.is-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
 @media (min-width: 768px) {
@@ -245,10 +242,6 @@ button.dash-sub-row:hover {
     border-bottom: 1px solid var(--border);
   }
 
-  .dash-sub-row[aria-pressed='true'] {
-    border-radius: var(--radius-sm);
-  }
-
   .dash-sub-row.total {
     border-bottom: none;
     border-top: 1px solid var(--border);
@@ -269,20 +262,11 @@ button.dash-sub-row:hover {
     overflow: hidden;
     clip-path: inset(50%);
   }
-
-  .dash-emp-row {
-    grid-template-columns: 36px minmax(0, 1fr) auto 128px;
-  }
-
-  .dash-emp-trend {
-    display: flex;
-    justify-content: flex-end;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dash-sub-row,
-  .dash-emp-row,
+  .sub-list-item,
   .dash-filter-chip {
     transition: none;
   }

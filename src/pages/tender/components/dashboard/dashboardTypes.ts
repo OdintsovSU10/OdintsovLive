@@ -13,6 +13,9 @@ export interface IMonthSlot {
   short: string
 }
 
+// Листы администратора, которые открываются кнопками в строке вкладок оболочки
+export type AdminPanelSheet = 'subdivisions' | 'addEmployee'
+
 export type StatusCounts = Record<TimesheetStatus, number>
 
 export interface IEmployeeTrendPoint {

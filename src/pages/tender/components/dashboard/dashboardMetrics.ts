@@ -1,4 +1,5 @@
 import type { EmployeeWithStats } from '../../types'
+import type { IListScore } from '../../hooks/useEmployeeScores'
 import { getMoscowParts, type LivePayrollSnapshot } from '../../utils/livePayroll'
 import { isWeekendOrHoliday } from '../../utils/salaryCalculator'
 import { toIsoDate } from '../../utils/employeeFormat'
@@ -13,6 +14,55 @@ import {
 import { createEmptyTimesheetStatusCounts } from '../../utils/timesheetStatus'
 
 export const OVERTIME_ATTENTION_HOURS = 20
+
+// Тон состояния: ok — норма/хорошо, warn — внимание, bad — критично
+export type Tone = 'ok' | 'warn' | 'bad'
+
+const TONE_RANK: Record<Tone, number> = { ok: 1, warn: 2, bad: 3 }
+
+export const getWorstTone = (left: Tone | null, right: Tone | null): Tone | null => {
+  if (!left) return right
+  if (!right) return left
+  return TONE_RANK[right] > TONE_RANK[left] ? right : left
+}
+
+// Явка и «на месте»: доля в процентах
+const PRESENCE_OK_PERCENT = 90
+const PRESENCE_WARN_PERCENT = 75
+// Факт ФОТ выше плана больше чем на 2% считается перерасходом
+const PAYROLL_OVERRUN_FACTOR = 1.02
+// Переработки выросли к прошлому месяцу на 10% и больше
+const OVERTIME_GROWTH_FACTOR = 1.1
+
+export const getPercentTone = (percent: number): Tone => (
+  percent >= PRESENCE_OK_PERCENT ? 'ok' : percent >= PRESENCE_WARN_PERCENT ? 'warn' : 'bad'
+)
+
+export const isPayrollOverrun = (fact: number, plan: number): boolean => (
+  plan > 0 && fact > plan * PAYROLL_OVERRUN_FACTOR
+)
+
+// Прошедший месяц: перерасход — bad, в рамках плана — ok; текущий месяц и «около плана» — без тона
+export function getPayrollTone(fact: number, plan: number, isLive: boolean): Tone | null {
+  if (isLive || plan <= 0) return null
+  if (isPayrollOverrun(fact, plan)) return 'bad'
+  return fact > 0 && fact <= plan ? 'ok' : null
+}
+
+export const getOvertimeTone = (overtime: number, previousOvertime: number): Tone | null => (
+  overtime > 0 && overtime > previousOvertime * OVERTIME_GROWTH_FACTOR ? 'warn' : null
+)
+
+export const getAttendanceTone = (workedDays: number, normDays: number): Tone | null => (
+  normDays > 0 ? getPercentTone((workedDays / normDays) * 100) : null
+)
+
+export const getPresenceStatusTone = (status: PresenceStatus): Tone | null => {
+  if (status === 'office') return 'ok'
+  if (status === 'noMark') return 'bad'
+  if (status === 'notYet') return 'warn'
+  return null
+}
 
 type LiveInfo = Pick<LivePayrollSnapshot, 'isLive' | 'progress'>
 
@@ -100,25 +150,52 @@ export const countAccounted = (trends: IEmployeeTrend[]): number => (
   trends.filter(trend => !trend.employee.excluded_from_timesheet).length
 )
 
+// «На месте» по порогам; тона нет, пока статусы не загружены и в выходной (большинство в статусе «выходной»).
+// Знаменатель — учитываемые без тех, кого отсутствие оправдывает: отпуск, больничный, выходной
+export function getOnSiteTone(counts: PresenceCounts, accounted: number): Tone | null {
+  const known = PRESENCE_ORDER.reduce((sum, status) => sum + counts[status], 0)
+  if (accounted <= 0 || known === 0 || counts.dayoff * 2 >= known) return null
+  const expected = accounted - counts.vacation - counts.sick - counts.dayoff
+  if (expected <= 0) return null
+  return getPercentTone((countOnSite(counts) / expected) * 100)
+}
+
 export interface ISubdivisionRow {
   name: string
   employeesCount: number
   onSite: number
   accounted: number
+  onSiteTone: Tone | null
+  // Худшая тяжесть среди сотрудников (bad/warn); null — всё в порядке
+  severity: Tone | null
+  // Число пунктов внимания (bad и warn)
+  attentionCount: number
   accrued: number
   overtime: number
   delta: number
   deltaPercent: number
 }
 
-function buildRow(name: string, trends: IEmployeeTrend[], statuses: PresenceMap, live: LiveInfo): ISubdivisionRow {
+function buildRow(
+  name: string,
+  trends: IEmployeeTrend[],
+  statuses: PresenceMap,
+  live: LiveInfo,
+  items: IAttentionItem[]
+): ISubdivisionRow {
   const summary = summarizeScope(trends, live)
   const delta = summary.accrued - summary.baseline
+  const counts = countPresence(trends, statuses)
+  const accounted = countAccounted(trends)
+  const problems = items.filter(item => item.tone !== 'ok')
   return {
     name,
     employeesCount: trends.length,
-    onSite: countOnSite(countPresence(trends, statuses)),
-    accounted: countAccounted(trends),
+    onSite: countOnSite(counts),
+    accounted,
+    onSiteTone: getOnSiteTone(counts, accounted),
+    severity: problems.reduce<Tone | null>((worst, item) => getWorstTone(worst, item.tone), null),
+    attentionCount: problems.length,
     accrued: summary.accrued,
     overtime: summary.overtime,
     delta,
@@ -129,7 +206,8 @@ function buildRow(name: string, trends: IEmployeeTrend[], statuses: PresenceMap,
 export function buildSubdivisionRows(
   trends: IEmployeeTrend[],
   statuses: PresenceMap,
-  live: LiveInfo
+  live: LiveInfo,
+  attentionItems: IAttentionItem[]
 ): { rows: ISubdivisionRow[]; total: ISubdivisionRow } {
   const groups = new Map<string, IEmployeeTrend[]>()
   for (const trend of trends) {
@@ -139,10 +217,16 @@ export function buildSubdivisionRows(
   }
 
   const rows = Array.from(groups.entries())
-    .map(([name, list]) => buildRow(name, list, statuses, live))
+    .map(([name, list]) => buildRow(
+      name,
+      list,
+      statuses,
+      live,
+      attentionItems.filter(item => item.subdivision === name)
+    ))
     .sort((left, right) => right.accrued - left.accrued || left.name.localeCompare(right.name, 'ru'))
 
-  return { rows, total: buildRow('Итого', trends, statuses, live) }
+  return { rows, total: buildRow('Итого', trends, statuses, live, attentionItems) }
 }
 
 // Последний день выбранного месяца, который уже можно проверять на заполненность табеля (вчера включительно)
@@ -173,18 +257,33 @@ export function countMissingTimesheetDays(employee: EmployeeWithStats, year: num
   return missing
 }
 
-export type AttentionKind = 'noMark' | 'absent' | 'unfilled' | 'overtime'
+export type AttentionKind = 'noMark' | 'absent' | 'unfilled' | 'overtime' | 'attention' | 'overpaid' | 'promotion'
+
+// Тяжесть пункта: прогул и «нет отметки» — критично; табель, переработки, сигналы оценки — внимание; повышение — информация
+const ATTENTION_TONES: Record<AttentionKind, Tone> = {
+  noMark: 'bad',
+  absent: 'bad',
+  unfilled: 'warn',
+  overtime: 'warn',
+  attention: 'warn',
+  overpaid: 'warn',
+  promotion: 'ok'
+}
+
+export const getAttentionTone = (kind: AttentionKind): Tone => ATTENTION_TONES[kind]
 
 export interface IAttentionItem {
   key: string
   employee: EmployeeWithStats
+  subdivision: string
   kind: AttentionKind
+  tone: Tone
   title: string
   value: string
   count: number
 }
 
-const ATTENTION_ORDER: AttentionKind[] = ['noMark', 'absent', 'unfilled', 'overtime']
+const ATTENTION_ORDER: AttentionKind[] = ['noMark', 'absent', 'unfilled', 'overtime', 'attention', 'overpaid', 'promotion']
 
 const formatDays = (count: number): string => `${formatNumber(count)} ${pluralize(count, 'день', 'дня', 'дней')}`
 
@@ -194,63 +293,62 @@ interface IAttentionInput {
   month: number
   // null — «сегодня» не считается (не текущий месяц)
   statuses: PresenceMap | null
+  // Оценки сотрудников: из сигналов берутся пункты по оценке
+  scores?: ReadonlyMap<number, IListScore>
 }
 
-export function buildAttentionItems({ trends, year, month, statuses }: IAttentionInput): IAttentionItem[] {
+export function buildAttentionItems({ trends, year, month, statuses, scores }: IAttentionInput): IAttentionItem[] {
   const items: IAttentionItem[] = []
 
   for (const trend of trends) {
-    const { employee, latest } = trend
+    const { employee, latest, subdivision } = trend
+    const push = (kind: AttentionKind, title: string, value: string, count: number) => items.push({
+      key: `${kind}-${employee.id}`,
+      employee,
+      subdivision,
+      kind,
+      tone: getAttentionTone(kind),
+      title,
+      value,
+      count
+    })
 
-    if (statuses?.get(employee.id) === 'noMark') {
-      items.push({
-        key: `noMark-${employee.id}`,
-        employee,
-        kind: 'noMark',
-        title: 'Нет отметки сегодня',
-        value: '',
-        count: 1
-      })
-    }
+    if (statuses?.get(employee.id) === 'noMark') push('noMark', 'Нет отметки сегодня', '', 1)
 
     if (latest.statusCounts.absent >= 1) {
-      items.push({
-        key: `absent-${employee.id}`,
-        employee,
-        kind: 'absent',
-        title: 'Прогулы',
-        value: formatDays(latest.statusCounts.absent),
-        count: latest.statusCounts.absent
-      })
+      push('absent', 'Прогулы', formatDays(latest.statusCounts.absent), latest.statusCounts.absent)
     }
 
     const missing = countMissingTimesheetDays(employee, year, month)
-    if (missing > 0) {
-      items.push({
-        key: `unfilled-${employee.id}`,
-        employee,
-        kind: 'unfilled',
-        title: 'Не заполнен табель',
-        value: formatDays(missing),
-        count: missing
-      })
-    }
+    if (missing > 0) push('unfilled', 'Не заполнен табель', formatDays(missing), missing)
 
     if (latest.overtime > OVERTIME_ATTENTION_HOURS) {
-      items.push({
-        key: `overtime-${employee.id}`,
-        employee,
-        kind: 'overtime',
-        title: 'Переработки за месяц',
-        value: `${formatHours(latest.overtime)} ч`,
-        count: latest.overtime
-      })
+      push('overtime', 'Переработки за месяц', `${formatHours(latest.overtime)} ч`, latest.overtime)
     }
+
+    const score = scores?.get(employee.id)
+    if (score?.signals.includes('attention')) {
+      push('attention', 'Зона внимания по оценке', score.total !== null ? String(score.total) : '', 1)
+    }
+    if (score?.signals.includes('overpaid')) push('overpaid', 'Зарплата выше отдачи', '', 1)
+    if (score?.signals.includes('promotion')) push('promotion', 'Кандидат на повышение', '', 1)
   }
 
   return items.sort((left, right) => (
-    ATTENTION_ORDER.indexOf(left.kind) - ATTENTION_ORDER.indexOf(right.kind)
+    TONE_RANK[right.tone] - TONE_RANK[left.tone]
+    || ATTENTION_ORDER.indexOf(left.kind) - ATTENTION_ORDER.indexOf(right.kind)
     || right.count - left.count
     || left.employee.full_name.localeCompare(right.employee.full_name, 'ru')
   ))
+}
+
+// Худшая тяжесть (bad/warn) по сотруднику; «кандидат на повышение» тяжестью не считается
+export function buildSeverityMap(items: IAttentionItem[]): Map<number, Tone> {
+  const map = new Map<number, Tone>()
+  for (const item of items) {
+    if (item.tone === 'ok') continue
+    const worst = getWorstTone(map.get(item.employee.id) ?? null, item.tone)
+    if (worst) map.set(item.employee.id, worst)
+  }
+  return map
 }

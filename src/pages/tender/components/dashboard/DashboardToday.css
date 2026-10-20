@@ -1,4 +1,4 @@
-/* Чипы статусов */
+/* Чипы статусов: тон только у «В офисе», «Ещё не пришёл» и «Нет отметки» */
 
 .dash-chips,
 .dash-names {
@@ -24,6 +24,17 @@
   font-family: var(--font-mono);
   color: var(--tone);
   white-space: nowrap;
+}
+
+/* «Нет отметки» — залитый чип: самое заметное отклонение дня */
+.dash-chip.filled {
+  color: var(--bg-primary);
+  background: var(--tone);
+  border-color: var(--tone);
+}
+
+.dash-chip.filled strong {
+  color: inherit;
 }
 
 .tone-office { --tone: var(--chart-positive); }

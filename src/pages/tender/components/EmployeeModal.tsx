@@ -21,7 +21,7 @@ import {
   type EditableEmployee
 } from '../utils/adminTenderHelpers'
 import '../TenderPage.css'
-import '../AdminTenderPanel.css'
+import './EmployeeModal.css'
 
 interface NewSalaryEntry {
   salary: number

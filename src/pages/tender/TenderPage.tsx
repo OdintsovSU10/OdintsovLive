@@ -1,18 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Archive, Building2, Plus, Settings } from 'lucide-react'
 import { useTenderData } from './hooks/useTenderData'
+import { useMediaQuery } from './hooks/useMediaQuery'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
 import { DashboardOverview } from './components/DashboardOverview'
 import { EmployeeDetail } from './components/EmployeeDetail'
 import { ArchiveSheet } from './components/ArchiveSheet'
 import { SettingsSheet } from './components/SettingsSheet'
-import AdminTenderPanel, { type AdminPanelSheet } from './AdminTenderPanel'
+import type { AdminPanelSheet } from './components/dashboard/dashboardTypes'
 import type { EmployeeWithStats } from './types'
 import './TenderPage.css'
 
-type ShellTab = 'dashboard' | 'timesheet' | 'fot' | 'admin'
+type ShellTab = 'dashboard' | 'timesheet' | 'fot'
 type SheetKind = 'archive' | 'settings'
 
 const monthNames = [
@@ -26,12 +27,9 @@ const BASE_TABS: Array<{ key: ShellTab; label: string }> = [
   { key: 'fot', label: 'ФОТ' }
 ]
 
-const ADMIN_TABS: Array<{ key: ShellTab; label: string }> = [
-  { key: 'admin', label: 'Администрирование' }
-]
-
-// Старые адреса ?tab=… ведут на «Администрирование»; архив и настройки открываются листами
+// Старые адреса ?tab=… ведут на дашборд (администрирование теперь в нём); архив и настройки открываются листами
 const LEGACY_ADMIN_TABS = new Map<string, { sheet: SheetKind | null }>([
+  ['admin', { sheet: null }],
   ['employees', { sheet: null }],
   ['subdivisions', { sheet: null }],
   ['archive', { sheet: 'archive' }],
@@ -91,20 +89,17 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     window.requestAnimationFrame(() => window.scrollTo(0, top))
   }
 
-  const tabsOrder = isAdmin ? [...BASE_TABS, ...ADMIN_TABS] : BASE_TABS
   const rawTabParam = searchParams.get('tab')
   const legacyTarget = rawTabParam ? LEGACY_ADMIN_TABS.get(rawTabParam) : undefined
-  const tabParam = legacyTarget ? 'admin' : rawTabParam
-  const activeTab: ShellTab = tabsOrder.find(tab => tab.key === tabParam)?.key ?? 'dashboard'
-  const adminTabActive = activeTab === 'admin'
+  const activeTab: ShellTab = BASE_TABS.find(tab => tab.key === rawTabParam)?.key ?? 'dashboard'
 
   useEffect(() => {
-    if (!isAdmin || !legacyTarget) return
-    setSearchParams({ tab: 'admin' }, { replace: true })
-    if (legacyTarget.sheet) setSheet(legacyTarget.sheet)
+    if (!legacyTarget) return
+    setSearchParams({}, { replace: true })
+    if (isAdmin && legacyTarget.sheet) setSheet(legacyTarget.sheet)
   }, [isAdmin, legacyTarget, setSearchParams])
 
-  // Лист что-то поменял — при закрытии перечитываем данные оболочки и список в админ-панели
+  // Лист что-то поменял — при закрытии перечитываем данные оболочки и подразделения на дашборде
   const handleSheetChanged = () => {
     sheetChangedRef.current = true
   }
@@ -117,14 +112,11 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     setAdminRefreshKey(key => key + 1)
   }
 
-  // При уходе с админской вкладки подтягиваем изменения, сделанные в админке
-  const prevAdminTabActiveRef = useRef(adminTabActive)
-  useEffect(() => {
-    if (prevAdminTabActiveRef.current && !adminTabActive) {
-      void loadEmployees(undefined, undefined, false, true)
-    }
-    prevAdminTabActiveRef.current = adminTabActive
-  }, [adminTabActive, loadEmployees])
+  // Дашборд правит сотрудников сам и просит перечитать список тихо, без спиннера на всю страницу
+  const reloadEmployees = useCallback(
+    () => loadEmployees(undefined, undefined, false, true),
+    [loadEmployees]
+  )
 
   // Активная вкладка не должна оставаться за краем прокручиваемой ленты на телефоне
   const tabsRef = useRef<HTMLElement>(null)
@@ -155,6 +147,12 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     else setSearchParams({ tab: key })
     setSelectedEmployee(null)
   }
+
+  // Кнопки «Подразделения» и «Добавить сотрудника» — только администратору на дашборде
+  // На телефоне кнопки живут в шапке секции «Сотрудники» дашборда — в строке вкладок им нет места
+  const isWide = useMediaQuery('(min-width: 768px)')
+  const showDashboardActions = isAdmin && isWide && activeTab === 'dashboard' && !selectedEmployee
+  const closePanelSheet = useCallback(() => setPanelSheet(null), [])
 
   // Листы стоят рядом с содержимым и переживают перезагрузку данных (например «Удалить всё»), не теряя состояния
   const sheets = isAdmin && (
@@ -207,12 +205,10 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                 <p>Управление • Аналитика • Контроль</p>
               </div>
             </div>
-            {!adminTabActive && (
-              <div className="tender-shell-controls">
-                <span className="tender-period-badge">{monthNames[selectedMonth - 1]} {selectedYear}</span>
-                <MonthSelector year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
-              </div>
-            )}
+            <div className="tender-shell-controls">
+              <span className="tender-period-badge">{monthNames[selectedMonth - 1]} {selectedYear}</span>
+              <MonthSelector year={selectedYear} month={selectedMonth} onChange={handleMonthChange} />
+            </div>
             {isAdmin && (
               <div className="tender-shell-shortcuts">
                 <button
@@ -238,7 +234,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
           </div>
           <div className="tender-shell-tabs-row">
             <nav ref={tabsRef} className="tender-shell-tabs">
-              {tabsOrder.map(tab => (
+              {BASE_TABS.map(tab => (
                 <button
                   key={tab.key}
                   type="button"
@@ -249,7 +245,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                 </button>
               ))}
             </nav>
-            {adminTabActive && (
+            {showDashboardActions && (
               <div className="tender-tab-actions">
                 <button
                   type="button"
@@ -277,13 +273,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
         </header>
 
         <main className="tender-shell-main">
-          {adminTabActive ? (
-            <AdminTenderPanel
-              refreshKey={adminRefreshKey}
-              sheet={panelSheet}
-              onSheetClose={() => setPanelSheet(null)}
-            />
-          ) : selectedEmployee ? (
+          {selectedEmployee ? (
             <EmployeeDetail
               employee={selectedEmployee}
               year={selectedYear}
@@ -298,6 +288,12 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                   employees={employees}
                   year={selectedYear}
                   month={selectedMonth}
+                  isAdmin={isAdmin}
+                  panelSheet={panelSheet}
+                  onOpenSheet={setPanelSheet}
+                  onSheetClose={closePanelSheet}
+                  refreshKey={adminRefreshKey}
+                  onEmployeesChanged={reloadEmployees}
                   onSelectEmployee={openEmployee}
                 />
               )}

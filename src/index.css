@@ -63,6 +63,14 @@
   --chart-negative: #C0504D;
   --chart-warning: #B7791F;
 
+  /* Семантические тона состояния: норма / внимание / критично */
+  --tone-ok: var(--chart-positive);
+  --tone-warn: var(--chart-warning);
+  --tone-bad: var(--chart-negative);
+  --tone-ok-bg: color-mix(in srgb, var(--tone-ok) 14%, transparent);
+  --tone-warn-bg: color-mix(in srgb, var(--tone-warn) 14%, transparent);
+  --tone-bad-bg: color-mix(in srgb, var(--tone-bad) 14%, transparent);
+
   /* Текст на кнопках с фоном --primary */
   --on-primary: #1A1A1A;
 
@@ -110,6 +118,14 @@
   --chart-positive: #5BC48A;
   --chart-negative: #F07B72;
   --chart-warning: #F6AD55;
+
+  /* Семантические тона состояния: норма / внимание / критично */
+  --tone-ok: var(--chart-positive);
+  --tone-warn: var(--chart-warning);
+  --tone-bad: var(--chart-negative);
+  --tone-ok-bg: color-mix(in srgb, var(--tone-ok) 14%, transparent);
+  --tone-warn-bg: color-mix(in srgb, var(--tone-warn) 14%, transparent);
+  --tone-bad-bg: color-mix(in srgb, var(--tone-bad) 14%, transparent);
 }
 
 :root[data-route-theme="tender"] {
@@ -121,6 +137,14 @@
   --chart-positive: #5BC48A;
   --chart-negative: #F07B72;
   --chart-warning: #F6AD55;
+
+  /* Семантические тона состояния: норма / внимание / критично */
+  --tone-ok: var(--chart-positive);
+  --tone-warn: var(--chart-warning);
+  --tone-bad: var(--chart-negative);
+  --tone-ok-bg: color-mix(in srgb, var(--tone-ok) 14%, transparent);
+  --tone-warn-bg: color-mix(in srgb, var(--tone-warn) 14%, transparent);
+  --tone-bad-bg: color-mix(in srgb, var(--tone-bad) 14%, transparent);
 
   --bg-primary: #080E1A;
   --bg-secondary: #0C1425;

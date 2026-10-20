@@ -43,6 +43,17 @@ export const formatShortMoney = (value: number): string => {
   return `${sign}${Math.round(abs).toLocaleString('ru-RU')}`
 }
 
+// Сверхкороткая сумма для подписей над столбиками: «1,2м», «904к», «320»
+export const formatCompactMoney = (value: number): string => {
+  const abs = Math.abs(value)
+  const sign = value < 0 ? '−' : ''
+  if (abs >= 1_000_000) {
+    return `${sign}${(abs / 1_000_000).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}м`
+  }
+  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000).toLocaleString('ru-RU')}к`
+  return `${sign}${Math.round(abs).toLocaleString('ru-RU')}`
+}
+
 // Только число в млн для пары «факт / план»: «2,1»
 export const formatMillions = (value: number): string => (
   (value / 1_000_000).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })

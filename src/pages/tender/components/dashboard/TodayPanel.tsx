@@ -7,7 +7,7 @@ import {
   type PresenceMap,
   type PresenceStatus
 } from './dashboardTypes'
-import { countPresence } from './dashboardMetrics'
+import { countPresence, getPresenceStatusTone } from './dashboardMetrics'
 
 interface ITodayPanelProps {
   trends: IEmployeeTrend[]
@@ -35,12 +35,15 @@ const TodayPanelBase: FC<ITodayPanelProps> = ({ trends, statuses, loading, onSel
       ) : (
         <>
           <div className="dash-chips">
-            {PRESENCE_ORDER.filter(status => counts[status] > 0).map(status => (
-              <span key={status} className={`dash-chip tone-${status}`}>
-                {PRESENCE_LABELS[status]}
-                <strong>{counts[status]}</strong>
-              </span>
-            ))}
+            {PRESENCE_ORDER.filter(status => counts[status] > 0).map(status => {
+              const tone = getPresenceStatusTone(status)
+              return (
+                <span key={status} className={`dash-chip${tone ? ` is-${tone}` : ''}${status === 'noMark' ? ' filled' : ''}`}>
+                  {PRESENCE_LABELS[status]}
+                  <strong>{counts[status]}</strong>
+                </span>
+              )
+            })}
           </div>
 
           {LISTED_STATUSES.filter(status => counts[status] > 0).map(status => (
