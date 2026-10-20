@@ -9,7 +9,9 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { createEntry, createRest, emptyContext, executeTools, loadContext, undoEntry } from './actions.mjs'
 import { callLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
-import { startMerchantWorker } from './merchants.mjs'
+import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
+import { startReminders } from './reminders.mjs'
+import { importStatement } from './statement.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
 const ENV_FILE = path.join(DIR, '.env')
@@ -21,6 +23,8 @@ const SETTINGS_SYNC_MS = 60_000
 const HISTORY_LIMIT = 6
 const HISTORY_TTL_MS = 10 * 60_000
 const VOICE_MAX_SECONDS = 120
+// Бот-API Telegram отдаёт файлы до 20 МБ
+const STATEMENT_MAX_BYTES = 20 * 1024 * 1024
 
 const HELP = `Пиши как есть, я разложу по разделам сайта:
 • «заправился 40 л по 62.5, пробег 123456»
@@ -31,6 +35,7 @@ const HELP = `Пиши как есть, я разложу по разделам 
 • фото чека (можно с подписью)
 • голосовое — то же самое, только вслух
 • фото счётчиков — показания уйдут в «Аренду»
+• CSV-выписка банка файлом — импортирую операции в «Траты»
 Под каждой записью — кнопка «Отменить».`
 
 const log = (...args) => console.log(new Date().toISOString(), ...args)
@@ -154,6 +159,43 @@ const createBot = config => {
     }).catch(err => log('попытка не записана:', err.message))
   }
 
+  const handleStatement = async msg => {
+    const { file_name: name = 'выписка.csv', file_size: size = 0, file_id: fileId } = msg.document
+    if (/\.xlsx?$/i.test(name)) {
+      await reply(msg, 'XLSX бот не читает — выгрузи выписку в CSV или загрузи этот файл на сайте («Траты» → Импорт)')
+      return
+    }
+    if (!/\.(csv|txt)$/i.test(name)) {
+      await reply(msg, 'Нужна выписка банка в формате CSV')
+      return
+    }
+    if (size > STATEMENT_MAX_BYTES) {
+      await reply(msg, 'Файл больше 20 МБ — загрузи его на сайте')
+      return
+    }
+    await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
+    const result = await importStatement(rest, config.userId, await downloadFile(config, tg, fileId), name)
+    log(`выписка ${name}: ${JSON.stringify(result)}`)
+
+    const parts = [
+      `новых: ${result.inserted}`,
+      result.updated > 0 && `обновлено: ${result.updated}`,
+      result.merged > 0 && `склеено с записями бота: ${result.merged}`,
+      `без изменений: ${result.unchanged}`,
+      result.errors > 0 && `ошибок: ${result.errors}`
+    ].filter(Boolean)
+    await reply(msg, `📥 Выписка загружена${result.from ? `: ${result.from} — ${result.to}` : ''}\n${parts.join(' · ')}`)
+
+    // название и категория для новых мерчантов — сразу, не дожидаясь фонового прогона
+    if (result.inserted > 0) {
+      const added = await classifyNewMerchants(rest, config, log).catch(err => {
+        log('merchants после импорта:', err.message || err)
+        return 0
+      })
+      if (added > 0) await reply(msg, `🏷 Новых мерчантов размечено: ${added}. Поправить категорию можно в «Траты» → Операции`)
+    }
+  }
+
   const handleMessage = async msg => {
     // Только личка: в группе записи и ответы увидят посторонние
     if (msg.chat?.type !== 'private') {
@@ -169,6 +211,11 @@ const createBot = config => {
     }
     if (msg.text === '/start' || msg.text === '/help') {
       await reply(msg, HELP)
+      return
+    }
+
+    if (msg.document) {
+      await handleStatement(msg)
       return
     }
 
@@ -310,6 +357,7 @@ const main = async () => {
   startMeterWorker(rest, () => config, log)
   // мерчанты новых банковских операций: название и категория от нейронки
   startMerchantWorker(rest, () => config, log)
+  startReminders(rest, () => config, () => bot, log)
   let offset = 0
   let syncedAt = 0
 
