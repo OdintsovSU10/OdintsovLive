@@ -40,6 +40,7 @@ export const KpiTiles = ({ year, earnedToDate, paidTotal, debt, forecastYear, sa
           ) : (
             <span className="sd-kpi-hint ok">Всё выплачено</span>
           )}
+          {(isDebt || isOverpaid) && <span className="sd-kpi-hint">за прошлые месяцы</span>}
         </div>
 
         <div className="sd-kpi-tile">

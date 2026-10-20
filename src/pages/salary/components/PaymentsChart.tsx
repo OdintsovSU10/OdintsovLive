@@ -44,8 +44,8 @@ export const PaymentsChart = ({ rows }: IPaymentsChartProps) => {
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={data} margin={{ top: 8, left: 0, right: 4, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-          <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
-          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={48} />
+          <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={4} />
+          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={64} />
           <Tooltip
             content={<ChartTooltip formatLabel={label => MONTHS[MONTHS_SHORT.indexOf(String(label))] ?? String(label)} />}
             cursor={{ fill: 'var(--bg-tertiary)' }}

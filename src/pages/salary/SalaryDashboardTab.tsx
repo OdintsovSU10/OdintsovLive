@@ -121,7 +121,7 @@ export default function SalaryDashboardTab() {
     const past = rows.filter(row => !row.isFuture)
     return {
       earnedToDate: past.reduce((sum, row) => sum + row.earned, 0),
-      debt: past.reduce((sum, row) => sum + row.balance, 0),
+      debt: past.filter(row => !row.isCurrent).reduce((sum, row) => sum + row.balance, 0),
       paidTotal: rows.reduce((sum, row) => sum + row.paid, 0),
       forecastYear: rows.reduce((sum, row) => sum + row.earned, 0)
     }

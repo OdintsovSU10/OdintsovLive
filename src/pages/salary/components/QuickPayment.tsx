@@ -28,9 +28,9 @@ const todayLocal = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// Месяц по умолчанию: самый ранний с долгом, иначе текущий, иначе последний (или январь будущего года)
+// Месяц по умолчанию: последний прошедший с долгом, иначе текущий, иначе последний (или январь будущего года)
 const getDefaultMonth = (rows: IMonthRow[]): number => {
-  const withDebt = rows.find(row => !row.isFuture && Math.round(row.balance) > 0)
+  const withDebt = [...rows].reverse().find(row => !row.isFuture && !row.isCurrent && Math.round(row.balance) > 0)
   if (withDebt) return withDebt.monthIndex
   const current = rows.find(row => row.isCurrent)
   if (current) return current.monthIndex
@@ -120,7 +120,7 @@ export const QuickPayment = ({ year, rows, onAddPayment }: IQuickPaymentProps) =
 
         <div className="sd-field sd-field-kind">
           <span className="sd-field-label">Тип</span>
-          <SegmentedControl options={KIND_OPTIONS} value={kind} onChange={setKind} ariaLabel="Тип выплаты" size="sm" />
+          <SegmentedControl options={KIND_OPTIONS} value={kind} onChange={setKind} ariaLabel="Тип выплаты" size="sm" stretch />
         </div>
 
         <button type="submit" className="sd-submit" disabled={saving || parsedAmount <= 0}>

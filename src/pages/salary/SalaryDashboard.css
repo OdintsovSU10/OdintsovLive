@@ -190,6 +190,13 @@
   color: var(--danger);
 }
 
+/* Четыре типа влезают в 360 px без прокрутки */
+.sd-field-kind .ui-segmented.sm button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 6px;
+}
+
 /* ===== Основная область ===== */
 
 .sd-main {
@@ -586,6 +593,7 @@ button.sd-row:hover {
 
   .sd-quick-fields {
     display: flex;
+    flex-direction: row;
     align-items: flex-end;
     gap: 12px;
   }
@@ -600,6 +608,11 @@ button.sd-row:hover {
 
   .sd-field-kind {
     flex: 0 0 auto;
+  }
+
+  .sd-field-kind .ui-segmented.sm button {
+    flex: 1 0 auto;
+    padding: 0 12px;
   }
 
   .sd-submit {
