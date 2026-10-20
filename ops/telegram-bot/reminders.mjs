@@ -4,6 +4,7 @@
 import { setTimeout as sleep } from 'node:timers/promises'
 import { nowInZone } from './actions.mjs'
 import { askNextTransferNote } from './transferNotes.mjs'
+import { budgetLimits, insuranceExpiring, morningBrief, serviceSoon, weeklyDigest } from './notify.mjs'
 
 const TICK_MS = 10 * 60_000
 // Не будим ночью и не пишем вечером
@@ -25,6 +26,12 @@ const staleStatement = async (rest, config, today) => {
 }
 
 const CHECKS = [
+  // эти проверки шлют сами и помнят отправленное в базе (notify.mjs), поэтому текст не возвращают
+  { key: 'morning', repeatDays: 0, run: morningBrief },
+  { key: 'weekly', repeatDays: 0, run: weeklyDigest },
+  { key: 'budget-limits', repeatDays: 0, run: budgetLimits },
+  { key: 'service-soon', repeatDays: 0, run: serviceSoon },
+  { key: 'insurance', repeatDays: 0, run: insuranceExpiring },
   { key: 'stale-statement', repeatDays: 3, run: staleStatement },
   // вопросы «за что перевод» идут по одному на каждом тике; текста нет, поэтому sentOn не ставится
   { key: 'transfer-notes', repeatDays: 0, run: async (rest, config, today, bot) => { await askNextTransferNote(rest, config, bot.tg); return null } }
@@ -44,11 +51,16 @@ export const startReminders = (rest, getConfig, getBot, log) => {
             for (const check of CHECKS) {
               const last = sentOn.get(check.key)
               if (last && daysAgo(today, last) < check.repeatDays) continue
-              const text = await check.run(rest, config, today, bot)
-              if (!text) continue
-              await bot.tg('sendMessage', { chat_id: config.ownerTelegramId, text })
-              sentOn.set(check.key, today)
-              log(`напоминание ${check.key}`)
+              try {
+                const text = await check.run(rest, config, today, bot)
+                if (!text) continue
+                await bot.tg('sendMessage', { chat_id: config.ownerTelegramId, text })
+                sentOn.set(check.key, today)
+                log(`напоминание ${check.key}`)
+              } catch (err) {
+                // сбой одной проверки не должен глушить остальные
+                log(`reminders ${check.key}:`, err.message || err)
+              }
             }
           }
         }

@@ -11,6 +11,7 @@ import type { ExpenseUserCategory } from './types'
 import { formatDate, getMappedCategoryName, toIsoDate } from './utils/format'
 import './ExpensesPage.css'
 import './Insights.css'
+import './Budget.css'
 
 type DashboardView = 'overview' | 'insights' | 'transactions' | 'analytics'
 
@@ -59,6 +60,7 @@ export default function ExpensesPage() {
     allTransactions,
     categories,
     mappings,
+    receiptItems,
     bankCategories,
     insights,
     lastImportSummary,
@@ -236,6 +238,8 @@ export default function ExpensesPage() {
         <OverviewView
           stats={stats}
           transactions={displayTransactions}
+          allTransactions={allTransactions}
+          categories={categories}
           categoriesById={categoriesById}
           insights={insights}
           loading={loading}
@@ -254,6 +258,7 @@ export default function ExpensesPage() {
           categories={categories}
           categoriesById={categoriesById}
           bankCategories={bankCategories}
+          receiptItems={receiptItems}
           filters={filters}
           loading={loading}
           onFiltersChange={updateFilters}

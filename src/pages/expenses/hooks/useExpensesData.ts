@@ -7,6 +7,7 @@ import type {
   ExpenseImportError,
   ExpenseImportSummary,
   ExpenseMerchantRule,
+  ExpenseReceiptItem,
   ExpenseTransaction,
   ExpenseUserCategory,
   PreparedExpenseTransaction
@@ -23,6 +24,7 @@ const TRANSACTION_FIELDS = [
   'flow_direction', 'include_in_analytics', 'mapped_category_id', 'source', 'note', 'created_at', 'updated_at'
 ].join(', ')
 
+const RECEIPT_ITEM_FIELDS = 'id, transaction_id, position, name, quantity, price, amount'
 const LOAD_PAGE_SIZE = 1000
 const IMPORT_CHUNK_SIZE = 500
 const IMPORT_ERROR_LIMIT = 200
@@ -139,6 +141,7 @@ export function useExpensesData() {
   const [rules, setRules] = useState<ExpenseMerchantRule[]>([])
   const [categories, setCategories] = useState<ExpenseUserCategory[]>([])
   const [mappings, setMappings] = useState<ExpenseCategoryMapping[]>([])
+  const [receiptItems, setReceiptItems] = useState<Map<string, ExpenseReceiptItem[]>>(new Map())
 
   const [filters, setFilters] = useState<ExpenseFilters>(getDefaultFilters)
   const [lastImportSummary, setLastImportSummary] = useState<ExpenseImportSummary | null>(null)
@@ -191,6 +194,38 @@ export function useExpensesData() {
     setRules((data || []) as ExpenseMerchantRule[])
   }, [userId])
 
+  const loadReceiptItems = useCallback(async () => {
+    if (!userId) return
+
+    const rows: ExpenseReceiptItem[] = []
+
+    for (let from = 0; ; from += LOAD_PAGE_SIZE) {
+      const { data, error: queryError } = await supabase
+        .from('expense_receipt_items')
+        .select(RECEIPT_ITEM_FIELDS)
+        .eq('user_id', userId)
+        .order('transaction_id', { ascending: true })
+        .order('position', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + LOAD_PAGE_SIZE - 1)
+        .overrideTypes<ExpenseReceiptItem[], { merge: false }>()
+
+      if (queryError) throw queryError
+      rows.push(...(data || []))
+      if (!data || data.length < LOAD_PAGE_SIZE) break
+    }
+
+    const byTransaction = new Map<string, ExpenseReceiptItem[]>()
+    for (const row of rows) {
+      const item = { ...row, quantity: row.quantity === null ? null : Number(row.quantity), price: row.price === null ? null : Number(row.price), amount: Number(row.amount) }
+      const list = byTransaction.get(row.transaction_id)
+      if (list) list.push(item)
+      else byTransaction.set(row.transaction_id, [item])
+    }
+    for (const list of byTransaction.values()) list.sort((a, b) => a.position - b.position)
+    setReceiptItems(byTransaction)
+  }, [userId])
+
   // Грузим всю историю: анализу подписок нужны месяцы, фильтры применяются на клиенте
   const loadTransactions = useCallback(async () => {
     if (!userId) return
@@ -227,9 +262,9 @@ export function useExpensesData() {
   useEffect(() => {
     if (!userId) return
 
-    Promise.all([loadCategories(), loadMappings(), loadRules()])
+    Promise.all([loadCategories(), loadMappings(), loadRules(), loadReceiptItems()])
       .catch(err => setError(getErrorMessage(err)))
-  }, [loadCategories, loadMappings, loadRules, userId])
+  }, [loadCategories, loadMappings, loadRules, loadReceiptItems, userId])
 
   useEffect(() => {
     if (!userId) return
@@ -667,6 +702,7 @@ export function useExpensesData() {
     allTransactions,
     categories,
     mappings,
+    receiptItems,
     bankCategories,
     insights,
     lastImportSummary,

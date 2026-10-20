@@ -1,0 +1,194 @@
+/* Бюджеты: карточка в «Обзоре» и редактор в BottomSheet. Mobile-first (360px), цвета — токены */
+
+.budget-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.budget-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.budget-allowance {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.budget-until {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.budget-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease-out, color 0.2s ease-out;
+}
+
+.budget-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.budget-btn.primary,
+.budget-save-btn {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+}
+
+.budget-btn.primary:hover {
+  background: var(--primary-hover);
+  color: var(--on-primary);
+}
+
+.budget-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.budget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  list-style: none;
+}
+
+.budget-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.budget-row-name {
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.budget-row-sum {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+/* --fp-warning задан на .expenses-page для обеих тем */
+.budget-row.warn .budget-bar-fill { background: var(--fp-warning); }
+.budget-row.over .budget-bar-fill { background: var(--danger); }
+.budget-row.over .budget-row-sum { color: var(--danger); }
+
+/* Редактор */
+
+.budget-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.budget-form h3 {
+  margin-top: 8px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.budget-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.budget-field label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.budget-field .ui-clearable-input {
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 16px;
+  padding-left: 12px;
+  outline: none;
+}
+
+.budget-field .ui-clearable-input:focus {
+  border-color: var(--primary);
+}
+
+.budget-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.budget-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.budget-save-btn {
+  flex: 1;
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  touch-action: manipulation;
+}
+
+.budget-save-btn:disabled {
+  opacity: 0.6;
+}
+
+@media (min-width: 768px) {
+  .budget-allowance {
+    font-size: 1.6rem;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, type LucideIcon } from 'lucide-react'
+import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { syncThemeColor } from '../lib/themeColor'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
@@ -36,6 +36,7 @@ const bodyLinks = [
 ]
 
 const otherLinks = [
+  { path: '/todo', icon: ListChecks, label: 'Дела' },
   { path: '/expenses', icon: ReceiptText, label: 'Траты' },
   { path: '/rent', icon: Home, label: 'Аренда' },
   { path: '/car', icon: Car, label: 'Авто' },

@@ -235,6 +235,7 @@ export default function CarPage() {
                 <div className="car-skeleton" aria-busy="true" />
               ) : (
                 <OverviewTab
+                  car={car}
                   stats={stats}
                   unitCounters={unitCounters}
                   entries={entries}

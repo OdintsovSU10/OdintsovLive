@@ -59,6 +59,17 @@ export interface ExpenseCategoryMapping {
   updated_at: string
 }
 
+// Строка чека, которую бот разобрал по фото и привязал к трате
+export interface ExpenseReceiptItem {
+  id: string
+  transaction_id: string
+  position: number
+  name: string
+  quantity: number | null
+  price: number | null
+  amount: number
+}
+
 export interface ExpenseMerchantRule {
   id: string
   user_id: string

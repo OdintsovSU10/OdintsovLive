@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { createEntry, createRest, emptyContext, executeTools, loadContext, undoEntry } from './actions.mjs'
-import { callLlm, transcribe } from './llm.mjs'
+import { askLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { startReminders } from './reminders.mjs'
@@ -270,7 +270,7 @@ const createBot = config => {
     await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
 
     const ctx = await loadContext(rest, config.userId, config.timeZone)
-    const { toolCalls, text, usage } = await callLlm(config, ctx, chat.history)
+    const { toolCalls, text, usage } = await askLlm(config, ctx, chat.history, rest, log)
 
     if (toolCalls.length === 0) {
       const answer = text || 'Не понял, напиши иначе'
@@ -415,7 +415,7 @@ const main = async () => {
 }
 
 // node bot.mjs --test "кофе 350" чек.jpg — только разбор нейронкой, без записи в базу.
-// Если в .env есть Supabase, контекст (машины, категории) берётся из базы.
+// Если в .env есть Supabase, контекст (машины, категории) берётся из базы, а вопросы о данных отрабатывают с чтением.
 const test = async inputs => {
   const base = loadEnv()
   const rest = base.missing.length === 0 ? createRest(base) : null
@@ -434,7 +434,7 @@ const test = async inputs => {
       : input
     const started = Date.now()
     try {
-      const result = await callLlm(config, ctx, [{ role: 'user', content }])
+      const result = await askLlm(config, ctx, [{ role: 'user', content }], rest, log)
       log(`${input} (${((Date.now() - started) / 1000).toFixed(1)}s)`, JSON.stringify(result, null, 1))
     } catch (err) {
       log(`${input}: ${err.message}`)

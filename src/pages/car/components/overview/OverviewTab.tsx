@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { SegmentedControl } from '../../../../components/ui/SegmentedControl'
 import { PERIOD_OPTIONS } from '../../constants'
 import type { CarStats } from '../../hooks/useCarStats'
-import type { JournalEntry, JournalFilter, PeriodPreset, RecordKind } from '../../types'
+import type { CarType, JournalEntry, JournalFilter, PeriodPreset, RecordKind } from '../../types'
 import { buildBreakdown, previousBucketRange } from '../../utils/buckets'
 import type { BreakdownItem } from '../../utils/buckets'
 import { formatDate } from '../../utils/dates'
@@ -12,9 +12,11 @@ import { CostByMonthChart } from '../charts/CostByMonthChart'
 import { FuelChart } from '../charts/FuelChart'
 import { MileageChart } from '../charts/MileageChart'
 import { UnitCounters } from '../data/UnitCounters'
+import { InsuranceCard } from './InsuranceCard'
 import { KpiGrid } from './KpiGrid'
 
 interface Props {
+  car: CarType
   stats: CarStats
   unitCounters: UnitCounter[]
   entries: JournalEntry[]
@@ -28,7 +30,7 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-export function OverviewTab({ stats, unitCounters, entries, period, onPeriodChange, onOpenJournal, onAdd }: Props) {
+export function OverviewTab({ car, stats, unitCounters, entries, period, onPeriodChange, onOpenJournal, onAdd }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const { ranges, kpi, buckets, breakdown, consumption, fuelPrices, mileage, serviceDue } = stats
 
@@ -54,6 +56,8 @@ export function OverviewTab({ stats, unitCounters, entries, period, onPeriodChan
       </div>
 
       <KpiGrid kpi={kpi} serviceDue={serviceDue} onAddService={() => onAdd('maintenance')} />
+
+      <InsuranceCard car={car} />
 
       {unitCounters.length > 0 && <UnitCounters counters={unitCounters} />}
 

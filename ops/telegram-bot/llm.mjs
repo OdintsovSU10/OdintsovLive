@@ -2,8 +2,11 @@
 // запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает Deepgram
 // (запасной — ElevenLabs).
 import { BODY_PARAM_FIELDS, CAR_EXPENSE_CATEGORIES, ENGINE_OIL_KEY, FUEL_TYPES } from './actions.mjs'
+import { buildReadTools, executeReads, isReadCall } from './reads.mjs'
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+// Сколько раз подряд модель может запросить данные, прежде чем ответить
+const MAX_READ_ROUNDS = 3
 const DEEPGRAM_STT_URL = 'https://api.deepgram.com/v1/listen'
 const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text'
 
@@ -34,7 +37,21 @@ const buildTools = ctx => {
       amount: money('Сумма в рублях, положительное число'),
       category,
       merchant: { type: 'string', description: 'Магазин или место, если известно' },
-      description: { type: 'string', description: 'Что купили, коротко, с большой буквы' }
+      description: { type: 'string', description: 'Что купили, коротко, с большой буквы' },
+      items: {
+        type: 'array',
+        description: 'Позиции с фото чека, только если строки читаются; amount — итог строки в ₽',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Название позиции кратко, как в чеке, без кодов' },
+            quantity: { type: 'number', description: 'Количество, если указано' },
+            price: { type: 'number', description: 'Цена за единицу, ₽, если указана' },
+            amount: { type: 'number', description: 'Итог строки, ₽' }
+          },
+          required: ['name', 'amount']
+        }
+      }
     }, ['date', 'amount', 'category', 'description']),
     fn('add_salary', 'Зачисление зарплаты, аванса, премии, отпускных. Это доход, не трата.', {
       date,
@@ -84,7 +101,14 @@ const buildTools = ctx => {
     fn('add_body_params', 'Замеры тела в сантиметрах. Заполни только названные замеры.', {
       date,
       ...bodyFields
-    }, ['date'])
+    }, ['date']),
+    fn('add_task', 'Дело, напоминание, «надо / не забыть». Не покупка: если названа сумма или магазин — это add_purchase.', {
+      title: { type: 'string', description: 'Что сделать, коротко, с большой буквы' },
+      due_date: { type: 'string', description: 'Срок в формате YYYY-MM-DD, только если назван' }
+    }, ['title']),
+    fn('complete_task', 'Отметить открытое дело сделанным.', {
+      query: { type: 'string', description: 'Часть названия дела' }
+    }, ['query'])
   ]
 }
 
@@ -98,6 +122,7 @@ const buildSystemPrompt = ctx => {
     }).join('\n')
     : '- машин нет'
   const categories = ctx.bankCategories.length > 0 ? ctx.bankCategories.join('; ') : 'пока нет, придумай короткую'
+  const userCategories = ctx.categories.length > 0 ? ctx.categories.join('; ') : 'пока нет'
 
   return `Ты — помощник личного учёта. Пользователь пишет коротко, по-русски, бывает с опечатками, или присылает фото чека.
 Сегодня ${ctx.today}, ${ctx.weekday}. «Вчера», «в пятницу» и т.п. считай от сегодняшней даты. Если дата не названа — сегодня.
@@ -109,6 +134,7 @@ const buildSystemPrompt = ctx => {
 ${cars}
 
 Банковские категории трат (для поля category): ${categories}
+Категории пользователя на сайте (для get_expenses): ${userCategories}
 
 Правила:
 - Заправка → add_fuel, не add_purchase. Тип топлива не назван — бери обычный для этой машины.
@@ -119,7 +145,11 @@ ${cars}
 - Поле month в add_salary — месяц, за который зарплата, а не дата зачисления: «за сентябрь» → 9, «за прошлый месяц» считай от сегодняшней даты. Месяц не назван — не вызывай инструмент, спроси «За какой месяц?». Поле year — только если год назван.
 - Поле note в add_salary — комментарий пользователя его словами, без суммы и месяца. Комментария нет — не заполняй.
 - Фото чека: возьми итоговую сумму, дату и магазин. Чек с АЗС на топливо → add_fuel.
+- По фото чека магазина заполняй items: название позиции кратко, как в чеке, без кодов; количество и цену — если указаны; amount — итог строки. Строки нечитаемы — items не заполняй.
+- «Напомни», «надо», «не забыть», «запиши дело …» → add_task. Относительные даты («в субботу», «завтра», «через неделю») вычисляй от сегодняшней даты и дня недели; срока нет — due_date не заполняй. «Сделал …», «готово …» про дело → complete_task. «Какие дела», «что надо сделать» → get_tasks. Покупки (сумма, магазин) — по-прежнему add_purchase, не дело.
 - Фото счётчика электричества (дисплей с кВт·ч) или водомеров → meter_photo, не add_purchase.
+- Вопросы о данных («сколько потратил», «сколько можно тратить в день», «когда ТО», «как вес», «оплачена ли аренда», «какие дела») — сначала вызови нужные get_*, потом ответь по результату коротко, по-русски, суммы с ₽. Не выдумывай цифры: нет данных — так и скажи. Относительные периоды («в сентябре», «за неделю») переводи в даты от сегодняшней.
+- Чтение (get_*) и запись (add_*) в одном ответе не смешивай.
 - Не выдумывай числа. Если не хватает обязательного (например, суммы покупки) или сообщение не про учёт — не вызывай инструменты, а ответь одним коротким предложением (уточняющий вопрос).`
 }
 
@@ -132,8 +162,11 @@ const parseArgs = raw => {
   }
 }
 
-// history — сообщения диалога в формате OpenAI (user/assistant), контент может содержать фото
-export const callLlm = async (config, ctx, history) => {
+// messages — сообщения диалога в формате OpenAI (user/assistant, а в цикле чтения ещё assistant с tool_calls и tool),
+// контент может содержать фото. withReads — давать ли модели инструменты чтения
+const hasImage = messages => messages.some(m => Array.isArray(m.content) && m.content.some(part => part.type === 'image_url'))
+
+export const callLlm = async (config, ctx, messages, withReads = false) => {
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
@@ -144,11 +177,12 @@ export const callLlm = async (config, ctx, history) => {
     body: JSON.stringify({
       model: config.model,
       temperature: 0,
-      max_tokens: 1024,
-      tools: buildTools(ctx),
+      // с фото чека ответ длиннее: в нём позиции
+      max_tokens: hasImage(messages) ? 2048 : 1024,
+      tools: withReads ? [...buildTools(ctx), ...buildReadTools()] : buildTools(ctx),
       tool_choice: 'auto',
       usage: { include: true },
-      messages: [{ role: 'system', content: buildSystemPrompt(ctx) }, ...history]
+      messages: [{ role: 'system', content: buildSystemPrompt(ctx) }, ...messages]
     }),
     signal: AbortSignal.timeout(90_000)
   })
@@ -159,10 +193,48 @@ export const callLlm = async (config, ctx, history) => {
   }
 
   return {
-    toolCalls: (message.tool_calls || []).map(call => ({ name: call.function.name, args: parseArgs(call.function.arguments) })),
+    toolCalls: (message.tool_calls || []).map(call => ({ id: call.id, name: call.function.name, args: parseArgs(call.function.arguments) })),
+    // tool_calls как вернул OpenRouter — для следующего запроса в цикле чтения
+    rawToolCalls: message.tool_calls || [],
     text: typeof message.content === 'string' ? message.content.trim() : '',
     // стоимость запроса в $ и токены — для лога
     usage: data.usage || null
+  }
+}
+
+// Диалог с чтением данных: модель вызывает get_*, получает результаты и отвечает (до MAX_READ_ROUNDS раундов).
+// Возвращает то же, что callLlm: toolCalls — только запись, text — ответ; usage суммируется по запросам.
+// Без rest/userId (тест без базы) инструменты чтения не даём.
+export const askLlm = async (config, ctx, history, rest, log = () => {}) => {
+  const canRead = Boolean(rest && ctx.userId)
+  const messages = [...history]
+  let cost = 0
+
+  for (let round = 0; ; round++) {
+    const withReads = canRead && round < MAX_READ_ROUNDS
+    const result = await callLlm(config, ctx, messages, withReads)
+    cost += Number(result.usage?.cost) || 0
+    const usage = { ...result.usage, cost }
+
+    const reads = result.toolCalls.filter(isReadCall)
+    if (reads.length === 0 || !withReads) {
+      return { toolCalls: result.toolCalls.filter(call => !isReadCall(call)), text: result.text, usage }
+    }
+
+    const skipped = result.toolCalls.filter(call => !isReadCall(call))
+    if (skipped.length > 0) log(`чтение вместе с записью, запись пропущена: ${skipped.map(c => c.name).join(', ')}`)
+    log(`чтение (раунд ${round + 1}): ${reads.map(c => c.name).join(', ')}`)
+
+    const outputs = await executeReads(rest, ctx, reads)
+    const outputById = new Map(reads.map((call, i) => [call.id, outputs[i]]))
+    messages.push({ role: 'assistant', content: result.text || null, tool_calls: result.rawToolCalls })
+    for (const [i, call] of result.toolCalls.entries()) {
+      messages.push({
+        role: 'tool',
+        tool_call_id: result.rawToolCalls[i].id,
+        content: outputById.get(call.id) ?? JSON.stringify({ error: 'Запись в одном ответе с чтением не выполнена' })
+      })
+    }
   }
 }
 

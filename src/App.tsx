@@ -18,6 +18,7 @@ const VacationRatePage = lazy(() => import('./pages/VacationRatePage'))
 const RentPage = lazy(() => import('./pages/RentPage'))
 const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
 const ExpensesPage = lazy(() => import('./pages/expenses'))
+const TodoPage = lazy(() => import('./pages/TodoPage'))
 const WeightPage = lazy(() => import('./pages/WeightPage'))
 const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
 const CarPage = lazy(() => import('./pages/car'))
@@ -392,6 +393,7 @@ function App() {
               <Route path="/rent" element={<RentPage />} />
               <Route path="/rent/:year/:month" element={<RentMonthPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/todo" element={<TodoPage />} />
               <Route path="/body/weight" element={<WeightPage />} />
               <Route path="/body/params" element={<BodyParamsPage />} />
               <Route path="/car" element={<CarPage />} />

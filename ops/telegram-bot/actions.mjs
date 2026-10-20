@@ -25,7 +25,7 @@ export const BODY_PARAM_FIELDS = {
 const MONTH_NAMES = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 
 // Отменять можно только то, что бот создаёт сам
-const UNDO_TABLES = new Set(['expense_transactions', 'salary_payments', 'car_fuel', 'car_maintenance', 'car_expenses', 'body_weight', 'body_params', 'meter_ocr_jobs'])
+const UNDO_TABLES = new Set(['expense_transactions', 'salary_payments', 'car_fuel', 'car_maintenance', 'car_expenses', 'body_weight', 'body_params', 'meter_ocr_jobs', 'todo_items'])
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -83,14 +83,15 @@ export const nowInZone = timeZone => {
   }
 }
 
-export const emptyContext = timeZone => ({ userId: null, ...nowInZone(timeZone), cars: [], bankCategories: [], mappings: new Map() })
+export const emptyContext = timeZone => ({ userId: null, ...nowInZone(timeZone), cars: [], bankCategories: [], categories: [], mappings: new Map() })
 
-// Контекст для нейронки и обработчиков: машины с агрегатами, банковские категории, маппинг категорий
+// Контекст для нейронки и обработчиков: машины с агрегатами, банковские и пользовательские категории, маппинг категорий
 export const loadContext = async (rest, userId, timeZone) => {
-  const [cars, categoryRows, mappingRows] = await Promise.all([
+  const [cars, categoryRows, mappingRows, userCategories] = await Promise.all([
     rest(`cars?user_id=eq.${userId}&select=id,brand,model,current_mileage,is_active&order=created_at.desc`),
     rest(`expense_transactions?user_id=eq.${userId}&flow_direction=eq.out&bank_category=not.is.null&select=bank_category&order=operation_at.desc&limit=3000`),
-    rest(`expense_category_mappings?user_id=eq.${userId}&select=bank_category,target_category_id`)
+    rest(`expense_category_mappings?user_id=eq.${userId}&select=bank_category,target_category_id`),
+    rest(`expense_user_categories?user_id=eq.${userId}&is_active=eq.true&select=name&order=sort_order.asc`)
   ])
 
   const activeCars = cars.filter(c => c.is_active !== false)
@@ -120,6 +121,7 @@ export const loadContext = async (rest, userId, timeZone) => {
       lastFuelType: lastFuel.find(f => f.car_id === c.id)?.fuel_type || FUEL_TYPES[0],
       units: units.filter(u => u.car_id === c.id).map(u => ({ id: u.id, name: u.name }))
     })),
+    categories: userCategories.map(c => c.name),
     bankCategories: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name).slice(0, 60),
     mappings: new Map(mappingRows.map(m => [normalizeKey(m.bank_category), m.target_category_id]))
   }
@@ -187,6 +189,16 @@ const insertExpense = (rest, ctx, track, { entryId, index, date, amount, categor
     mapped_category_id: ctx.mappings.get(normalizeKey(category)) || null
   }, track)
 
+// Позиции чека: без названия или суммы строку пропускаем
+const normalizeItems = value => (Array.isArray(value) ? value : [])
+  .map(item => ({
+    name: String(item?.name ?? '').trim().slice(0, 200),
+    quantity: toNumber(item?.quantity),
+    price: toNumber(item?.price),
+    amount: toNumber(item?.amount)
+  }))
+  .filter(item => item.name && item.amount !== null)
+
 const addPurchase = async ({ rest, ctx, track, entryId, index, args }) => {
   const amount = toNumber(args.amount)
   if (!amount || amount <= 0) throw new UserError('Не понял сумму покупки')
@@ -194,12 +206,64 @@ const addPurchase = async ({ rest, ctx, track, entryId, index, args }) => {
   const category = pickCategory(ctx, args.category, null, 'Другое')
   const what = args.description?.trim() || category
   const merchant = args.merchant?.trim()
-  await insertExpense(rest, ctx, track, {
+  const created = await insertExpense(rest, ctx, track, {
     entryId, index, date, amount: round2(amount), category,
     description: merchant || what,
     note: what
   })
-  return `🛒 ${what}${merchant ? ` (${merchant})` : ''}: ${fmtMoney(amount)} · ${category} · ${date}`
+
+  let receipt = ''
+  const items = normalizeItems(args.items)
+  if (items.length > 0) {
+    // в rows не трекаем: при отмене позиции удалятся каскадом вместе с тратой
+    try {
+      await rest('expense_receipt_items', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(items.map((item, position) => ({
+          transaction_id: created.id,
+          user_id: ctx.userId,
+          position,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          amount: round2(item.amount)
+        })))
+      })
+      receipt = ` · 🧾 ${items.length} поз.`
+      const itemsSum = round2(items.reduce((sum, item) => sum + item.amount, 0))
+      if (Math.abs(itemsSum - amount) > 1) receipt += ` (позиции на ${fmtMoney(itemsSum)}, итог ${fmtMoney(amount)})`
+    } catch (err) {
+      receipt = ` · ⚠️ позиции чека не записались: ${err.message}`
+    }
+  }
+  return `🛒 ${what}${merchant ? ` (${merchant})` : ''}: ${fmtMoney(amount)} · ${category} · ${date}${receipt}`
+}
+
+const addTask = async ({ rest, ctx, track, args }) => {
+  const title = String(args.title ?? '').trim()
+  if (!title) throw new UserError('Не понял, какое дело записать')
+  const dueDate = DATE_RE.test(args.due_date || '') ? args.due_date : null
+  await insertOne(rest, 'todo_items', { user_id: ctx.userId, title, due_date: dueDate, source: 'telegram' }, track)
+  return `📝 Дело: ${title}${dueDate ? ` — до ${dueDate.slice(8, 10)}.${dueDate.slice(5, 7)}` : ''}`
+}
+
+// Открытое дело по части названия: точное совпадение важнее подстроки; из нескольких — самое срочное
+const completeTask = async ({ rest, ctx, args }) => {
+  const query = normalizeKey(args.query)
+  const notFound = () => new UserError(`Не нашёл открытого дела «${args.query?.trim() || ''}»`)
+  if (!query) throw notFound()
+  const open = await rest(
+    `todo_items?user_id=eq.${ctx.userId}&done_at=is.null&select=id,title,due_date,created_at&order=due_date.asc.nullslast,created_at.asc&limit=500`
+  )
+  const task = open.find(t => normalizeKey(t.title) === query) || open.find(t => normalizeKey(t.title).includes(query))
+  if (!task) throw notFound()
+  await rest(`todo_items?id=eq.${task.id}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ done_at: new Date().toISOString() })
+  })
+  return `✅ Сделано: ${task.title}`
 }
 
 // Год не назван (или назван так, что месяц уходит далеко в будущее) — берём ближайший такой месяц:
@@ -337,7 +401,9 @@ const HANDLERS = {
   add_fuel: addFuel,
   add_car_service: addCarService,
   add_weight: addWeight,
-  add_body_params: addBodyParams
+  add_body_params: addBodyParams,
+  add_task: addTask,
+  complete_task: completeTask
 }
 
 // messageIds — все сообщения диалога записи (реплики и уточнения): при отмене их удаляем

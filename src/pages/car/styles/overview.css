@@ -522,3 +522,18 @@
     display: none;
   }
 }
+
+/* Сроки страховок */
+.car-insurance {
+  gap: 6px;
+}
+
+.car-insurance-row {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.car-insurance-row.warning { color: var(--chart-warning); }
+.car-insurance-row.danger { color: var(--danger); }

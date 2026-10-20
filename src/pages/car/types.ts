@@ -9,6 +9,8 @@ export interface CarType {
   current_mileage: number
   purchase_price: number | null
   vin: string | null
+  osago_until: string | null
+  kasko_until: string | null
   is_active: boolean
 }
 
@@ -127,6 +129,8 @@ export interface CarFormData {
   current_mileage: string
   purchase_price: string
   vin: string
+  osago_until: string
+  kasko_until: string
 }
 
 export interface PartFormData {

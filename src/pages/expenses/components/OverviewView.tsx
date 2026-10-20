@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { DashboardStats } from '../hooks/useDashboardStats'
 import type { ExpenseInsights, ExpenseTransaction, ExpenseUserCategory } from '../types'
 import { formatRub, getMappedCategoryName } from '../utils/format'
+import { BudgetCard } from './BudgetCard'
 import { GroupBreakdown } from './GroupBreakdown'
 import { InsightsSummary } from './InsightsSummary'
 import { MonthlyChart } from './MonthlyChart'
@@ -12,6 +13,8 @@ const LATEST_LIMIT = 8
 interface Props {
   stats: DashboardStats
   transactions: ExpenseTransaction[]
+  allTransactions: ExpenseTransaction[]
+  categories: ExpenseUserCategory[]
   categoriesById: Map<string, ExpenseUserCategory>
   insights: ExpenseInsights | null
   loading: boolean
@@ -29,7 +32,7 @@ function describeChange(current: number, prev: number | null): { text: string; t
     : { text: `▼ ${percent}% к прошлому периоду`, tone: 'down' }
 }
 
-export function OverviewView({ stats, transactions, categoriesById, insights, loading, periodLabel, onOpenInsights }: Props) {
+export function OverviewView({ stats, transactions, allTransactions, categories, categoriesById, insights, loading, periodLabel, onOpenInsights }: Props) {
   const { totals, groups, monthly, monthGroups } = stats
   const change = describeChange(totals.spent, totals.prevSpent)
   const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null)
@@ -46,6 +49,8 @@ export function OverviewView({ stats, transactions, categoriesById, insights, lo
 
   return (
     <>
+      <BudgetCard transactions={allTransactions} categories={categories} categoriesById={categoriesById} transactionsLoading={loading} />
+
       {insights && <InsightsSummary insights={insights} onOpen={onOpenInsights} />}
 
       <section className="kpi-grid">

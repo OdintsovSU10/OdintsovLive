@@ -25,7 +25,9 @@ function toForm(car: CarType | null): CarFormData {
     purchase_mileage: toInputValue(car?.purchase_mileage),
     current_mileage: toInputValue(car?.current_mileage),
     purchase_price: toInputValue(car?.purchase_price),
-    vin: car?.vin ?? ''
+    vin: car?.vin ?? '',
+    osago_until: car?.osago_until ?? '',
+    kasko_until: car?.kasko_until ?? ''
   }
 }
 
@@ -59,7 +61,9 @@ export function CarForm({ formId, editing, onSubmit }: Props) {
       purchase_mileage: Math.round(purchaseMileage),
       current_mileage: Math.round(currentMileage),
       purchase_price: parseDecimal(form.purchase_price),
-      vin: form.vin.trim() || null
+      vin: form.vin.trim() || null,
+      osago_until: form.osago_until || null,
+      kasko_until: form.kasko_until || null
     })
   }
 
@@ -114,6 +118,17 @@ export function CarForm({ formId, editing, onSubmit }: Props) {
         <input id="car-vin" type="text" placeholder="JTDKN3DU5A0123456" value={form.vin} maxLength={17} autoComplete="off"
           onChange={e => update('vin', e.target.value.toUpperCase())} {...describedBy('car-vin', errors.vin)} />
       </Field>
+
+      <div className="car-form-row">
+        <Field id="car-osago" label="ОСАГО до">
+          <input id="car-osago" type="date" value={form.osago_until}
+            onChange={e => update('osago_until', e.target.value)} />
+        </Field>
+        <Field id="car-kasko" label="КАСКО до">
+          <input id="car-kasko" type="date" value={form.kasko_until}
+            onChange={e => update('kasko_until', e.target.value)} />
+        </Field>
+      </div>
     </form>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import type { ExpenseFilters, ExpenseTransaction, ExpenseUserCategory } from '../types'
+import type { ExpenseFilters, ExpenseReceiptItem, ExpenseTransaction, ExpenseUserCategory } from '../types'
 import { getMappedCategoryName } from '../utils/format'
 import { TransactionRow } from './TransactionRow'
 
@@ -15,6 +15,7 @@ interface Props {
   categories: ExpenseUserCategory[]
   categoriesById: Map<string, ExpenseUserCategory>
   bankCategories: string[]
+  receiptItems: Map<string, ExpenseReceiptItem[]>
   filters: ExpenseFilters
   loading: boolean
   onFiltersChange: (patch: Partial<ExpenseFilters>) => void
@@ -26,6 +27,7 @@ export function TransactionsView({
   categories,
   categoriesById,
   bankCategories,
+  receiptItems,
   filters,
   loading,
   onFiltersChange,
@@ -135,6 +137,7 @@ export function TransactionsView({
                   transaction={transaction}
                   categoryName={getMappedCategoryName(transaction, categoriesById)}
                   categories={categories}
+                  receiptItems={receiptItems.get(transaction.id)}
                   onSetCategory={onSetCategory}
                 />
               ))}
