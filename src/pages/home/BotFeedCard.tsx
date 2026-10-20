@@ -31,7 +31,7 @@ const TABLE_LABELS: Record<string, string> = {
 
 const formatWhen = (iso: string) => {
   const date = new Date(iso)
-  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   const today = new Date()
   const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
   if (date.toDateString() === today.toDateString()) return time

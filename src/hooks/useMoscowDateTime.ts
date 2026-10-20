@@ -24,10 +24,12 @@ function formatMoscowDateTime(dateFormat: DateFormat, includeSeconds: boolean): 
     })
     .replace(' г.', '')
 
-  const time = now.toLocaleTimeString('ru-RU', {
+  // 12-часовой формат: «2:05 PM»
+  const time = now.toLocaleTimeString('en-US', {
     timeZone: 'Europe/Moscow',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
     ...(includeSeconds ? { second: '2-digit' } : {}),
   })
 
