@@ -276,20 +276,80 @@ const pickSalaryYear = (ctx, month, value) => {
   return monthsAhead(currentYear) > 6 ? currentYear - 1 : currentYear
 }
 
+// kind → подпись в salary_payments, слово для вопроса и буква для callback_data кнопок выбора месяца
+const SALARY_KINDS = {
+  salary: { note: 'Зарплата', ask: 'зарплата', letter: 's' },
+  advance: { note: 'Аванс', ask: 'аванс', letter: 'a' },
+  bonus: { note: 'Премия', ask: 'премия', letter: 'b' },
+  vacation: { note: 'Отпускные', ask: 'отпускные', letter: 'v' },
+  sick: { note: 'Больничные', ask: 'больничные', letter: 'k' }
+}
+
+// Разбор callback_data кнопки выбора месяца (sal:сумма:YYYYMMDD:буква:год-месяц) в аргументы add_salary
+export const parseSalaryCallback = data => {
+  const match = /^sal:(\d+(?:\.\d+)?):(\d{4})(\d{2})(\d{2}):([a-z]):(\d{4})-(\d{1,2})$/.exec(data || '')
+  if (!match) return null
+  const kind = Object.keys(SALARY_KINDS).find(k => SALARY_KINDS[k].letter === match[5])
+  if (!kind) return null
+  return {
+    amount: Number(match[1]),
+    date: `${match[2]}-${match[3]}-${match[4]}`,
+    kind,
+    year: Number(match[6]),
+    month: Number(match[7])
+  }
+}
+
+// Месяц, за который пришло зачисление, по дню даты: зарплата идёт 1–10 числа за прошлый месяц,
+// аванс — 11–25 числа за текущий. null — однозначно не определить, спрашиваем
+const guessSalaryMonth = (kind, date) => {
+  const [year, month, day] = date.split('-').map(Number)
+  const shift = delta => {
+    const index = year * 12 + month - 1 + delta
+    return { year: Math.floor(index / 12), month: (index % 12) + 1 }
+  }
+  if (kind === 'salary') {
+    if (day <= 10) return { ...shift(-1), note: 'Зарплата' }
+    if (day <= 25) return { ...shift(0), note: 'Аванс' }
+  }
+  if (kind === 'advance' && day <= 25) return { ...shift(0), note: 'Аванс' }
+  return null
+}
+
 // Зарплата — доход: в expense_transactions не дублируем, зачисление придёт из банковской выписки
+// Месяц не назван и по дню не определить — ничего не пишем, возвращаем вопрос с кнопками выбора месяца
 const addSalary = async ({ rest, ctx, track, args }) => {
   const amount = toNumber(args.amount)
   if (!amount || amount <= 0) throw new UserError('Не понял сумму зарплаты')
-  const month = toNumber(args.month)
-  if (!Number.isInteger(month) || month < 1 || month > 12) throw new UserError('Не понял, за какой месяц зарплата')
-  const year = pickSalaryYear(ctx, month, args.year)
   const date = pickDate(ctx, args.date)
-  const note = args.note?.trim() || null
+  const kind = SALARY_KINDS[args.kind] ? args.kind : 'salary'
+  let month = toNumber(args.month)
+  let year
+  let note = SALARY_KINDS[kind].note
+  if (Number.isInteger(month) && month >= 1 && month <= 12) {
+    year = pickSalaryYear(ctx, month, args.year)
+  } else {
+    const guess = guessSalaryMonth(kind, date)
+    if (!guess) {
+      const [dateYear, dateMonth] = date.split('-').map(Number)
+      const keyboard = [[-2, -1, 0].map(delta => {
+        const index = dateYear * 12 + dateMonth - 1 + delta
+        const buttonYear = Math.floor(index / 12)
+        const buttonMonth = (index % 12) + 1
+        return {
+          text: MONTH_NAMES[buttonMonth - 1],
+          callback_data: `sal:${round2(amount)}:${date.replaceAll('-', '')}:${SALARY_KINDS[kind].letter}:${buttonYear}-${buttonMonth}`
+        }
+      })]
+      return { line: `❓ За какой месяц ${SALARY_KINDS[kind].ask} ${fmtMoney(amount)}?`, keyboard }
+    }
+    ;({ month, year, note } = guess)
+  }
   // в базе месяц с нуля, как на сайте (Date.getMonth)
   await insertOne(rest, 'salary_payments', {
     user_id: ctx.userId, year, month: month - 1, amount: round2(amount), date, note
   }, track)
-  return `💰 Зарплата за ${MONTH_NAMES[month - 1]} ${year}: ${fmtMoney(amount)}${note ? ` · ${note}` : ''} · ${date}`
+  return `💰 ${note} за ${MONTH_NAMES[month - 1]} ${year}: ${fmtMoney(amount)} · ${date}`
 }
 
 const addFuel = async ({ rest, ctx, track, entryId, index, args }) => {
@@ -424,6 +484,7 @@ export const executeTools = async (rest, ctx, entryId, toolCalls, extras = {}) =
   const { handlers = {}, ...context } = extras
   const rows = []
   const lines = []
+  const keyboards = []
   const track = (table, id, extra = {}) => rows.push({ table, id, ...extra })
 
   for (const [index, call] of toolCalls.entries()) {
@@ -433,7 +494,14 @@ export const executeTools = async (rest, ctx, entryId, toolCalls, extras = {}) =
       continue
     }
     try {
-      lines.push(await handler({ rest, ctx, track, entryId, index, args: call.args, ...context }))
+      const result = await handler({ rest, ctx, track, entryId, index, args: call.args, ...context })
+      // обработчик может вернуть вопрос с кнопками вместо строки
+      if (typeof result === 'object' && result !== null) {
+        lines.push(result.line)
+        keyboards.push(...result.keyboard)
+      } else {
+        lines.push(result)
+      }
     } catch (err) {
       lines.push(`⚠️ ${err instanceof UserError ? err.message : `Не записалось: ${err.message}`}`)
     }
@@ -444,7 +512,7 @@ export const executeTools = async (rest, ctx, entryId, toolCalls, extras = {}) =
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ created_rows: rows })
   })
-  return { lines, rows }
+  return { lines, rows, keyboards }
 }
 
 export const undoEntry = async (rest, userId, entryId) => {

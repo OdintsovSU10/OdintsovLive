@@ -6,7 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { createEntry, createRest, emptyContext, executeTools, loadContext, undoEntry } from './actions.mjs'
+import { createEntry, createRest, emptyContext, executeTools, loadContext, parseSalaryCallback, undoEntry } from './actions.mjs'
 import { askLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
@@ -290,7 +290,7 @@ const createBot = config => {
       messageIds: chat.messageIds,
       inputText: chat.history.filter(m => m.role === 'user').map(m => messageText(m.content)).join('\n')
     })
-    const { lines, rows } = await executeTools(rest, ctx, entry.id, toolCalls, {
+    const { lines, rows, keyboards } = await executeTools(rest, ctx, entry.id, toolCalls, {
       config,
       photo: chat.photo,
       handlers: { meter_photo: meterPhotoHandler }
@@ -306,9 +306,36 @@ const createBot = config => {
     chats.delete(msg.chat.id)
     log(`entry ${entry.id}: ${toolCalls.map(c => c.name).join(', ')} → ${rows.length} строк, $${usage?.cost ?? '?'}`)
 
-    await reply(msg, heardLine + lines.join('\n'), rows.length > 0
-      ? { reply_markup: { inline_keyboard: [[{ text: '↩️ Отменить', callback_data: `undo:${entry.id}` }]] } }
-      : {})
+    const keyboard = rows.length > 0 ? [...keyboards, undoRow(entry.id)] : keyboards
+    await reply(msg, heardLine + lines.join('\n'), keyboard.length > 0 ? { reply_markup: { inline_keyboard: keyboard } } : {})
+  }
+
+  const undoRow = entryId => [{ text: '↩️ Отменить', callback_data: `undo:${entryId}` }]
+
+  // Выбор месяца для зачисления: пишем через тот же add_salary, но уже с названным месяцем
+  const handleSalaryMonth = async cb => {
+    const args = parseSalaryCallback(cb.data)
+    if (!args || !cb.message) {
+      await tg('answerCallbackQuery', { callback_query_id: cb.id })
+      return
+    }
+    const ctx = { ...emptyContext(config.timeZone), userId: config.userId }
+    const entry = await createEntry(rest, {
+      userId: config.userId,
+      chatId: cb.message.chat.id,
+      messageId: cb.message.message_id,
+      messageIds: [],
+      inputText: `${cb.message.text}\n→ ${args.year}-${String(args.month).padStart(2, '0')}`
+    })
+    const { lines, rows } = await executeTools(rest, ctx, entry.id, [{ name: 'add_salary', args }])
+    await tg('answerCallbackQuery', { callback_query_id: cb.id })
+    await tg('editMessageText', {
+      chat_id: cb.message.chat.id,
+      message_id: cb.message.message_id,
+      text: lines.join('\n'),
+      ...(rows.length > 0 ? { reply_markup: { inline_keyboard: [undoRow(entry.id)] } } : {})
+    })
+    log(`entry ${entry.id}: add_salary (месяц выбран кнопкой) → ${rows.length} строк`)
   }
 
   const handleCallback = async cb => {
@@ -318,6 +345,10 @@ const createBot = config => {
       return
     }
     const [action, entryId] = (cb.data || '').split(':')
+    if (action === 'sal') {
+      await handleSalaryMonth(cb)
+      return
+    }
     if (action !== 'undo') {
       await tg('answerCallbackQuery', { callback_query_id: cb.id })
       return
