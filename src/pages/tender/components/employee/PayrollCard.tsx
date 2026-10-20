@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
 import type { LivePayrollSnapshot } from '../../utils/livePayroll'
 import { formatLiveMoney, formatLiveNumber, getLivePayrollPauseLabel } from '../../utils/livePayroll'
 import { formatRub } from '../../utils/employeeFormat'
@@ -31,7 +32,9 @@ interface Props {
   loading: boolean
 }
 
+// Второстепенная тонкая полоса: сумма, доля плана и прогресс; скорость и «по табелю» спрятаны в ⓘ
 export function PayrollCard({ year, month, live, plan, timesheetEarned, loading }: Props) {
+  const [infoOpen, setInfoOpen] = useState(false)
   const accrued = live.isLive ? live.accrued : timesheetEarned
   const progress = plan > 0 ? Math.min(100, Math.max(0, (accrued / plan) * 100)) : 0
   const ariaProgress = useSlowValue(Math.round(progress), `${year}-${month}`)
@@ -40,22 +43,34 @@ export function PayrollCard({ year, month, live, plan, timesheetEarned, loading 
   let statusLine = 'Период завершён'
   if (live.isLive) {
     statusLine = live.isAccruing
-      ? `+${formatLiveMoney(live.ratePerSecond)} / сек`
+      ? `+${formatLiveMoney(live.ratePerSecond)}/сек`
       : getLivePayrollPauseLabel(live.accrualState)
   }
+  const timesheetLine = showTimesheetLine ? `По табелю ${formatRub(timesheetEarned)}` : ''
+  const titleText = [statusLine, timesheetLine].filter(Boolean).join(' · ')
 
   return (
-    <section className="emp-card emp-payroll" aria-label="Начисление за месяц">
-      <div className="emp-payroll-head">
-        <span className={`emp-payroll-label ${live.isLive ? 'live' : ''}`}>
-          {live.isLive ? <><i aria-hidden="true" />Живое начисление</> : 'Расчёт периода'}
-        </span>
-      </div>
-
-      <div className="emp-payroll-total">
-        <small>Начислено</small>
-        <strong>{loading ? '—' : `${formatLiveNumber(accrued)} ₽`}</strong>
-        <span className={live.isAccruing && !loading ? 'accruing' : ''}>{loading ? '' : statusLine}</span>
+    <section className="emp-card emp-payroll" aria-label="Начисление за месяц" title={loading ? undefined : titleText}>
+      <div className="emp-payroll-row">
+        <div className="emp-payroll-total">
+          <span className={`emp-payroll-label ${live.isLive ? 'live' : ''}`}>
+            {live.isLive && <i aria-hidden="true" />}Начислено
+          </span>
+          <strong>{loading ? '—' : `${formatLiveNumber(accrued)} ₽`}</strong>
+        </div>
+        <p className="emp-payroll-plan">
+          {loading ? '—' : <><b>{Math.round(progress)}%</b> <span>из {formatRub(plan)}</span></>}
+        </p>
+        <button
+          type="button"
+          className="emp-icon-btn"
+          onClick={() => setInfoOpen(value => !value)}
+          aria-expanded={infoOpen}
+          aria-controls="emp-payroll-info"
+          aria-label="Подробности начисления"
+        >
+          <Info size={16} aria-hidden="true" />
+        </button>
       </div>
 
       <div
@@ -68,13 +83,13 @@ export function PayrollCard({ year, month, live, plan, timesheetEarned, loading 
       >
         <div style={{ width: loading ? '0%' : `${progress}%` }} />
       </div>
-      <p className="emp-payroll-plan">
-        {loading ? '—' : `${Math.round(progress)}% · из ${formatRub(plan)}`}
-      </p>
 
-      <p className="emp-payroll-sheet">
-        {showTimesheetLine ? `По табелю ${formatRub(timesheetEarned)}` : ''}
-      </p>
+      {infoOpen && (
+        <div id="emp-payroll-info" className="emp-payroll-info">
+          <p className={live.isAccruing ? 'accruing' : ''}>{loading ? '—' : statusLine}</p>
+          <p>{timesheetLine || 'Совпадает с табелем'}</p>
+        </div>
+      )}
     </section>
   )
 }

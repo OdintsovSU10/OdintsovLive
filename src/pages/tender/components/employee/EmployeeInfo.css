@@ -1,0 +1,157 @@
+/* Модалка «Информация о сотруднике» */
+
+.emp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.emp-info-person {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.emp-info-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.emp-info-name {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.emp-info-position {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.emp-info-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.emp-info-section {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+}
+
+.emp-info-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.emp-info-section h3 svg {
+  color: var(--primary);
+}
+
+.emp-info-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.emp-info-list div:last-child {
+  border-bottom: none;
+}
+
+.emp-info-list dt {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.emp-info-list dd {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.emp-info-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.emp-info-phone {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.emp-info-call,
+.emp-info-mail {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.emp-info-call {
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.emp-info-mail {
+  color: var(--primary);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.emp-info-mail span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.emp-info-phone:focus-visible,
+.emp-info-call:focus-visible,
+.emp-info-mail:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .emp-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

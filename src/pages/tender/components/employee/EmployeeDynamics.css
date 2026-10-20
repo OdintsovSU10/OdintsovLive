@@ -1,5 +1,49 @@
 /* Динамика за год и оклад */
 
+/* Переключатель «Начисления | Оценка» */
+.emp-segment {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+}
+
+.emp-segment button {
+  min-height: 44px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.emp-segment button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Цвет столбика оценки по грейду */
+.emp-bar.score-excellent { --bar: var(--chart-positive); }
+.emp-bar.score-good { --bar: var(--primary); }
+.emp-bar.score-average { --bar: var(--chart-warning); }
+.emp-bar.score-attention { --bar: var(--chart-negative); }
+
+.emp-bar[class*='score-'] .emp-bar-fill {
+  background: color-mix(in srgb, var(--bar) 45%, transparent);
+}
+
+.emp-bar[class*='score-'].selected .emp-bar-fill {
+  background: var(--bar);
+}
+
 .emp-year-nav {
   display: flex;
   align-items: center;
@@ -284,5 +328,9 @@
 @media (prefers-reduced-motion: reduce) {
   .emp-bar.skeleton .emp-bar-fill {
     animation: none;
+  }
+
+  .emp-segment button {
+    transition: none;
   }
 }

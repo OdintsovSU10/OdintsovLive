@@ -6,6 +6,7 @@ import { useEmployeeYearTimesheet } from '../hooks/useEmployeeYearTimesheet'
 import { useEmployeeSkudMonth } from '../hooks/useEmployeeSkudMonth'
 import { useEmployeeDetailData } from '../hooks/useEmployeeDetailData'
 import { useEmployeeSalaryTimeline } from '../hooks/useEmployeeSalaryTimeline'
+import { useEmployeeScore } from '../hooks/useEmployeeScore'
 import { buildMonthDays, getSkudHoursByDate } from '../utils/attendanceDay'
 import {
   getHireMonthIndex,
@@ -24,17 +25,22 @@ import {
 } from '../utils/tenderPresentation'
 import type { EmployeeWithStats } from '../types'
 import { EmployeeHeader } from './employee/EmployeeHeader'
+import { EmployeeInfoSheet } from './employee/EmployeeInfoSheet'
 import { MonthToolbar } from './employee/MonthToolbar'
 import { PayrollCard } from './employee/PayrollCard'
+import { ScoreCard } from './employee/ScoreCard'
 import { AttendanceCalendar } from './employee/AttendanceCalendar'
 import { DayPassesPanel } from './employee/DayPassesPanel'
 import { YearDynamics } from './employee/YearDynamics'
 import { SalaryTimeline } from './employee/SalaryTimeline'
 import './employee/EmployeeDetail.css'
+import './employee/EmployeeHeader.css'
 import './employee/EmployeeAttendance.css'
 import './employee/EmployeeDynamics.css'
+import './employee/EmployeeScore.css'
 
 const WIDE_QUERY = '(min-width: 1100px)'
+const NO_PEERS: EmployeeWithStats[] = []
 const DIALOG_SELECTOR = '.ui-sheet-root, [role="dialog"]'
 
 interface DetailHistoryState {
@@ -54,24 +60,29 @@ export function EmployeeDetail({
   employee,
   year,
   month,
+  peers = NO_PEERS,
   onBack
 }: {
   employee: EmployeeWithStats
   year: number
   month: number
+  // Сотрудники списка: из них берутся коллеги отдела для оценки
+  peers?: EmployeeWithStats[]
   onBack: () => void
 }) {
   const [chartYear, setChartYear] = useState(year)
   const [chartMonth, setChartMonth] = useState(month)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [today] = useState(() => new Date())
   const isWide = useMediaQuery(WIDE_QUERY)
 
   const yearTimesheet = useEmployeeYearTimesheet(employee.id, chartYear)
   const skud = useEmployeeSkudMonth(employee.fot_employee_id, chartYear, chartMonth)
-  const data = useEmployeeDetailData(employee, chartYear, chartMonth, yearTimesheet.entries)
+  const data = useEmployeeDetailData(employee, chartYear, chartMonth, yearTimesheet.entries, yearTimesheet.plans)
   const timeline = useEmployeeSalaryTimeline(employee)
   const live = useLivePayroll(data.monthlyPlan, chartYear, chartMonth)
+  const score = useEmployeeScore(employee, peers, chartYear)
 
   const onBackRef = useRef(onBack)
   const mountedRef = useRef(false)
@@ -85,6 +96,7 @@ export function EmployeeDetail({
     setChartYear(year)
     setChartMonth(month)
     setSelectedDate(null)
+    setInfoOpen(false)
   }, [employee.id, month, year])
 
   // Системная кнопка «назад» закрывает карточку, а не уходит со страницы
@@ -170,22 +182,21 @@ export function EmployeeDetail({
     [skud.eventsByDate, today]
   )
   const days = useMemo(
-    () => buildMonthDays(chartYear, chartMonth, data.entriesByDay, skudHoursByDate, today),
-    [chartMonth, chartYear, data.entriesByDay, skudHoursByDate, today]
+    () => buildMonthDays(chartYear, chartMonth, data.entriesByDay, skudHoursByDate, today, yearTimesheet.plans),
+    [chartMonth, chartYear, data.entriesByDay, skudHoursByDate, today, yearTimesheet.plans]
   )
 
-  // На широком экране панель дня всегда видна; в текущем месяце по умолчанию выбран сегодняшний день
-  const todayIso = toIsoDate(todayYear, todayMonth, today.getDate())
-  const effectiveDate = selectedDate ?? (isWide && isCurrentMonth ? todayIso : null)
-  const selectedDay = effectiveDate ? Number(effectiveDate.slice(8, 10)) : null
+  // Проходы дня — только в модалке и только по нажатию на день
+  const selectedDay = selectedDate ? Number(selectedDate.slice(8, 10)) : null
   const selectedInfo = selectedDay ? days[selectedDay - 1] ?? null : null
-  const sheetOpen = !isWide && selectedDate !== null
+  const sheetOpen = selectedDate !== null
 
   const selectDay = (day: number) => setSelectedDate(toIsoDate(chartYear, chartMonth, day))
 
   const swipeEnabled = !isWide && !sheetOpen
   const noRaiseMonths = useMemo(() => getMonthsSinceLastRaise(employee), [employee])
   const tenureMonths = useMemo(() => getEmployeeTenureMonths(employee), [employee])
+  const ageYears = useMemo(() => getAgeFromBirthDate(employee.birth_date), [employee.birth_date])
 
   const sheetDate = selectedDay ? new Date(chartYear, chartMonth - 1, selectedDay) : null
   const prevDay = selectedDay && selectedDay > 1 ? selectedDay - 1 : null
@@ -199,11 +210,11 @@ export function EmployeeDetail({
         position={employee.position}
         department={employee.department}
         subdivision={employee.subdivision}
-        phone={employee.phone}
-        ageYears={getAgeFromBirthDate(employee.birth_date)}
+        ageYears={ageYears}
         tenureMonths={tenureMonths}
         noRaiseMonths={noRaiseMonths}
         onBack={goBack}
+        onOpenInfo={() => setInfoOpen(true)}
       />
 
       <MonthToolbar
@@ -218,7 +229,14 @@ export function EmployeeDetail({
       />
 
       <div className="emp-layout">
-        <div className="emp-area-payroll">
+        <div className="emp-area-main">
+          <ScoreCard
+            view={score.view}
+            loading={score.loading}
+            error={score.error}
+            noRaiseMonths={noRaiseMonths}
+            onRetry={score.reload}
+          />
           <PayrollCard
             year={chartYear}
             month={chartMonth}
@@ -243,17 +261,6 @@ export function EmployeeDetail({
             onSwipePrev={swipeEnabled && canPrev ? () => shiftBy(-1) : null}
             onSwipeNext={swipeEnabled && canNext ? () => shiftBy(1) : null}
           />
-          {isWide && (
-            <aside className="emp-card emp-day-panel" aria-label="Проходы выбранного дня">
-              <DayPassesPanel
-                fotEmployeeId={employee.fot_employee_id}
-                date={effectiveDate}
-                info={selectedInfo}
-                skud={skud}
-                showDate
-              />
-            </aside>
-          )}
         </div>
 
         <div className="emp-area-dynamics">
@@ -270,9 +277,13 @@ export function EmployeeDetail({
             maxIndex={currentIndex}
             canPrevYear={hireYear === null || chartYear > hireYear}
             canNextYear={chartYear < todayYear}
+            scoreMonthly={score.view?.monthly ?? null}
+            scoreLoading={score.loading}
+            scoreError={score.error}
             onSelectMonth={monthValue => changeMonth(chartYear, monthValue)}
             onShiftYear={shiftYear}
             onRetry={yearTimesheet.reload}
+            onRetryScore={score.reload}
           />
         </div>
 
@@ -288,8 +299,20 @@ export function EmployeeDetail({
         </div>
       </div>
 
+      {infoOpen && (
+        <EmployeeInfoSheet
+          employee={employee}
+          initials={getEmployeeInitials(employee)}
+          ageYears={ageYears}
+          tenureMonths={tenureMonths}
+          noRaiseMonths={noRaiseMonths}
+          onClose={() => setInfoOpen(false)}
+        />
+      )}
+
       {sheetOpen && sheetDate && selectedDay && (
         <BottomSheet
+          variant="modal"
           title={`${WEEKDAYS_SHORT[sheetDate.getDay()]}, ${selectedDay} ${MONTH_GENITIVE[chartMonth - 1]}`}
           onClose={() => setSelectedDate(null)}
           footer={(
@@ -318,7 +341,6 @@ export function EmployeeDetail({
             date={selectedDate}
             info={selectedInfo}
             skud={skud}
-            showDate={false}
           />
         </BottomSheet>
       )}

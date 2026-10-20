@@ -2,53 +2,82 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { roundTimesheetHours } from '../utils/salaryCalculator'
 import { toIsoDate } from '../utils/employeeFormat'
+import type { WorkPlan } from '../utils/attendanceDay'
 import type { TimesheetEntry } from '../types'
 
 const CACHE_TTL_MS = 2 * 60 * 1000
+const EMPTY_PLANS = new Map<string, WorkPlan>()
 
-interface CacheItem {
-  at: number
+interface YearData {
   entries: TimesheetEntry[]
+  // Планы графика FOT по дате; пусто, если таблица пуста или не загрузилась
+  plans: Map<string, WorkPlan>
+}
+
+interface CacheItem extends YearData {
+  at: number
 }
 
 // Кеш по id сотрудника и году: смена месяца внутри года не ходит в сеть
 const yearCache = new Map<string, CacheItem>()
-const inflight = new Map<string, Promise<TimesheetEntry[]>>()
+const inflight = new Map<string, Promise<YearData>>()
 
 function getKey(employeeId: number, year: number): string {
   return `${employeeId}-${year}`
 }
 
-function readCache(key: string): TimesheetEntry[] | null {
+function readCache(key: string): YearData | null {
   const item = yearCache.get(key)
   if (!item) return null
   if (Date.now() - item.at > CACHE_TTL_MS) {
     yearCache.delete(key)
     return null
   }
-  return item.entries
+  return item
 }
 
-function fetchYear(key: string, employeeId: number, year: number): Promise<TimesheetEntry[]> {
+// Планы нужны только для порога полного дня: любая ошибка или пустота — запасной расчёт по календарю
+async function fetchPlans(employeeId: number, year: number): Promise<Map<string, WorkPlan>> {
+  const plans = new Map<string, WorkPlan>()
+  try {
+    const { data, error } = await supabase
+      .from('tender_work_plans')
+      .select('work_date,is_working_day,planned_hours,full_day_threshold_hours')
+      .eq('employee_id', employeeId)
+      .gte('work_date', toIsoDate(year, 1, 1))
+      .lte('work_date', toIsoDate(year, 12, 31))
+    if (error) return plans
+    for (const row of (data || []) as WorkPlan[]) plans.set(row.work_date, row)
+  } catch {
+    // запасной расчёт по календарю
+  }
+  return plans
+}
+
+function fetchYear(key: string, employeeId: number, year: number): Promise<YearData> {
   const pending = inflight.get(key)
   if (pending) return pending
 
   const request = (async () => {
-    const { data, error } = await supabase
-      .from('tender_timesheet')
-      .select('id,employee_id,work_date,status,hours_worked,is_correction')
-      .eq('employee_id', employeeId)
-      .gte('work_date', toIsoDate(year, 1, 1))
-      .lte('work_date', toIsoDate(year, 12, 31))
+    const [timesheet, plans] = await Promise.all([
+      supabase
+        .from('tender_timesheet')
+        .select('id,employee_id,work_date,status,hours_worked,is_correction')
+        .eq('employee_id', employeeId)
+        .gte('work_date', toIsoDate(year, 1, 1))
+        .lte('work_date', toIsoDate(year, 12, 31)),
+      fetchPlans(employeeId, year)
+    ])
 
-    if (error) throw error
+    if (timesheet.error) throw timesheet.error
 
-    const entries = ((data || []) as TimesheetEntry[]).map(entry => ({
+    const entries = ((timesheet.data || []) as TimesheetEntry[]).map(entry => ({
       ...entry,
       hours_worked: entry.hours_worked == null ? null : roundTimesheetHours(entry.hours_worked)
     }))
-    yearCache.set(key, { at: Date.now(), entries })
-    return entries
+    const result: YearData = { entries, plans }
+    yearCache.set(key, { at: Date.now(), ...result })
+    return result
   })().finally(() => {
     inflight.delete(key)
   })
@@ -59,32 +88,32 @@ function fetchYear(key: string, employeeId: number, year: number): Promise<Times
 
 interface YearState {
   key: string
-  entries: TimesheetEntry[] | null
+  data: YearData | null
   error: string | null
 }
 
 export function useEmployeeYearTimesheet(employeeId: number, year: number) {
   const key = getKey(employeeId, year)
-  const [state, setState] = useState<YearState>(() => ({ key, entries: readCache(key), error: null }))
+  const [state, setState] = useState<YearState>(() => ({ key, data: readCache(key), error: null }))
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const cached = readCache(key)
     if (cached) {
-      setState({ key, entries: cached, error: null })
+      setState({ key, data: cached, error: null })
       return undefined
     }
 
     let cancelled = false
-    setState({ key, entries: null, error: null })
+    setState({ key, data: null, error: null })
     fetchYear(key, employeeId, year)
-      .then(entries => {
-        if (!cancelled) setState({ key, entries, error: null })
+      .then(data => {
+        if (!cancelled) setState({ key, data, error: null })
       })
       .catch(err => {
         console.error('Error loading employee year timesheet:', err)
         if (!cancelled) {
-          setState({ key, entries: null, error: err instanceof Error ? err.message : 'Не удалось загрузить табель' })
+          setState({ key, data: null, error: err instanceof Error ? err.message : 'Не удалось загрузить табель' })
         }
       })
 
@@ -101,8 +130,9 @@ export function useEmployeeYearTimesheet(employeeId: number, year: number) {
   // Пока состояние относится к другому ключу — считаем, что идёт загрузка
   const current = state.key === key ? state : null
   return {
-    entries: current?.entries ?? null,
-    loading: !current || (current.entries === null && current.error === null),
+    entries: current?.data?.entries ?? null,
+    plans: current?.data?.plans ?? EMPTY_PLANS,
+    loading: !current || (current.data === null && current.error === null),
     error: current?.error ?? null,
     reload
   }

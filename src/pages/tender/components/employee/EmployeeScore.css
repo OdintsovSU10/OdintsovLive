@@ -1,0 +1,219 @@
+/* Карточка «Оценка сотрудника» */
+
+.emp-score.score-excellent { --tone: var(--chart-positive); }
+.emp-score.score-good { --tone: var(--primary); }
+.emp-score.score-average { --tone: var(--chart-warning); }
+.emp-score.score-attention { --tone: var(--chart-negative); }
+.emp-score.score-none { --tone: var(--text-muted); }
+
+.emp-score .emp-card-head {
+  margin-bottom: 4px;
+}
+
+.emp-score-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.emp-score-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.emp-score-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.emp-score-ring circle {
+  fill: none;
+  stroke-width: 9;
+}
+
+.emp-score-ring .track {
+  stroke: var(--bg-tertiary);
+}
+
+.emp-score-ring .value {
+  stroke: var(--tone);
+  stroke-linecap: round;
+}
+
+.emp-score-ring strong {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.emp-score-ring strong.muted {
+  color: var(--text-muted);
+}
+
+.emp-score-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.emp-score-grade {
+  color: var(--tone);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.emp-score-grade.muted {
+  color: var(--text-muted);
+}
+
+.emp-score-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.emp-score-delta {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.emp-score-delta.up { color: var(--chart-positive); }
+.emp-score-delta.down { color: var(--chart-negative); }
+.emp-score-delta.flat { color: var(--text-muted); }
+
+.emp-score-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  list-style: none;
+}
+
+.emp-score-signals li {
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--signal) 14%, transparent);
+  color: var(--signal);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.emp-score-signals .signal-promotion { --signal: var(--chart-positive); }
+.emp-score-signals .signal-attention { --signal: var(--chart-negative); }
+.emp-score-signals .signal-overpaid { --signal: var(--chart-warning); }
+
+.emp-score-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  list-style: none;
+}
+
+.emp-score-rows li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+
+.emp-score-rows .label {
+  color: var(--text-secondary);
+}
+
+.emp-score-rows .value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.emp-score-rows .bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+}
+
+.emp-score-rows .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--tone);
+}
+
+.emp-score-note {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.emp-score-info {
+  margin-top: 12px;
+}
+
+.emp-score-info p + p {
+  margin-top: 6px;
+}
+
+.emp-score-info b {
+  color: var(--text-primary);
+}
+
+/* Скелетон загрузки */
+
+.emp-score-skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  animation: emp-pulse 1.4s ease-in-out infinite;
+}
+
+.emp-score-skeleton.ring {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+
+.emp-score-skeleton.line {
+  width: 140px;
+  height: 18px;
+}
+
+.emp-score-skeleton.line.short {
+  width: 90px;
+}
+
+.emp-score-skeleton.row {
+  height: 20px;
+}
+
+.emp-score-side .emp-score-skeleton + .emp-score-skeleton {
+  margin-top: 8px;
+}
+
+@media (min-width: 768px) {
+  .emp-score-main {
+    gap: 24px;
+  }
+
+  .emp-score-ring {
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emp-score-skeleton {
+    animation: none;
+  }
+}

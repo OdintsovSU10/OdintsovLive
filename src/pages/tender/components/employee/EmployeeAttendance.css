@@ -1,6 +1,7 @@
 /* Календарь посещения и проходы дня. Тона .tone-* используются и в панели дня. */
 
 .emp-attendance {
+  align-self: start;
   padding: 8px;
 }
 
@@ -15,13 +16,16 @@
 }
 
 .emp-cal {
+  max-width: 340px;
+  margin: 0 auto;
   touch-action: pan-y;
 }
 
 .emp-cal-weekdays,
 .emp-cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 44px));
+  justify-content: center;
   gap: 2px;
 }
 
@@ -231,11 +235,6 @@
   min-width: 0;
 }
 
-.emp-day-heading {
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .emp-day-status {
   display: flex;
   flex-wrap: wrap;
@@ -433,10 +432,6 @@
   .emp-attendance {
     padding: 12px;
   }
-
-  .emp-area-attendance .emp-attendance {
-    max-width: 420px;
-  }
 }
 
 @media (min-width: 1100px) {
@@ -445,18 +440,38 @@
   }
 }
 
+/* Десктоп с мышью: компактный календарь около 280 px */
 @media (pointer: fine) and (min-width: 1100px) {
+  .emp-cal {
+    max-width: 280px;
+  }
+
+  .emp-cal-weekdays,
   .emp-cal-grid {
-    grid-auto-rows: 40px;
-    min-height: calc(5 * 40px + 4 * 2px);
+    grid-template-columns: repeat(7, minmax(0, 36px));
+    gap: 3px;
+  }
+
+  .emp-cal-grid {
+    grid-auto-rows: 36px;
+    min-height: calc(5 * 36px + 4 * 3px);
   }
 
   .emp-cal .emp-state {
-    min-height: calc(5 * 40px + 4 * 2px);
+    min-height: calc(5 * 36px + 4 * 3px);
   }
 
   .emp-day {
-    min-height: 40px;
+    min-height: 36px;
+  }
+
+  .emp-day-num {
+    line-height: 18px;
+  }
+
+  .emp-day-value {
+    height: 13px;
+    line-height: 13px;
   }
 }
 

@@ -1,0 +1,214 @@
+/* Шапка страницы сотрудника и тулбар месяца */
+
+/* Шапка */
+
+.emp-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'back back info'
+    'avatar main main'
+    'stats stats stats';
+  align-items: center;
+  gap: 0 8px;
+  padding: 4px 8px 10px;
+}
+
+.emp-head-back {
+  grid-area: back;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px 0 4px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.emp-head-back:hover {
+  background: var(--primary-light);
+}
+
+.emp-head-info {
+  grid-area: info;
+  color: var(--primary);
+}
+
+.emp-head-avatar {
+  grid-area: avatar;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: 4px;
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.emp-head-main {
+  grid-area: main;
+  min-width: 0;
+  padding: 0 4px 0 0;
+}
+
+.emp-head-main h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.emp-head-sub {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emp-head-stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.emp-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 76px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  line-height: 1.25;
+}
+
+.emp-stat strong {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.emp-stat span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.emp-head-chip {
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  color: var(--tone);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.emp-head-chip.warn {
+  --tone: var(--chart-warning);
+}
+
+.emp-head-chip.critical {
+  --tone: var(--chart-negative);
+}
+
+/* Тулбар месяца: группа строго по центру, «Сегодня» справа поверх, не сдвигая центр */
+
+.emp-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emp-toolbar-group {
+  display: flex;
+  align-items: center;
+}
+
+.emp-toolbar-label {
+  min-width: 104px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.emp-today-btn {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+  transform: translateY(-50%);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.emp-today-btn:hover {
+  text-decoration: underline;
+}
+
+.emp-today-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+@media (min-width: 400px) {
+  .emp-toolbar-label {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .emp-head {
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas: 'back avatar main stats info';
+    gap: 0 12px;
+    padding: 8px 12px;
+  }
+
+  .emp-head-avatar {
+    width: 44px;
+    height: 44px;
+    margin-left: 0;
+  }
+
+  .emp-head-main {
+    padding: 0;
+  }
+
+  .emp-head-stats {
+    margin-top: 0;
+    padding: 0;
+  }
+}

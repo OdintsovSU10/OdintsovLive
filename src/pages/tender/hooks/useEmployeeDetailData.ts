@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
-import { calculateSalary, getDailyHoursNorm, getSalaryForMonth, isWeekendOrHoliday } from '../utils/salaryCalculator'
+import { calculateSalary, getSalaryForMonth, isWeekendOrHoliday } from '../utils/salaryCalculator'
 import {
   calculateEmployeeMonthlyPayrollPlan,
   DEFAULT_TRANSPORT,
@@ -13,7 +13,7 @@ import {
   isWorkedTimesheetStatus,
   type TimesheetStatusCounts
 } from '../utils/timesheetStatus'
-import { resolveTimesheetWorkedHours } from '../utils/attendanceDay'
+import { getFullDayThresholdHours, resolveTimesheetWorkedHours, type WorkPlan } from '../utils/attendanceDay'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
 
 export interface EmployeeHistoryPoint {
@@ -55,7 +55,8 @@ function buildPoint(
   year: number,
   month: number,
   monthTimesheet: TimesheetEntry[],
-  transport: number
+  transport: number,
+  plans: Map<string, WorkPlan>
 ): EmployeeHistoryPoint {
   const normDays = getWorkDaysNorm(year, month - 1)
   const statusCounts = createEmptyTimesheetStatusCounts()
@@ -100,20 +101,21 @@ function buildPoint(
   let normHours = 0
   const daysInMonth = new Date(year, month, 0).getDate()
 
+  // Норма и «сверх нормы» — от нетто-порога полного дня, как в календаре посещения
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month - 1, day)
-    if (!isWeekendOrHoliday(date)) {
-      normHours += getDailyHoursNorm(date)
-    }
+    const dateIso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    normHours += getFullDayThresholdHours(new Date(year, month - 1, day), plans.get(dateIso)) ?? 0
   }
 
   for (const entry of monthTimesheet) {
     statusCounts[entry.status] += 1
     if (!isWorkedTimesheetStatus(entry.status)) continue
     const date = new Date(`${entry.work_date}T12:00:00`)
-    const workedHours = resolveTimesheetWorkedHours(entry, date)
+    const plan = plans.get(entry.work_date)
+    const workedHours = resolveTimesheetWorkedHours(entry, date, plan)
     hours += workedHours
-    overtime += Math.max(0, workedHours - getDailyHoursNorm(date))
+    // В выходной порога нет: эти часы оплачиваются отдельно и сверх нормы не считаются
+    overtime += Math.max(0, workedHours - (getFullDayThresholdHours(date, plan) ?? workedHours))
 
     // Удалёнка и работа на больничном считаются днём независимо от часов
     const countsAsDay = entry.status === 'remote' || entry.status === 'sick_worked' || workedHours >= 3
@@ -149,7 +151,8 @@ export function useEmployeeDetailData(
   employee: EmployeeWithStats,
   year: number,
   month: number,
-  yearEntries: TimesheetEntry[] | null
+  yearEntries: TimesheetEntry[] | null,
+  plans: Map<string, WorkPlan>
 ) {
   const transport = useMemo(() => readTransport(), [])
 
@@ -162,9 +165,9 @@ export function useEmployeeDetailData(
       byMonth.set(entryMonth, list)
     }
     return Array.from({ length: 12 }, (_, index) => (
-      buildPoint(employee, year, index + 1, byMonth.get(index + 1) || [], transport)
+      buildPoint(employee, year, index + 1, byMonth.get(index + 1) || [], transport, plans)
     ))
-  }, [employee, transport, year, yearEntries])
+  }, [employee, plans, transport, year, yearEntries])
 
   const point = history[month - 1]
 

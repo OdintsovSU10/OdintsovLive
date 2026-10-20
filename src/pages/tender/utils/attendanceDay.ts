@@ -2,6 +2,7 @@ import type { TimesheetEntry } from '../types'
 import type { FotEmployeeEvent } from './fotEmployeeEvents'
 import { calculateFotSkudDay } from './skudTimeCalculation'
 import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from './salaryCalculator'
+import { HOLIDAYS } from '../../../lib/constants'
 import { isWorkedTimesheetStatus, TIMESHEET_STATUS_META } from './timesheetStatus'
 import {
   formatHoursValue,
@@ -16,11 +17,12 @@ export type DayKind = 'full' | 'partial' | 'absent' | 'leave' | 'weekend' | 'oth
 export interface DayClass {
   tone: DayTone
   kind: DayKind
-  // Текст в ячейке: «9», «6/9», «Н», «+5», «—»
+  // Текст в ячейке: только число часов («8», «6»), «Н», «—»
   value: string
   // Часы по табелю (для дня без записи по СКУД — часы СКУД)
   hours: number
   skudHours: number | null
+  // Порог полного дня в нетто-часах (без обеда); 0 — выходной, порога нет
   norm: number
   off: boolean
   isToday: boolean
@@ -47,11 +49,40 @@ export interface LegendCounts {
   leave: number
 }
 
-const WEEKEND_WORK_MIN_HOURS = 3
 export const MISMATCH_HOURS = 2
+const LUNCH_HOURS = 1
+const WEEKEND_WORK_MIN_PAID_HOURS = 3
 
-export function resolveTimesheetWorkedHours(entry: TimesheetEntry, date: Date): number {
-  const expectedHours = getDailyHoursNorm(date)
+// План сотрудника на день из tender_work_plans (график FOT)
+export interface WorkPlan {
+  work_date: string
+  is_working_day: boolean
+  planned_hours: number | null
+  full_day_threshold_hours: number | null
+}
+
+function isHoliday(date: Date): boolean {
+  return HOLIDAYS[String(date.getMonth())]?.includes(date.getDate()) ?? false
+}
+
+// Порог полного дня в нетто-часах, как в FOT (в табеле лежат часы без обеда).
+// null — выходной или праздник: порога нет, любые часы больше нуля считаются присутствием.
+export function getFullDayThresholdHours(date: Date, plan?: WorkPlan): number | null {
+  if (plan) {
+    if (!plan.is_working_day) return null
+    const planned = Number(plan.full_day_threshold_hours) || Number(plan.planned_hours) || 0
+    if (planned > 0) return planned
+  }
+  if (isWeekendOrHoliday(date)) return null
+
+  // Брутто-норма минус обед; в предпраздничный день ещё час короче
+  const nextDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+  const preHoliday = isHoliday(nextDay) ? 1 : 0
+  return getDailyHoursNorm(date) - LUNCH_HOURS - preHoliday
+}
+
+export function resolveTimesheetWorkedHours(entry: TimesheetEntry, date: Date, plan?: WorkPlan): number {
+  const expectedHours = getFullDayThresholdHours(date, plan) ?? getDailyHoursNorm(date)
 
   if (entry.status === 'sick_worked') {
     return roundTimesheetHours(entry.hours_worked) || expectedHours
@@ -63,7 +94,7 @@ export function resolveTimesheetWorkedHours(entry: TimesheetEntry, date: Date): 
     && entry.hours_worked === 8
     && !entry.is_correction
   ) {
-    return expectedHours
+    return Math.max(entry.hours_worked, expectedHours)
   }
 
   return roundTimesheetHours(entry.hours_worked, expectedHours)
@@ -80,29 +111,32 @@ interface WorkedResult {
   verdict: string
 }
 
-function classifyWorkedHours(hours: number, norm: number, off: boolean, isToday: boolean): WorkedResult {
+function classifyWorkedHours(hours: number, threshold: number | null, isToday: boolean): WorkedResult {
   const hoursText = formatHoursValue(hours)
 
-  if (off) {
-    if (hours >= WEEKEND_WORK_MIN_HOURS) {
-      return { tone: 'green', kind: 'weekend', value: `+${hoursText}`, verdict: 'работа в выходной' }
+  // Выходной или праздник: любые часы больше нуля — присутствие
+  if (threshold === null) {
+    if (hours > 0) {
+      return {
+        tone: 'green',
+        kind: 'weekend',
+        value: hoursText,
+        verdict: hours >= WEEKEND_WORK_MIN_PAID_HOURS
+          ? 'работа в выходной'
+          : 'работа в выходной, меньше 3 ч не оплачивается'
+      }
     }
-    return { tone: 'neutral', kind: 'other', value: hoursText, verdict: 'меньше 3 ч, не оплачивается' }
+    return { tone: 'neutral', kind: 'other', value: '', verdict: 'часов нет' }
   }
 
-  if (hours >= norm) {
+  if (hours >= threshold) {
     return { tone: 'green', kind: 'full', value: hoursText, verdict: 'полный день' }
   }
   if (isToday) {
-    return {
-      tone: 'neutral',
-      kind: 'other',
-      value: hours > 0 ? `${hoursText}/${norm}` : '',
-      verdict: 'день ещё идёт'
-    }
+    return { tone: 'neutral', kind: 'other', value: hours > 0 ? hoursText : '', verdict: 'день ещё идёт' }
   }
   if (hours > 0) {
-    return { tone: 'yellow', kind: 'partial', value: `${hoursText}/${norm}`, verdict: 'неполный день' }
+    return { tone: 'yellow', kind: 'partial', value: hoursText, verdict: 'неполный день' }
   }
   return { tone: 'red', kind: 'absent', value: '0', verdict: 'неявка, часов нет' }
 }
@@ -111,10 +145,12 @@ export function classifyDay(
   entry: TimesheetEntry | undefined,
   date: Date,
   today: Date,
-  skudHours: number | null = null
+  skudHours: number | null = null,
+  plan?: WorkPlan
 ): DayClass {
-  const norm = getDailyHoursNorm(date)
-  const off = isWeekendOrHoliday(date)
+  const threshold = getFullDayThresholdHours(date, plan)
+  const norm = threshold ?? 0
+  const off = threshold === null
   const key = dayKey(date)
   const todayKey = dayKey(today)
   const isToday = key === todayKey
@@ -147,7 +183,7 @@ export function classifyDay(
     if (off) return { ...base, statusLabel: 'Выходной' }
     // Запасной источник: табеля нет, но есть проходы СКУД
     if (isPast && skudHours !== null && skudHours > 0) {
-      const result = classifyWorkedHours(skudHours, norm, false, false)
+      const result = classifyWorkedHours(skudHours, threshold, false)
       return { ...base, ...result, hours: skudHours, fromSkud: true, worked: true, statusLabel: 'Нет записи в табеле' }
     }
     if (isToday) return { ...base, statusLabel: 'Нет записи' }
@@ -164,8 +200,8 @@ export function classifyDay(
     return { ...common, tone: 'leave', kind: 'leave', value: meta.short }
   }
 
-  const hours = resolveTimesheetWorkedHours(entry, date)
-  const result = classifyWorkedHours(hours, norm, off, isToday)
+  const hours = resolveTimesheetWorkedHours(entry, date, plan)
+  const result = classifyWorkedHours(hours, threshold, isToday)
   const mismatch = skudHours !== null && !isToday && !isFuture && Math.abs(hours - skudHours) >= MISMATCH_HOURS
 
   return {
@@ -197,7 +233,7 @@ export function getDayAriaLabel(date: Date, info: DayClass): string {
 export function countLegend(days: DayClass[]): LegendCounts {
   const counts: LegendCounts = { full: 0, partial: 0, absent: 0, leave: 0 }
   for (const day of days) {
-    if (day.tone === 'green' && !day.off) counts.full += 1
+    if (day.kind === 'full') counts.full += 1
     else if (day.tone === 'yellow') counts.partial += 1
     else if (day.tone === 'red') counts.absent += 1
     else if (day.tone === 'leave') counts.leave += 1
@@ -225,12 +261,14 @@ export function buildMonthDays(
   month: number,
   entriesByDay: Map<number, TimesheetEntry>,
   skudHoursByDate: Map<string, number>,
-  today: Date
+  today: Date,
+  plansByDate?: Map<string, WorkPlan>
 ): DayClass[] {
   const daysInMonth = new Date(year, month, 0).getDate()
   return Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1
-    const skudHours = skudHoursByDate.get(toIsoDate(year, month, day)) ?? null
-    return classifyDay(entriesByDay.get(day), new Date(year, month - 1, day), today, skudHours)
+    const dateIso = toIsoDate(year, month, day)
+    const skudHours = skudHoursByDate.get(dateIso) ?? null
+    return classifyDay(entriesByDay.get(day), new Date(year, month - 1, day), today, skudHours, plansByDate?.get(dateIso))
   })
 }

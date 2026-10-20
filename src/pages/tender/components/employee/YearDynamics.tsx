@@ -3,6 +3,9 @@ import { ChevronDown, ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import type { EmployeeHistoryPoint } from '../../hooks/useEmployeeDetailData'
 import { TIMESHEET_STATUS_META, TIMESHEET_STATUS_ORDER } from '../../utils/timesheetStatus'
 import { formatRub, monthIndex, MONTH_SHORT } from '../../utils/employeeFormat'
+import type { WindowScore } from '../../utils/employeeScore'
+
+type DynamicsMode = 'income' | 'score'
 
 interface Props {
   year: number
@@ -18,9 +21,14 @@ interface Props {
   maxIndex: number
   canPrevYear: boolean
   canNextYear: boolean
+  // Помесячная оценка года; null — ещё не загружена
+  scoreMonthly: Array<WindowScore | null> | null
+  scoreLoading: boolean
+  scoreError: string | null
   onSelectMonth: (month: number) => void
   onShiftYear: (direction: -1 | 1) => void
   onRetry: () => void
+  onRetryScore: () => void
 }
 
 export function YearDynamics({
@@ -36,14 +44,25 @@ export function YearDynamics({
   maxIndex,
   canPrevYear,
   canNextYear,
+  scoreMonthly,
+  scoreLoading,
+  scoreError,
   onSelectMonth,
   onShiftYear,
-  onRetry
+  onRetry,
+  onRetryScore
 }: Props) {
+  const [mode, setMode] = useState<DynamicsMode>('income')
   const [averageInfoOpen, setAverageInfoOpen] = useState(false)
   const [compositionOpen, setCompositionOpen] = useState(false)
 
+  const isScore = mode === 'score'
+  const chartLoading = isScore ? scoreLoading : loading
+  const chartError = isScore ? scoreError : error
+  const handleRetry = isScore ? onRetryScore : onRetry
   const selected = history[month - 1]
+  const selectedScore = scoreMonthly?.[month - 1] ?? null
+  const monthName = `${MONTH_SHORT[month - 1][0].toUpperCase()}${MONTH_SHORT[month - 1].slice(1)}`
   const maxEarned = Math.max(1, ...history.map(point => point.earned), averageMonthlyIncome)
   const averageBottom = hasYearData ? (averageMonthlyIncome / maxEarned) * 100 : null
 
@@ -66,62 +85,82 @@ export function YearDynamics({
         </div>
       </div>
 
-      <div className="emp-average">
-        <span>
-          Среднее <strong>{loading ? '—' : formatRub(averageMonthlyIncome)}</strong>/мес
-        </span>
-        <button
-          type="button"
-          className="emp-icon-btn"
-          onClick={() => setAverageInfoOpen(value => !value)}
-          aria-expanded={averageInfoOpen}
-          aria-label="Пояснение к среднему"
-        >
-          <Info size={18} aria-hidden="true" />
-        </button>
+      <div className="emp-segment" role="group" aria-label="Что показывать на графике">
+        <button type="button" aria-pressed={!isScore} onClick={() => setMode('income')}>Начисления</button>
+        <button type="button" aria-pressed={isScore} onClick={() => setMode('score')}>Оценка</button>
       </div>
-      {averageInfoOpen && (
-        <p className="emp-hint">
-          {hasYearData
-            ? `По выходным в среднем ${formatRub(averageWeekendIncome)}/мес. Среднее считается по месяцам с табелем.`
-            : 'Нет данных табеля за выбранный год'}
-        </p>
+
+      {!isScore && (
+        <>
+          <div className="emp-average">
+            <span>
+              Среднее <strong>{loading ? '—' : formatRub(averageMonthlyIncome)}</strong>/мес
+            </span>
+            <button
+              type="button"
+              className="emp-icon-btn"
+              onClick={() => setAverageInfoOpen(value => !value)}
+              aria-expanded={averageInfoOpen}
+              aria-label="Пояснение к среднему"
+            >
+              <Info size={18} aria-hidden="true" />
+            </button>
+          </div>
+          {averageInfoOpen && (
+            <p className="emp-hint">
+              {hasYearData
+                ? `По выходным в среднем ${formatRub(averageWeekendIncome)}/мес. Среднее считается по месяцам с табелем.`
+                : 'Нет данных табеля за выбранный год'}
+            </p>
+          )}
+        </>
       )}
 
-      {error ? (
+      {chartError ? (
         <div className="emp-state error">
-          <span>{error}</span>
-          <button type="button" className="emp-text-btn" onClick={onRetry}>Повторить</button>
+          <span>{chartError}</span>
+          <button type="button" className="emp-text-btn" onClick={handleRetry}>Повторить</button>
         </div>
       ) : (
-        <div className="emp-bars" aria-busy={loading}>
-          {averageBottom !== null && !loading && (
+        <div className="emp-bars" aria-busy={chartLoading}>
+          {!isScore && averageBottom !== null && !loading && (
             <div className="emp-bars-plot" aria-hidden="true">
               <span className="emp-bars-average" style={{ bottom: `${Math.min(100, averageBottom)}%` }} />
             </div>
           )}
           {Array.from({ length: 12 }, (_, index) => {
             const point = history[index]
+            const monthScore = scoreMonthly?.[index] ?? null
             const barMonth = index + 1
             const idx = monthIndex(year, barMonth)
-            const disabled = loading || idx > maxIndex || (minIndex !== null && idx < minIndex)
+            const disabled = chartLoading || idx > maxIndex || (minIndex !== null && idx < minIndex)
             const isSelected = barMonth === month
-            const hasData = !!point?.hasTimesheet
-            const heightPercent = hasData ? Math.max(4, (point.earned / maxEarned) * 100) : 0
+            const hasData = isScore ? monthScore !== null : !!point?.hasTimesheet
+            const value = isScore ? monthScore?.total ?? 0 : point?.earned ?? 0
+            const heightPercent = hasData
+              ? Math.max(4, isScore ? value : (value / maxEarned) * 100)
+              : 0
+            const toneClass = isScore && monthScore?.grade ? `score-${monthScore.grade.key}` : ''
+            let label = `${MONTH_SHORT[index]} ${year}: табель не загружен`
+            if (isScore) {
+              label = monthScore
+                ? `${MONTH_SHORT[index]} ${year}: оценка ${monthScore.total}, ${monthScore.grade?.label}`
+                : `${MONTH_SHORT[index]} ${year}: оценка недоступна, мало данных`
+            } else if (hasData) {
+              label = `${MONTH_SHORT[index]} ${year}: ${formatRub(value)}`
+            }
             return (
               <button
                 key={barMonth}
                 type="button"
-                className={`emp-bar ${isSelected ? 'selected' : ''} ${hasData ? '' : 'empty'} ${loading ? 'skeleton' : ''}`}
+                className={`emp-bar ${toneClass} ${isSelected ? 'selected' : ''} ${hasData ? '' : 'empty'} ${chartLoading ? 'skeleton' : ''}`}
                 disabled={disabled}
                 aria-pressed={isSelected}
-                aria-label={hasData
-                  ? `${MONTH_SHORT[index]} ${year}: ${formatRub(point.earned)}`
-                  : `${MONTH_SHORT[index]} ${year}: табель не загружен`}
+                aria-label={label}
                 onClick={() => onSelectMonth(barMonth)}
               >
                 <span className="emp-bar-area">
-                  <span className="emp-bar-fill" style={{ height: loading ? '40%' : hasData ? `${heightPercent}%` : undefined }} />
+                  <span className="emp-bar-fill" style={{ height: chartLoading ? '40%' : hasData ? `${heightPercent}%` : undefined }} />
                 </span>
                 <span className="emp-bar-label">{MONTH_SHORT[index]}</span>
               </button>
@@ -131,12 +170,16 @@ export function YearDynamics({
       )}
 
       <p className="emp-dynamics-summary">
-        {loading || !selected ? ' ' : selected.hasTimesheet
-          ? `${MONTH_SHORT[month - 1][0].toUpperCase()}${MONTH_SHORT[month - 1].slice(1)} · ${formatRub(selected.earned)} · ${selected.workedDays}/${selected.normDays} дн · ${selected.hours.toLocaleString('ru-RU')} ч`
-          : 'Табель за месяц не загружен'}
+        {isScore
+          ? (scoreLoading ? ' ' : selectedScore
+            ? `${monthName} · ${selectedScore.total} · ${selectedScore.grade?.label}`
+            : 'Оценка за месяц недоступна: мало данных')
+          : (loading || !selected ? ' ' : selected.hasTimesheet
+            ? `${monthName} · ${formatRub(selected.earned)} · ${selected.workedDays}/${selected.normDays} дн · ${selected.hours.toLocaleString('ru-RU')} ч`
+            : 'Табель за месяц не загружен')}
       </p>
 
-      {!loading && selected?.hasTimesheet && (
+      {!isScore && !loading && selected?.hasTimesheet && (
         <>
           <button
             type="button"

@@ -292,6 +292,7 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
             employee={selectedEmployee}
             year={selectedYear}
             month={selectedMonth}
+            peers={employees}
             onBack={closeEmployee}
           />
         </div>

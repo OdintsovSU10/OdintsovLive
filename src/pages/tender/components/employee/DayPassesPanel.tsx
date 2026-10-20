@@ -8,7 +8,7 @@ import {
   type SkudDayCalculation
 } from '../../utils/skudTimeCalculation'
 import type { EmployeeSkudMonth } from '../../hooks/useEmployeeSkudMonth'
-import { formatHoursValue, MONTH_GENITIVE, parseIsoDate, toIsoDate, WEEKDAYS_SHORT } from '../../utils/employeeFormat'
+import { formatHoursValue, toIsoDate } from '../../utils/employeeFormat'
 
 function formatEventTime(value: string): string {
   return value.slice(0, 5)
@@ -60,11 +60,9 @@ interface Props {
   date: string | null
   info: DayClass | null
   skud: EmployeeSkudMonth
-  // Заголовок с датой нужен в панели на десктопе; в шторке дата уже в её заголовке
-  showDate: boolean
 }
 
-export function DayPassesPanel({ fotEmployeeId, date, info, skud, showDate }: Props) {
+export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
   const { eventsByDate, loading, error, reload } = skud
   const [now, setNow] = useState(() => Date.now())
 
@@ -96,18 +94,18 @@ export function DayPassesPanel({ fotEmployeeId, date, info, skud, showDate }: Pr
     return <div className="emp-state muted">Выберите день</div>
   }
 
-  const dateObject = parseIsoDate(date)
-  const heading = `${WEEKDAYS_SHORT[dateObject.getDay()]}, ${dateObject.getDate()} ${MONTH_GENITIVE[dateObject.getMonth()]}`
   const timesheetText = info?.worked && !info.fromSkud ? `${formatHoursValue(info.hours)} ч` : '—'
   const skudText = calculation ? `${formatHoursValue(Math.round(calculation.paidSeconds / 360) / 10)} ч` : '—'
+  // «6 из 8 ч, неполный день»
   const hoursLine = info?.worked
-    ? (info.off ? `${formatHoursValue(info.hours)} ч` : `${formatHoursValue(info.hours)} ч из ${info.norm}`)
+    ? [
+      info.off ? `${formatHoursValue(info.hours)} ч` : `${formatHoursValue(info.hours)} из ${info.norm} ч`,
+      info.verdict
+    ].filter(Boolean).join(', ')
     : null
 
   return (
     <div className="emp-day-panel-body">
-      {showDate && <h3 className="emp-day-heading">{heading}</h3>}
-
       <div className="emp-day-status">
         {info && info.statusLabel && <span className={`emp-day-chip tone-${info.tone}`}>{info.statusLabel}</span>}
         {hoursLine && <span className="emp-day-hours">{hoursLine}</span>}

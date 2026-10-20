@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronLeft, Phone } from 'lucide-react'
-import { formatRuPhone } from '../../../../lib/formatUtils'
+import { ChevronLeft, Info } from 'lucide-react'
 import { formatAgeYears, formatMonthsSinceRaise } from '../../utils/tenderPresentation'
 
 const NO_RAISE_WARN_MONTHS = 6
@@ -12,11 +10,11 @@ interface Props {
   position: string
   department: string | null
   subdivision: string | null
-  phone: string | null
   ageYears: number | null
   tenureMonths: number
   noRaiseMonths: number
   onBack: () => void
+  onOpenInfo: () => void
 }
 
 export function EmployeeHeader({
@@ -25,18 +23,13 @@ export function EmployeeHeader({
   position,
   department,
   subdivision,
-  phone,
   ageYears,
   tenureMonths,
   noRaiseMonths,
-  onBack
+  onBack,
+  onOpenInfo
 }: Props) {
-  const [aboutOpen, setAboutOpen] = useState(false)
-  const phoneText = formatRuPhone(phone)
-  const phoneHref = (phone || '').replace(/[^\d+]/g, '')
   const subtitle = [position, department, subdivision].filter(Boolean).join(' · ')
-  const ageText = ageYears !== null ? formatAgeYears(ageYears) : '—'
-  const tenureText = formatMonthsSinceRaise(tenureMonths)
   const noRaiseTone = noRaiseMonths >= NO_RAISE_CRITICAL_MONTHS ? 'critical' : 'warn'
 
   return (
@@ -53,41 +46,31 @@ export function EmployeeHeader({
         {subtitle && <p className="emp-head-sub">{subtitle}</p>}
       </div>
 
-      <p className="emp-head-meta">
-        Возраст: {ageText} · Стаж: {tenureText}
-      </p>
-
-      {noRaiseMonths >= NO_RAISE_WARN_MONTHS && (
-        <span className={`emp-head-chip ${noRaiseTone}`}>
-          Без повышения {formatMonthsSinceRaise(noRaiseMonths)}
-        </span>
-      )}
-
-      {phoneHref && (
-        <a className="emp-icon-btn emp-head-phone" href={`tel:${phoneHref}`} aria-label={`Позвонить: ${phoneText}`}>
-          <Phone size={20} aria-hidden="true" />
-        </a>
-      )}
+      <div className="emp-head-stats">
+        <div className="emp-stat">
+          <strong>{ageYears !== null ? formatAgeYears(ageYears) : '—'}</strong>
+          <span>возраст</span>
+        </div>
+        <div className="emp-stat">
+          <strong>{formatMonthsSinceRaise(tenureMonths)}</strong>
+          <span>стаж</span>
+        </div>
+        {noRaiseMonths >= NO_RAISE_WARN_MONTHS && (
+          <span className={`emp-head-chip ${noRaiseTone}`}>
+            Без повышения {formatMonthsSinceRaise(noRaiseMonths)}
+          </span>
+        )}
+      </div>
 
       <button
         type="button"
-        className={`emp-icon-btn emp-head-chevron ${aboutOpen ? 'open' : ''}`}
-        onClick={() => setAboutOpen(value => !value)}
-        aria-expanded={aboutOpen}
-        aria-controls="emp-about"
-        aria-label="О сотруднике"
+        className="emp-icon-btn emp-head-info"
+        onClick={onOpenInfo}
+        aria-haspopup="dialog"
+        aria-label="Информация о сотруднике"
       >
-        <ChevronDown size={20} aria-hidden="true" />
+        <Info size={22} aria-hidden="true" />
       </button>
-
-      {aboutOpen && (
-        <dl id="emp-about" className="emp-head-about">
-          <div><dt>Возраст</dt><dd>{ageText}</dd></div>
-          <div><dt>Стаж</dt><dd>{tenureText}</dd></div>
-          <div><dt>Подразделение</dt><dd>{subdivision || '—'}</dd></div>
-          <div><dt>Телефон</dt><dd>{phoneText || '—'}</dd></div>
-        </dl>
-      )}
     </header>
   )
 }

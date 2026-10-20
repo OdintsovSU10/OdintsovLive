@@ -288,6 +288,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
               employee={selectedEmployee}
               year={selectedYear}
               month={selectedMonth}
+              peers={employees}
               onBack={closeEmployee}
             />
           ) : (

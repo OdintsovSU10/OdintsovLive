@@ -96,6 +96,7 @@
 .emp-day:focus-visible,
 .emp-bar:focus-visible,
 .emp-salary-toggle:focus-visible,
+.emp-segment button:focus-visible,
 .emp-head-back:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 1px;
@@ -107,7 +108,6 @@
   transition: transform 0.2s ease-out;
 }
 
-.emp-head-chevron.open svg,
 .emp-composition-toggle svg.open,
 .emp-salary-toggle svg.open {
   transform: rotate(180deg);
@@ -145,164 +145,7 @@
   color: var(--danger);
 }
 
-/* Шапка */
-
-.emp-head {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas:
-    'back back chip chevron'
-    'avatar main main phone'
-    'about about about about';
-  align-items: center;
-  gap: 4px 8px;
-  padding: 4px 8px 8px;
-}
-
-.emp-head-back {
-  grid-area: back;
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 10px 0 4px;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--primary);
-  font-size: 14px;
-  font-weight: 500;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.emp-head-back:hover {
-  background: var(--primary-light);
-}
-
-.emp-head-avatar {
-  grid-area: avatar;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin-left: 4px;
-  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
-  border-radius: var(--radius-md);
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.emp-head-main {
-  grid-area: main;
-  min-width: 0;
-}
-
-.emp-head-main h2 {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.emp-head-sub {
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.emp-head-meta {
-  display: none;
-  grid-area: meta;
-  color: var(--text-muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.emp-head-chip {
-  grid-area: chip;
-  justify-self: end;
-  padding: 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--tone) 16%, transparent);
-  color: var(--tone);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.emp-head-chip.warn {
-  --tone: var(--chart-warning);
-}
-
-.emp-head-chip.critical {
-  --tone: var(--chart-negative);
-}
-
-.emp-head-phone {
-  grid-area: phone;
-  color: var(--primary);
-}
-
-.emp-head-chevron {
-  grid-area: chevron;
-}
-
-.emp-head-about {
-  grid-area: about;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 4px 4px 0;
-}
-
-.emp-head-about div {
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-}
-
-.emp-head-about dt {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.emp-head-about dd {
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-
-/* Тулбар месяца */
-
-.emp-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.emp-toolbar-label {
-  min-width: 132px;
-  font-size: 16px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.emp-toolbar .emp-text-btn {
-  margin-left: auto;
-}
-
-/* Раскладка */
+/* Раскладка: телефон — один столбец */
 
 .emp-layout {
   display: grid;
@@ -310,35 +153,46 @@
   gap: 12px;
 }
 
-.emp-area-payroll,
+.emp-area-main,
+.emp-area-attendance,
 .emp-area-dynamics,
 .emp-area-salary {
   min-width: 0;
 }
 
-.emp-area-attendance {
+.emp-area-main {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 0;
 }
 
-/* Начисление */
+/* Начисление: тонкая второстепенная полоса */
 
-.emp-payroll-head {
+.emp-payroll {
+  padding: 4px 12px 10px;
+}
+
+.emp-payroll-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  font-size: 13px;
+  min-height: 44px;
+}
+
+.emp-payroll-total {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .emp-payroll-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
-  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .emp-payroll-label.live {
@@ -353,38 +207,38 @@
   animation: emp-pulse 1.6s ease-in-out infinite;
 }
 
-.emp-payroll-total {
-  display: flex;
-  flex-direction: column;
-  margin: 8px 0 10px;
-}
-
-.emp-payroll-total small {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
 .emp-payroll-total strong {
   font-family: var(--font-mono);
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
-.emp-payroll-total span {
-  min-height: 20px;
+.emp-payroll-plan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
-.emp-payroll-total span.accruing {
-  color: var(--chart-positive);
+.emp-payroll-plan b {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emp-payroll .emp-icon-btn {
+  margin-right: -10px;
 }
 
 .emp-progress {
-  height: 8px;
+  height: 4px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--bg-tertiary);
@@ -396,18 +250,19 @@
   background: var(--primary);
 }
 
-.emp-payroll-plan {
-  margin-top: 6px;
+.emp-payroll-info {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-.emp-payroll-sheet {
-  min-height: 20px;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 13px;
+.emp-payroll-info .accruing {
+  color: var(--chart-positive);
 }
 
 @keyframes emp-pulse {
@@ -420,52 +275,23 @@
     padding: 16px;
   }
 
-  .emp-head-about {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .emp-payroll-total strong {
-    font-size: 30px;
+  .emp-payroll {
+    padding: 4px 16px 10px;
   }
 }
 
 @media (min-width: 1100px) {
-  .emp-head {
-    grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
-    grid-template-areas: 'back avatar main meta chip phone';
-    gap: 0 12px;
-    padding: 8px 12px;
-  }
-
-  .emp-head-avatar {
-    width: 44px;
-    height: 44px;
-    margin-left: 0;
-  }
-
-  .emp-head-meta {
-    display: block;
-  }
-
-  .emp-head-chevron,
-  .emp-head-about {
-    display: none;
-  }
-
   .emp-layout {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     align-items: start;
   }
 
-  .emp-area-payroll {
-    grid-column: span 4;
+  .emp-area-main {
+    grid-column: span 7;
   }
 
   .emp-area-attendance {
-    display: grid;
-    grid-column: span 8;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-    align-items: start;
+    grid-column: span 5;
   }
 
   .emp-area-dynamics {
