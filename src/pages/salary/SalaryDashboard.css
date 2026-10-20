@@ -1,0 +1,631 @@
+/* Обзор зарплаты: плитки, быстрый ввод выплаты, таблица месяцев и график.
+   Mobile-first: база 360 px, дальше min-width. */
+
+.sd-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 16px 0 24px;
+}
+
+.sd-page button,
+.sd-page select,
+.sd-page input {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.sd-page .salary-header {
+  margin-bottom: 0;
+}
+
+.sd-muted {
+  color: var(--text-muted);
+}
+
+.sd-debt {
+  color: var(--danger);
+}
+
+.sd-over {
+  color: var(--chart-positive);
+}
+
+/* ===== Плитки ===== */
+
+.sd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sd-kpi-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.sd-kpi-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.sd-kpi-value {
+  font-family: var(--font-headline);
+  font-size: 1.35rem;
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.sd-kpi-value.debt {
+  color: var(--danger);
+}
+
+.sd-kpi-value.over {
+  color: var(--chart-positive);
+}
+
+.sd-kpi-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.sd-kpi-hint.ok {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.sd-kpi-source {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* ===== Быстрый ввод выплаты ===== */
+
+.sd-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.sd-quick-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sd-field-label {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.sd-input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  /* >= 16 px: Safari не зумит форму при фокусе */
+  font-size: 16px;
+}
+
+.sd-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.sd-input-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sd-submit {
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  transition: opacity 0.15s ease-out;
+}
+
+.sd-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sd-quick-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 20px;
+}
+
+.sd-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-quick-status {
+  font-size: 0.85rem;
+}
+
+.sd-quick-status.ok {
+  color: var(--chart-positive);
+}
+
+.sd-quick-status.error {
+  color: var(--danger);
+}
+
+/* ===== Основная область ===== */
+
+.sd-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sd-chart-col {
+  min-width: 0;
+}
+
+.sd-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.sd-card-title {
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+/* ===== Таблица месяцев ===== */
+
+.sd-table {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sd-head {
+  display: none;
+}
+
+.sd-row-wrap {
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sd-row-wrap.current {
+  border-left-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.sd-row-wrap.future .sd-row {
+  color: var(--text-muted);
+}
+
+.sd-row-wrap.future .sd-debt {
+  color: var(--text-muted);
+}
+
+.sd-row-wrap.total {
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+}
+
+/* База: карточка из двух строк — месяц и остаток, затем дни и деньги */
+.sd-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'month balance'
+    'days money';
+  gap: 2px 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+button.sd-row:hover {
+  background: var(--surface-hover);
+}
+
+.sd-month {
+  grid-area: month;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sd-month-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.sd-badge {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.sd-days {
+  grid-area: days;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.sd-money {
+  grid-area: money;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.sd-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sd-balance {
+  grid-area: balance;
+  font-weight: 600;
+}
+
+.sd-over-label {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.sd-details-wrap {
+  padding: 4px 12px 16px;
+  animation: sd-expand 180ms ease-out;
+}
+
+@keyframes sd-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Раскрытый месяц ===== */
+
+.sd-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding-top: 8px;
+}
+
+.sd-det-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sd-det-title {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.sd-calc {
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-calc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-calc-row dt {
+  min-width: 0;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.sd-calc-row dd {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sd-calc-row.total {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.sd-calc-row.total dt {
+  color: var(--text-primary);
+}
+
+.sd-det-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.sd-det-error {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+.sd-det-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sd-payments {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.sd-payment {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) 44px;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-payment-date {
+  color: var(--text-muted);
+}
+
+.sd-payment-amount {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sd-payment-note {
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: color 0.15s ease-out, background 0.15s ease-out;
+}
+
+.sd-icon-btn:hover:not(:disabled),
+.sd-icon-btn:focus-visible {
+  background: var(--surface-hover);
+  color: var(--danger);
+}
+
+.sd-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== Планшет и выше: колонки таблицы ===== */
+
+@media (min-width: 600px) {
+  .sd-kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .sd-quick-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .sd-field-kind {
+    grid-column: 1 / -1;
+  }
+
+  .sd-submit {
+    grid-column: 1 / -1;
+  }
+
+  .sd-head,
+  .sd-row {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1.5fr) minmax(0, 1.2fr)
+      minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-areas: none;
+    gap: 8px;
+  }
+
+  .sd-head {
+    padding: 8px 12px 8px 15px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sd-row {
+    padding: 4px 12px;
+    font-size: 0.88rem;
+  }
+
+  .sd-month,
+  .sd-days,
+  .sd-balance {
+    grid-area: auto;
+  }
+
+  .sd-days {
+    font-size: 0.8rem;
+  }
+
+  .sd-money {
+    display: contents;
+  }
+
+  .sd-money .sd-num {
+    color: var(--text-primary);
+    font-size: 0.88rem;
+  }
+
+  .sd-row-wrap.future .sd-money .sd-num {
+    color: var(--text-muted);
+  }
+
+  .sd-mlabel {
+    display: none;
+  }
+
+  .sd-over-label {
+    display: block;
+  }
+
+  .sd-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .sd-details {
+    gap: 28px;
+  }
+}
+
+/* ===== Десктоп ===== */
+
+@media (min-width: 1024px) {
+  .sd-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .sd-kpi-tile {
+    padding: 14px 16px;
+  }
+
+  .sd-kpi-value {
+    font-size: 1.7rem;
+  }
+
+  .sd-quick {
+    padding: 12px 16px;
+  }
+
+  .sd-quick-fields {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .sd-field-amount {
+    flex: 1 1 160px;
+  }
+
+  .sd-field {
+    flex: 0 1 auto;
+  }
+
+  .sd-field-kind {
+    flex: 0 0 auto;
+  }
+
+  .sd-submit {
+    flex: 0 0 auto;
+  }
+
+  .sd-main {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .sd-chart-col {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-details-wrap {
+    animation: none;
+  }
+
+  .sd-submit,
+  .sd-icon-btn {
+    transition: none;
+  }
+}

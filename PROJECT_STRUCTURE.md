@@ -144,8 +144,6 @@ src/
     ├── RentMonthPage.tsx
     ├── RentPage.css
     ├── RentPage.tsx
-    ├── SalaryMonthPage.css
-    ├── SalaryMonthPage.tsx
     ├── SalaryPage.css
     ├── VacationRatePage.css
     ├── VacationRatePage.tsx

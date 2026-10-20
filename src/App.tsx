@@ -12,7 +12,7 @@ import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 
 const SalaryPage = lazy(() => import('./pages/salary'))
-const SalaryMonthPage = lazy(() => import('./pages/SalaryMonthPage'))
+const SalaryMonthRedirect = lazy(() => import('./pages/salary/SalaryMonthRedirect'))
 const RentPage = lazy(() => import('./pages/RentPage'))
 const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
 const ExpensesPage = lazy(() => import('./pages/expenses'))
@@ -384,7 +384,7 @@ function App() {
               <Route path="/" element={<HomePage userId={user.id} />} />
               <Route path="/calendar" element={<Navigate to="/salary?tab=days" replace />} />
               <Route path="/salary" element={<SalaryPage />} />
-              <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
+              <Route path="/salary/:year/:month" element={<SalaryMonthRedirect />} />
               <Route path="/vacation-rate" element={<Navigate to="/salary?tab=vacation" replace />} />
               <Route path="/rent" element={<RentPage />} />
               <Route path="/rent/:year/:month" element={<RentMonthPage />} />
