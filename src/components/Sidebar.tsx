@@ -38,7 +38,7 @@ const bodyLinks = [
 const otherLinks = [
   { path: '/expenses', icon: ReceiptText, label: 'Траты' },
   { path: '/rent', icon: Home, label: 'Аренда' },
-  { path: '/car', icon: Car, label: 'Машина' },
+  { path: '/car', icon: Car, label: 'Авто' },
 ]
 
 export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isAdmin }: SidebarProps) {

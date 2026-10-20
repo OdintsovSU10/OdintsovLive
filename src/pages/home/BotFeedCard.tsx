@@ -23,7 +23,7 @@ const TABLE_LABELS: Record<string, string> = {
   salary_payments: 'Зарплата',
   car_fuel: 'Заправка',
   car_maintenance: 'ТО',
-  car_expenses: 'Машина',
+  car_expenses: 'Авто',
   cars: 'Пробег',
   body_weight: 'Вес',
   body_params: 'Параметры'

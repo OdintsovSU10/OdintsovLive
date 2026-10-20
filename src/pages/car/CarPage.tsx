@@ -16,6 +16,7 @@ import { useCarPhoto } from './hooks/useCarPhoto'
 import { useCarRecords } from './hooks/useCarRecords'
 import { useCarStats } from './hooks/useCarStats'
 import { useCars } from './hooks/useCars'
+import { useDraggableFab } from './hooks/useDraggableFab'
 import { useJournalEntries } from './hooks/useJournalEntries'
 import type {
   CarRecord, CarTab, CarType, JournalFilter, PartType, PeriodPreset, PhotoFrame, RecordKind, RecordPayload,
@@ -48,6 +49,7 @@ export default function CarPage() {
   const [sheet, setSheet] = useState<SheetState>(null)
   const [saving, setSaving] = useState(false)
   const { toast, showToast, hideToast } = useToast()
+  const fab = useDraggableFab(() => openAdd())
 
   const stats = useCarStats({
     car, entries, maintenance: records.maintenance, fuel: records.fuel, intervals, period
@@ -187,7 +189,7 @@ export default function CarPage() {
       <header className="car-header">
         <div className="car-header-top">
           <div className="car-title">
-            <h1>Машина</h1>
+            <h1>Авто</h1>
             {car && (
               <button type="button" className="car-switch" onClick={() => setSheet({ type: 'cars' })} aria-haspopup="dialog">
                 <Car size={18} aria-hidden="true" />
@@ -280,7 +282,7 @@ export default function CarPage() {
       )}
 
       {car && (
-        <button type="button" className="car-fab" onClick={() => openAdd()} aria-label="Добавить запись">
+        <button type="button" className="car-fab" {...fab} aria-label="Добавить запись">
           <Plus size={26} />
         </button>
       )}

@@ -16,7 +16,7 @@ const serviceText = (due: ServiceDue): string => {
   return due.kmLeft !== null ? `ТО через ${formatMileage(due.kmLeft)}` : `ТО через ${due.monthsLeft} мес.`
 }
 
-// Выбранная на странице «Машина» машина: ТО, расход и траты за 3 месяца
+// Выбранная на странице «Авто» машина: ТО, расход и траты за 3 месяца
 export function CarSummaryCard() {
   const { selectedCar: car, loading, patchCar } = useCars()
   const records = useCarRecords(car, patchCar, false)
@@ -26,16 +26,16 @@ export function CarSummaryCard() {
   })
 
   if (loading || records.loading) {
-    return <HomeCard Icon={Car} title="Машина" to="/car"><CardPlaceholder /></HomeCard>
+    return <HomeCard Icon={Car} title="Авто" to="/car"><CardPlaceholder /></HomeCard>
   }
   if (!car || !stats) {
-    return <HomeCard Icon={Car} title="Машина" to="/car"><CardPlaceholder text="Машина не добавлена" /></HomeCard>
+    return <HomeCard Icon={Car} title="Авто" to="/car"><CardPlaceholder text="Авто не добавлено" /></HomeCard>
   }
 
   const due = stats.serviceDue
 
   return (
-    <HomeCard Icon={Car} title="Машина" to="/car" aside={`${car.brand} ${car.model}`} tone={due ? serviceTone(due) : undefined}>
+    <HomeCard Icon={Car} title="Авто" to="/car" aside={`${car.brand} ${car.model}`} tone={due ? serviceTone(due) : undefined}>
       <div className="home-value small">{due ? serviceText(due) : 'ТО не отмечено'}</div>
       {due && (
         <div className="home-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(due.progress, 1) * 100)}>
