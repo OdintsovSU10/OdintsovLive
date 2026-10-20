@@ -32,7 +32,7 @@ interface Props {
   loading: boolean
 }
 
-// Второстепенная тонкая полоса: сумма, доля плана и прогресс; скорость и «по табелю» спрятаны в ⓘ
+// Полоса на всю ширину: сумма, прогресс (на телефоне — отдельной строкой) и доля плана; скорость и «по табелю» спрятаны в ⓘ
 export function PayrollCard({ year, month, live, plan, timesheetEarned, loading }: Props) {
   const [infoOpen, setInfoOpen] = useState(false)
   const accrued = live.isLive ? live.accrued : timesheetEarned
@@ -58,6 +58,16 @@ export function PayrollCard({ year, month, live, plan, timesheetEarned, loading 
           </span>
           <strong>{loading ? '—' : `${formatLiveNumber(accrued)} ₽`}</strong>
         </div>
+        <div
+          className={`emp-progress ${loading ? 'skeleton' : ''}`}
+          role="progressbar"
+          aria-label="Выполнение плана начисления"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={loading ? undefined : ariaProgress}
+        >
+          <div style={{ width: loading ? '0%' : `${progress}%` }} />
+        </div>
         <p className="emp-payroll-plan">
           {loading ? '—' : <><b>{Math.round(progress)}%</b> <span>из {formatRub(plan)}</span></>}
         </p>
@@ -71,17 +81,6 @@ export function PayrollCard({ year, month, live, plan, timesheetEarned, loading 
         >
           <Info size={16} aria-hidden="true" />
         </button>
-      </div>
-
-      <div
-        className={`emp-progress ${loading ? 'skeleton' : ''}`}
-        role="progressbar"
-        aria-label="Выполнение плана начисления"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={loading ? undefined : ariaProgress}
-      >
-        <div style={{ width: loading ? '0%' : `${progress}%` }} />
       </div>
 
       {infoOpen && (

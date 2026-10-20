@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { ClearableInput } from '../../components/ui/ClearableInput'
 import { Toast } from '../../components/ui/Toast'
 import { useToast } from '../../hooks/useToast'
+import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { formatRuPhone } from '../../lib/formatUtils'
 import { useTenderData } from './hooks/useTenderData'
 import { EmployeeDetail } from './components/EmployeeDetail'
@@ -302,13 +303,17 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
     [filteredEmployees, sort, scores]
   )
   // Сквозная нумерация по порядку на экране, через все группы
+  const showSpinner = useDelayedFlag(loading)
+
   const rowNumbers = useMemo(() => {
     const numbers = new Map<number, number>()
     groupedEmployees.forEach(group => group.employees.forEach(emp => numbers.set(emp.id, numbers.size + 1)))
     return numbers
   }, [groupedEmployees])
 
-  if (loading) return <div className="tender-loading"><div className="tender-spinner" /><div>Загрузка...</div></div>
+  if (loading) {
+    return showSpinner ? <div className="tender-loading"><div className="tender-spinner" /><div>Загрузка...</div></div> : null
+  }
 
   if (selectedEmployee) {
     return (

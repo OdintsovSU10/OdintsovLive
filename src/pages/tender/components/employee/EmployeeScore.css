@@ -6,21 +6,23 @@
 .emp-score.score-attention { --tone: var(--chart-negative); }
 .emp-score.score-none { --tone: var(--text-muted); }
 
-.emp-score .emp-card-head {
-  margin-bottom: 4px;
+.emp-score {
+  padding: 10px 12px;
 }
 
-.emp-score-main {
+/* Шапка: кольцо, справа заголовок и одна строка «оценка · место · динамика · сигналы», ⓘ в углу */
+
+.emp-score-top {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .emp-score-ring {
   position: relative;
   flex: 0 0 auto;
-  width: 96px;
-  height: 96px;
+  width: 60px;
+  height: 60px;
 }
 
 .emp-score-ring svg {
@@ -50,7 +52,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -61,14 +63,36 @@
 
 .emp-score-side {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+}
+
+.emp-score .emp-score-title {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.emp-score-top > .emp-score-title {
+  flex: 1 1 auto;
+}
+
+
+.emp-score-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
 }
 
 .emp-score-grade {
   color: var(--tone);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -90,45 +114,87 @@
 .emp-score-delta.down { color: var(--chart-negative); }
 .emp-score-delta.flat { color: var(--text-muted); }
 
+/* Кнопка ⓘ: 32 px визуально, область нажатия 44 px за счёт псевдоэлемента */
+.emp-score-info-btn {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  width: 32px;
+  height: 32px;
+  margin: -4px -4px 0 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.emp-score-info-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.emp-score-info-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.emp-score-info-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
 .emp-score-signals {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 4px;
   list-style: none;
 }
 
 .emp-score-signals li {
-  padding: 4px 10px;
+  padding: 1px 8px;
   border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--signal) 14%, transparent);
   color: var(--signal);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 16px;
 }
 
 .emp-score-signals .signal-promotion { --signal: var(--chart-positive); }
 .emp-score-signals .signal-attention { --signal: var(--chart-negative); }
 .emp-score-signals .signal-overpaid { --signal: var(--chart-warning); }
+.emp-score-signals .signal-breaks { --signal: var(--chart-warning); }
+
+/* Компоненты оценки: телефон — в один столбец, от 480 px — в два */
 
 .emp-score-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px 16px;
+  margin-top: 10px;
   list-style: none;
 }
 
 .emp-score-rows li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 8px;
-  font-size: 13px;
+  align-items: baseline;
+  gap: 3px 8px;
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .emp-score-rows .label {
+  overflow: hidden;
   color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .emp-score-rows .value {
@@ -138,7 +204,7 @@
 
 .emp-score-rows .bar {
   grid-column: 1 / -1;
-  height: 4px;
+  height: 3px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--bg-tertiary);
@@ -152,7 +218,7 @@
 }
 
 .emp-score-note {
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -179,14 +245,15 @@
 }
 
 .emp-score-skeleton.ring {
-  width: 96px;
-  height: 96px;
+  flex: 0 0 auto;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
 }
 
 .emp-score-skeleton.line {
   width: 140px;
-  height: 18px;
+  height: 16px;
 }
 
 .emp-score-skeleton.line.short {
@@ -194,21 +261,23 @@
 }
 
 .emp-score-skeleton.row {
-  height: 20px;
+  height: 22px;
 }
 
-.emp-score-side .emp-score-skeleton + .emp-score-skeleton {
-  margin-top: 8px;
+
+@media (min-width: 480px) {
+  .emp-score-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 768px) {
-  .emp-score-main {
-    gap: 24px;
+  .emp-score {
+    padding: 12px 16px;
   }
 
-  .emp-score-ring {
-    width: 112px;
-    height: 112px;
+  .emp-score-info-btn {
+    margin-right: -8px;
   }
 }
 

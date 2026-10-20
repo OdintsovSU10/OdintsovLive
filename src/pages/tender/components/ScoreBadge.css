@@ -45,6 +45,7 @@
 .score-signal.signal-promotion { color: var(--chart-positive); }
 .score-signal.signal-attention { color: var(--chart-negative); }
 .score-signal.signal-overpaid { color: var(--chart-warning); }
+.score-signal.signal-breaks { color: var(--chart-warning); }
 
 @keyframes scoreBadgePulse {
   50% {

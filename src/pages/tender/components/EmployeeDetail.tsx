@@ -204,98 +204,104 @@ export function EmployeeDetail({
 
   return (
     <section className="emp-page">
-      <EmployeeHeader
-        fullName={employee.full_name}
-        initials={getEmployeeInitials(employee)}
-        position={employee.position}
-        department={employee.department}
-        subdivision={employee.subdivision}
-        ageYears={ageYears}
-        tenureMonths={tenureMonths}
-        noRaiseMonths={noRaiseMonths}
-        onBack={goBack}
-        onOpenInfo={() => setInfoOpen(true)}
-      />
+      <div className="emp-main">
+        <EmployeeHeader
+          fullName={employee.full_name}
+          initials={getEmployeeInitials(employee)}
+          position={employee.position}
+          department={employee.department}
+          subdivision={employee.subdivision}
+          ageYears={ageYears}
+          tenureMonths={tenureMonths}
+          noRaiseMonths={noRaiseMonths}
+          monthSwitcher={(
+            <MonthToolbar
+              year={chartYear}
+              month={chartMonth}
+              canPrev={canPrev}
+              canNext={canNext}
+              isCurrent={isCurrentMonth}
+              onPrev={() => shiftBy(-1)}
+              onNext={() => shiftBy(1)}
+              onToday={() => changeMonth(todayYear, todayMonth)}
+            />
+          )}
+          onBack={goBack}
+          onOpenInfo={() => setInfoOpen(true)}
+        />
 
-      <MonthToolbar
-        year={chartYear}
-        month={chartMonth}
-        canPrev={canPrev}
-        canNext={canNext}
-        isCurrent={isCurrentMonth}
-        onPrev={() => shiftBy(-1)}
-        onNext={() => shiftBy(1)}
-        onToday={() => changeMonth(todayYear, todayMonth)}
-      />
+        <div className="emp-layout">
+          <div className="emp-area-payroll">
+            <PayrollCard
+              year={chartYear}
+              month={chartMonth}
+              live={live}
+              plan={data.monthlyPlan}
+              timesheetEarned={data.point.earned}
+              loading={yearTimesheet.loading}
+            />
+          </div>
 
-      <div className="emp-layout">
-        <div className="emp-area-main">
-          <ScoreCard
-            view={score.view}
-            loading={score.loading}
-            error={score.error}
-            noRaiseMonths={noRaiseMonths}
-            onRetry={score.reload}
-          />
-          <PayrollCard
-            year={chartYear}
-            month={chartMonth}
-            live={live}
-            plan={data.monthlyPlan}
-            timesheetEarned={data.point.earned}
-            loading={yearTimesheet.loading}
-          />
-        </div>
+          <div className="emp-area-score">
+            <ScoreCard
+              view={score.view}
+              loading={score.loading}
+              error={score.error}
+              noRaiseMonths={noRaiseMonths}
+              onRetry={score.reload}
+            />
+          </div>
 
-        <div className="emp-area-attendance">
-          <AttendanceCalendar
-            year={chartYear}
-            month={chartMonth}
-            days={days}
-            summary={data.point}
-            loading={yearTimesheet.loading}
-            error={yearTimesheet.error}
-            selectedDay={selectedDay}
-            onSelect={selectDay}
-            onRetry={yearTimesheet.reload}
-            onSwipePrev={swipeEnabled && canPrev ? () => shiftBy(-1) : null}
-            onSwipeNext={swipeEnabled && canNext ? () => shiftBy(1) : null}
-          />
-        </div>
+          <div className="emp-area-attendance">
+            <AttendanceCalendar
+              year={chartYear}
+              month={chartMonth}
+              days={days}
+              summary={data.point}
+              loading={yearTimesheet.loading}
+              error={yearTimesheet.error}
+              selectedDay={selectedDay}
+              onSelect={selectDay}
+              onRetry={yearTimesheet.reload}
+              onSwipePrev={swipeEnabled && canPrev ? () => shiftBy(-1) : null}
+              onSwipeNext={swipeEnabled && canNext ? () => shiftBy(1) : null}
+            />
+          </div>
 
-        <div className="emp-area-dynamics">
-          <YearDynamics
-            year={chartYear}
-            month={chartMonth}
-            history={data.history}
-            loading={yearTimesheet.loading}
-            error={yearTimesheet.error}
-            averageMonthlyIncome={data.averageMonthlyIncome}
-            averageWeekendIncome={data.averageWeekendIncome}
-            hasYearData={data.hasYearData}
-            minIndex={hireIndex}
-            maxIndex={currentIndex}
-            canPrevYear={hireYear === null || chartYear > hireYear}
-            canNextYear={chartYear < todayYear}
-            scoreMonthly={score.view?.monthly ?? null}
-            scoreLoading={score.loading}
-            scoreError={score.error}
-            onSelectMonth={monthValue => changeMonth(chartYear, monthValue)}
-            onShiftYear={shiftYear}
-            onRetry={yearTimesheet.reload}
-            onRetryScore={score.reload}
-          />
-        </div>
+          <div className="emp-area-dynamics">
+            <YearDynamics
+              year={chartYear}
+              month={chartMonth}
+              history={data.history}
+              loading={yearTimesheet.loading}
+              error={yearTimesheet.error}
+              averageMonthlyIncome={data.averageMonthlyIncome}
+              averageWeekendIncome={data.averageWeekendIncome}
+              hasYearData={data.hasYearData}
+              minIndex={hireIndex}
+              maxIndex={currentIndex}
+              canPrevYear={hireYear === null || chartYear > hireYear}
+              canNextYear={chartYear < todayYear}
+              scoreMonthly={score.view?.monthly ?? null}
+              scoreLoading={score.loading}
+              scoreError={score.error}
+              onSelectMonth={monthValue => changeMonth(chartYear, monthValue)}
+              onShiftYear={shiftYear}
+              onRetry={yearTimesheet.reload}
+              onRetryScore={score.reload}
+            />
+          </div>
 
-        <div className="emp-area-salary">
-          <SalaryTimeline
-            salary={data.baseSalary}
-            monthlyBonus={employee.monthly_bonus || 0}
-            transport={data.transport}
-            items={timeline.items}
-            latestRaise={timeline.latestRaise}
-            loading={timeline.loadingEvents}
-          />
+          <div className="emp-area-salary">
+            <SalaryTimeline
+              salary={data.baseSalary}
+              monthlyBonus={employee.monthly_bonus || 0}
+              transport={data.transport}
+              items={timeline.items}
+              latestRaise={timeline.latestRaise}
+              loading={timeline.loadingEvents}
+            />
+          </div>
         </div>
       </div>
 

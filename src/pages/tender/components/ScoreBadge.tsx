@@ -1,4 +1,4 @@
-import { AlertTriangle, Scale, TrendingUp, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Coffee, Scale, TrendingUp, type LucideIcon } from 'lucide-react'
 import { SCORE_SIGNAL_LABELS, type ScoreSignalKey } from '../utils/employeeScore'
 import type { IListScore } from '../hooks/useEmployeeScores'
 import './ScoreBadge.css'
@@ -13,7 +13,8 @@ interface Props {
 const SIGNAL_ICONS: Record<ScoreSignalKey, LucideIcon> = {
   promotion: TrendingUp,
   attention: AlertTriangle,
-  overpaid: Scale
+  overpaid: Scale,
+  breaks: Coffee
 }
 
 const SIGNAL_ICON_SIZE = 14

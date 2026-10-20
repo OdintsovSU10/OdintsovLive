@@ -145,7 +145,15 @@
   color: var(--danger);
 }
 
-/* Раскладка: телефон — один столбец */
+/* Раскладка: телефон — один столбец (начисление, оценка, посещение, динамика, оклад) */
+
+.emp-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  container: emp / inline-size;
+}
 
 .emp-layout {
   display: grid;
@@ -153,37 +161,52 @@
   gap: 12px;
 }
 
-.emp-area-main,
+.emp-area-payroll,
+.emp-area-score,
 .emp-area-attendance,
 .emp-area-dynamics,
 .emp-area-salary {
   min-width: 0;
 }
 
-.emp-area-main {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.emp-area-payroll { grid-area: payroll; }
+.emp-area-score { grid-area: score; }
+.emp-area-attendance { grid-area: calendar; }
+.emp-area-dynamics { grid-area: dynamics; }
+.emp-area-salary { grid-area: salary; }
+
+.emp-layout {
+  grid-template-areas:
+    'payroll'
+    'score'
+    'calendar'
+    'dynamics'
+    'salary';
 }
 
-/* Начисление: тонкая второстепенная полоса */
+/* Начисление: полоса на всю ширину под тулбаром месяца. Телефон: сумма и доля сверху, прогресс снизу */
 
 .emp-payroll {
   padding: 4px 12px 10px;
 }
 
 .emp-payroll-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'total plan info'
+    'bar bar bar';
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
+  gap: 2px 8px;
 }
 
 .emp-payroll-total {
+  grid-area: total;
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
+  min-height: 44px;
+  justify-content: center;
 }
 
 .emp-payroll-label {
@@ -217,6 +240,7 @@
 }
 
 .emp-payroll-plan {
+  grid-area: plan;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -234,7 +258,12 @@
 }
 
 .emp-payroll .emp-icon-btn {
+  grid-area: info;
   margin-right: -10px;
+}
+
+.emp-payroll .emp-progress {
+  grid-area: bar;
 }
 
 .emp-progress {
@@ -251,7 +280,7 @@
 }
 
 .emp-payroll-info {
-  margin-top: 8px;
+  margin-top: 6px;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
@@ -274,32 +303,73 @@
   .emp-card {
     padding: 16px;
   }
+}
 
+/* Брейкпоинты — по ширине самой страницы (внутри боковой панели приложения), а не окна */
+
+/* Полоса «Начислено» одной строкой: прогресс тянется посередине */
+@container emp (min-width: 520px) {
   .emp-payroll {
-    padding: 4px 16px 10px;
+    padding: 0 16px;
+  }
+
+  .emp-payroll-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 52px;
+  }
+
+  .emp-payroll-total {
+    flex-direction: row;
+    align-items: baseline;
+    flex: 0 0 auto;
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .emp-payroll-total strong {
+    font-size: 17px;
+  }
+
+  .emp-payroll .emp-progress {
+    flex: 1 1 auto;
+    min-width: 40px;
+  }
+
+  .emp-payroll-plan {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .emp-payroll-info {
+    margin-bottom: 12px;
   }
 }
 
-@media (min-width: 1100px) {
+/* Оценка и посещение в два столбца */
+@container emp (min-width: 620px) {
   .emp-layout {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'payroll payroll'
+      'score calendar'
+      'dynamics dynamics'
+      'salary salary';
     align-items: start;
   }
+}
 
-  .emp-area-main {
-    grid-column: span 7;
-  }
-
-  .emp-area-attendance {
-    grid-column: span 5;
-  }
-
-  .emp-area-dynamics {
-    grid-column: span 7;
-  }
-
-  .emp-area-salary {
-    grid-column: span 5;
+/* Три столбца: оклад справа на два ряда, динамика под оценкой и календарём */
+@container emp (min-width: 940px) {
+  .emp-layout {
+    grid-template-columns: minmax(0, 1fr) auto minmax(300px, 360px);
+    grid-template-areas:
+      'payroll payroll payroll'
+      'score calendar salary'
+      'dynamics dynamics salary';
   }
 }
 

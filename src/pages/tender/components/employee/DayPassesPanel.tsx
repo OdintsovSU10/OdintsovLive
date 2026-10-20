@@ -14,6 +14,27 @@ function formatEventTime(value: string): string {
   return value.slice(0, 5)
 }
 
+// «8 ч 10 м», «50 м», «8 ч»
+function formatHm(seconds: number): string {
+  const totalMinutes = Math.round(Math.max(0, seconds) / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) return `${minutes} м`
+  return minutes === 0 ? `${hours} ч` : `${hours} ч ${minutes} м`
+}
+
+function formatPlural(count: number, one: string, few: string, many: string): string {
+  const mod100 = count % 100
+  const mod10 = count % 10
+  if (mod100 >= 11 && mod100 <= 14) return many
+  if (mod10 === 1) return one
+  if (mod10 >= 2 && mod10 <= 4) return few
+  return many
+}
+
+// Перерыв дольше этого считаем заметным
+const LONG_BREAK_SECONDS = 30 * 60
+
 function getDirectionLabel(direction: FotEmployeeEvent['direction']): string {
   if (direction === 'entry') return 'Вход'
   if (direction === 'exit') return 'Выход'
@@ -91,66 +112,90 @@ export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
   ), [calculation])
 
   if (!date) {
-    return <div className="emp-state muted">Выберите день</div>
+    return <div className="emp-day-body"><div className="emp-state muted">Выберите день</div></div>
   }
 
   const timesheetText = info?.worked && !info.fromSkud ? `${formatHoursValue(info.hours)} ч` : '—'
   const skudText = calculation ? `${formatHoursValue(Math.round(calculation.paidSeconds / 360) / 10)} ч` : '—'
-  // «6 из 8 ч, неполный день»
-  const hoursLine = info?.worked
-    ? [
-      info.off ? `${formatHoursValue(info.hours)} ч` : `${formatHoursValue(info.hours)} из ${info.norm} ч`,
-      info.verdict
-    ].filter(Boolean).join(', ')
+  // Оплачиваемое время: по табелю (как в календаре), без записи — по проходам СКУД
+  const heroSeconds = info?.worked ? Math.round(info.hours * 3600) : calculation ? calculation.paidSeconds : null
+  const normSeconds = info && !info.off ? Math.round(info.norm * 3600) : 0
+  const shortSeconds = info?.kind === 'partial' && heroSeconds !== null && normSeconds > heroSeconds
+    ? normSeconds - heroSeconds
+    : 0
+  const statusText = info ? [info.statusLabel, info.verdict].filter(Boolean).join(' · ') : ''
+  const rangeText = calculation
+    ? `${calculation.firstEntry ? formatEventTime(calculation.firstEntry.event_time) : '—'} → ${
+      calculation.hasOpenPair ? 'на объекте' : calculation.lastExit ? formatEventTime(calculation.lastExit.event_time) : '—'
+    }`
     : null
 
   return (
-    <div className="emp-day-panel-body">
-      <div className="emp-day-status">
-        {info && info.statusLabel && <span className={`emp-day-chip tone-${info.tone}`}>{info.statusLabel}</span>}
-        {hoursLine && <span className="emp-day-hours">{hoursLine}</span>}
-      </div>
+    <div className="emp-day-body">
+      {heroSeconds !== null ? (
+        <div className="emp-day-hero">
+          <div className="emp-day-hero-main">
+            <strong>{formatHm(heroSeconds)}</strong>
+            <span>оплачиваемо</span>
+          </div>
+          <div className="emp-day-hero-side">
+            {normSeconds > 0 && <span className="emp-day-norm">из {formatHm(normSeconds)} нормы</span>}
+            {info && statusText && <span className={`emp-day-chip tone-${info.tone}`}>{statusText}</span>}
+            {shortSeconds > 0 && <span className="emp-day-short">−{formatHm(shortSeconds)}</span>}
+          </div>
+        </div>
+      ) : (
+        info && statusText && (
+          <div className="emp-day-hero-side">
+            <span className={`emp-day-chip tone-${info.tone}`}>{statusText}</span>
+          </div>
+        )
+      )}
+
+      {calculation && (
+        <div className="emp-metrics">
+          <div>
+            <span>На объекте</span>
+            <strong>{formatHm(calculation.rawWorkSeconds)}</strong>
+          </div>
+          <div>
+            <span>Вне офиса</span>
+            <strong>{formatHm(calculation.outsideSeconds)}</strong>
+            <em>{calculation.breaks.length} {formatPlural(calculation.breaks.length, 'выход', 'выхода', 'выходов')}</em>
+          </div>
+          {calculation.lunchDeductionSeconds > 0 && (
+            <div>
+              <span>Обед засчитан</span>
+              <strong>{formatHm(calculation.lunchDeductionSeconds)}</strong>
+            </div>
+          )}
+        </div>
+      )}
 
       {fotEmployeeId && (info?.worked || calculation) && (
-        <p className="emp-day-compare">
-          Табель: {timesheetText} · СКУД: {skudText}
-          {info?.mismatch && <span className="emp-day-flag warn"><i className="emp-day-dot static" aria-hidden="true" />расхождение от 2 ч</span>}
-          {info?.corrected && <span className="emp-day-flag">✎ исправлено вручную</span>}
-        </p>
+        <div className="emp-day-meta">
+          {rangeText && <p className="emp-day-range">{rangeText}</p>}
+          <p className={`emp-day-compare ${info?.mismatch ? 'warn' : ''}`}>
+            Табель: {timesheetText} · СКУД: {skudText}
+            {info?.mismatch && <span className="emp-day-flag warn"><i className="emp-day-dot static" aria-hidden="true" />расхождение от 2 ч</span>}
+            {info?.corrected && <span className="emp-day-flag">✎ исправлено вручную</span>}
+          </p>
+        </div>
       )}
 
       {!fotEmployeeId ? (
-        <div className="emp-state muted">Нет FOT ID — проходы недоступны</div>
+        <div className="emp-state muted fill">Нет FOT ID — проходы недоступны</div>
       ) : loading ? (
-        <div className="emp-state">Загрузка проходов…</div>
+        <div className="emp-state fill">Загрузка проходов…</div>
       ) : error ? (
-        <div className="emp-state error">
+        <div className="emp-state error fill">
           <span>{error}</span>
           <button type="button" className="emp-text-btn" onClick={reload}>Повторить</button>
         </div>
       ) : !calculation ? (
-        <div className="emp-state muted">Проходов нет</div>
+        <div className="emp-state muted fill">Проходов нет</div>
       ) : (
         <>
-          <div className="emp-metrics">
-            <div>
-              <span>Первый вход</span>
-              <strong>{calculation.firstEntry ? formatEventTime(calculation.firstEntry.event_time) : '—'}</strong>
-            </div>
-            <div>
-              <span>{calculation.hasOpenPair ? 'Выход' : 'Последний выход'}</span>
-              <strong>{calculation.hasOpenPair ? 'На объекте' : calculation.lastExit ? formatEventTime(calculation.lastExit.event_time) : '—'}</strong>
-            </div>
-            <div>
-              <span>Оплачиваемо</span>
-              <strong>{formatSkudDuration(calculation.paidSeconds)}</strong>
-            </div>
-            <div>
-              <span>Вне объекта</span>
-              <strong>{formatSkudDuration(calculation.outsideSeconds)}</strong>
-            </div>
-          </div>
-
           <DayWorkTimeline calculation={calculation} />
 
           <ul className="emp-passes">
@@ -158,22 +203,22 @@ export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
               const breakBefore = breakByEntryId.get(event.id)
               const pair = pairByExitId.get(event.id)
               return (
-                <li key={event.id}>
-                  {breakBefore && (
-                    <div className="emp-pass-break">
-                      <span>Перерыв вне объекта</span>
-                      <strong>{formatSkudDuration(breakBefore.durationSeconds)}</strong>
-                    </div>
+                <li key={event.id} className={`emp-pass ${event.direction || 'unknown'}`}>
+                  <span className="emp-pass-mark" aria-hidden="true">
+                    {event.direction === 'entry' ? '→' : event.direction === 'exit' ? '←' : '•'}
+                  </span>
+                  <time>{formatEventTime(event.event_time)}</time>
+                  <span className="emp-pass-dir">{getDirectionLabel(event.direction)}</span>
+                  <span className="emp-pass-point">{event.access_point || 'Точка не указана'}</span>
+                  {breakBefore ? (
+                    <strong className={`emp-pass-duration ${breakBefore.durationSeconds > LONG_BREAK_SECONDS ? 'warn' : 'muted'}`}>
+                      вне {formatHm(breakBefore.durationSeconds)}
+                    </strong>
+                  ) : pair ? (
+                    <strong className="emp-pass-duration">{formatSkudDuration(pair.durationSeconds)}</strong>
+                  ) : (
+                    <span />
                   )}
-                  <div className={`emp-pass ${event.direction || 'unknown'}`}>
-                    <span className="emp-pass-mark" aria-hidden="true">
-                      {event.direction === 'entry' ? '→' : event.direction === 'exit' ? '←' : '•'}
-                    </span>
-                    <time>{formatEventTime(event.event_time)}</time>
-                    <span className="emp-pass-dir">{getDirectionLabel(event.direction)}</span>
-                    <span className="emp-pass-point">{event.access_point || 'Точка не указана'}</span>
-                    {pair && <strong className="emp-pass-duration">{formatSkudDuration(pair.durationSeconds)}</strong>}
-                  </div>
                 </li>
               )
             })}

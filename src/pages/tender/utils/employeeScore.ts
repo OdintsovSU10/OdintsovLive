@@ -10,9 +10,13 @@ export const SCORE_WINDOW_DAYS = 90
 export const SCORE_MIN_PLANNED_DAYS = 10
 export const SCORE_MIN_PEERS = 3
 
+// Минимум дней со СКУД в окне, чтобы оценивать перерывы
+export const SCORE_MIN_SKUD_DAYS = 10
+
 export const SCORE_MAX = {
-  attendance: 45,
-  hours: 25,
+  attendance: 40,
+  hours: 20,
+  breaks: 10,
   overtime: 10,
   peer: 20
 } as const
@@ -24,6 +28,18 @@ const OVERTIME_TARGET_UNITS = 4
 const OVERTIME_TARGET_PER_DAYS = 60
 const OVERTIME_UNIT_HOURS = 8
 const PEER_NEUTRAL_POINTS = 10
+// Перерывы: сколько минут вне офиса в день считаем нормой (обед), и на сколько минут сверх нормы баллы по времени обнуляются
+const BREAKS_FREE_OUTSIDE_MINUTES = 60
+const BREAKS_OUTSIDE_ZERO_EXCESS = 120
+// Нормальное число выходов в день и на сколько выходов сверх нормы баллы по выходам обнуляются
+const BREAKS_FREE_EXITS = 2
+const BREAKS_EXITS_ZERO_EXCESS = 4
+const BREAKS_OUTSIDE_WEIGHT = 0.6
+const BREAKS_EXITS_WEIGHT = 0.4
+const BREAKS_NEUTRAL_POINTS = 5
+// Сигнал «Частые перерывы»
+const BREAKS_SIGNAL_EXITS = 4
+const BREAKS_SIGNAL_EXCESS_MINUTES = 60
 const PROMOTION_MIN_SCORE = 75
 const PROMOTION_MIN_NO_RAISE_MONTHS = 9
 const ATTENTION_MAX_SCORE = 55
@@ -48,17 +64,24 @@ export interface ScoreGrade {
   label: string
 }
 
-export type ScoreSignalKey = 'promotion' | 'attention' | 'overpaid'
+export type ScoreSignalKey = 'promotion' | 'attention' | 'overpaid' | 'breaks'
 
 export const SCORE_SIGNAL_LABELS: Record<ScoreSignalKey, string> = {
   promotion: 'Кандидат на повышение',
   attention: 'Зона внимания',
-  overpaid: 'Зарплата выше отдачи'
+  overpaid: 'Зарплата выше отдачи',
+  breaks: 'Частые перерывы'
 }
 
 export interface ScoreWindow {
   from: string
   to: string
+}
+
+// Дневная статистика СКУД: число выходов с возвратом и минуты вне офиса
+export interface ScoreSkudDay {
+  exits: number
+  outsideMinutes: number
 }
 
 export interface ScoreMember {
@@ -68,9 +91,26 @@ export interface ScoreMember {
   salaryHistory: SalaryHistory[]
   entriesByDate: Map<string, TimesheetEntry>
   plans: Map<string, WorkPlan>
+  // Дни СКУД по датам; null — данные СКУД не загрузились
+  skud: Map<string, ScoreSkudDay> | null
 }
 
-export interface WindowMetrics {
+// Показатели перерывов за окно (по плановым дням не на удалёнке, где есть данные СКУД)
+export interface BreaksMetrics {
+  breaks: number
+  // Дней, по которым считали перерывы
+  skudDays: number
+  // Данных СКУД мало: перерывы нейтральные
+  noSkud: boolean
+  // Среднее время вне офиса в день, минуты
+  avgOutsideMinutes: number
+  // Среднее число выходов в день
+  avgExits: number
+  // Среднее время вне офиса сверх 60 минут в день
+  avgExcess: number
+}
+
+export interface WindowMetrics extends BreaksMetrics {
   planned: number
   full: number
   partial: number
@@ -78,12 +118,12 @@ export interface WindowMetrics {
   attendance: number
   hours: number
   overtime: number
-  // Явка + Часы + Сверх нормы: «отдача» без сравнения с отделом
+  // Явка + Часы + Перерывы + Сверх нормы: «отдача» без сравнения с отделом
   base: number
   absentDates: string[]
 }
 
-export interface WindowScore {
+export interface WindowScore extends BreaksMetrics {
   state: 'ok' | 'insufficient'
   total: number | null
   grade: ScoreGrade | null
@@ -176,6 +216,25 @@ export function quantile(values: number[], q: number): number | null {
   return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower)
 }
 
+// Баллы за перерывы по дням СКУД; дней меньше минимума — нейтральные
+function computeBreaksMetrics(days: ScoreSkudDay[]): BreaksMetrics {
+  const skudDays = days.length
+  const sumOutside = days.reduce((sum, day) => sum + day.outsideMinutes, 0)
+  const sumExits = days.reduce((sum, day) => sum + day.exits, 0)
+  const sumExcess = days.reduce((sum, day) => sum + Math.max(0, day.outsideMinutes - BREAKS_FREE_OUTSIDE_MINUTES), 0)
+  const avgOutsideMinutes = skudDays > 0 ? sumOutside / skudDays : 0
+  const avgExits = skudDays > 0 ? sumExits / skudDays : 0
+  const avgExcess = skudDays > 0 ? sumExcess / skudDays : 0
+
+  if (skudDays < SCORE_MIN_SKUD_DAYS) {
+    return { breaks: BREAKS_NEUTRAL_POINTS, skudDays, noSkud: true, avgOutsideMinutes, avgExits, avgExcess }
+  }
+  const outsidePart = clamp(1 - avgExcess / BREAKS_OUTSIDE_ZERO_EXCESS, 0, 1)
+  const exitsPart = clamp(1 - Math.max(0, avgExits - BREAKS_FREE_EXITS) / BREAKS_EXITS_ZERO_EXCESS, 0, 1)
+  const breaks = SCORE_MAX.breaks * (BREAKS_OUTSIDE_WEIGHT * outsidePart + BREAKS_EXITS_WEIGHT * exitsPart)
+  return { breaks, skudDays, noSkud: false, avgOutsideMinutes, avgExits, avgExcess }
+}
+
 export function computeWindowMetrics(member: ScoreMember, window: ScoreWindow): WindowMetrics {
   let planned = 0
   let full = 0
@@ -185,6 +244,7 @@ export function computeWindowMetrics(member: ScoreMember, window: ScoreWindow): 
   let sumThreshold = 0
   let overtimeUnits = 0
   const absentDates: string[] = []
+  const skudDaysList: ScoreSkudDay[] = []
 
   for (let iso = window.from; iso <= window.to; iso = addDaysIso(iso, 1)) {
     // Дни до приёма и дни без записи табеля не оцениваем
@@ -212,14 +272,19 @@ export function computeWindowMetrics(member: ScoreMember, window: ScoreWindow): 
       continue
     }
 
+    // Перерывы: день с явкой, не удалёнка, есть строка СКУД
+    const skudDay = entry.status === 'remote' ? undefined : member.skud?.get(iso)
+    if (skudDay) skudDaysList.push(skudDay)
+
     sumHours += hours
     overtimeUnits += Math.max(0, hours - threshold) / OVERTIME_UNIT_HOURS
     if (hours >= threshold) full += 1
     else partial += 1
   }
 
+  const breaksMetrics = computeBreaksMetrics(skudDaysList)
   if (planned === 0) {
-    return { planned, full, partial, absent, attendance: 0, hours: 0, overtime: 0, base: 0, absentDates }
+    return { planned, full, partial, absent, attendance: 0, hours: 0, overtime: 0, base: 0, absentDates, ...breaksMetrics }
   }
 
   const attendance = clamp(
@@ -241,8 +306,9 @@ export function computeWindowMetrics(member: ScoreMember, window: ScoreWindow): 
     attendance,
     hours: hoursPoints,
     overtime,
-    base: attendance + hoursPoints + overtime,
-    absentDates
+    base: attendance + hoursPoints + breaksMetrics.breaks + overtime,
+    absentDates,
+    ...breaksMetrics
   }
 }
 
@@ -254,6 +320,12 @@ function emptyScore(window: ScoreWindow, metrics: WindowMetrics, salary: number,
     attendance: metrics.attendance,
     hours: metrics.hours,
     overtime: metrics.overtime,
+    breaks: metrics.breaks,
+    skudDays: metrics.skudDays,
+    noSkud: metrics.noSkud,
+    avgOutsideMinutes: metrics.avgOutsideMinutes,
+    avgExits: metrics.avgExits,
+    avgExcess: metrics.avgExcess,
     peer: 0,
     planned: metrics.planned,
     full: metrics.full,
@@ -327,6 +399,12 @@ export function computeWindowScore(members: ScoreMember[], selfId: number, windo
     attendance: selfMetrics.attendance,
     hours: selfMetrics.hours,
     overtime: selfMetrics.overtime,
+    breaks: selfMetrics.breaks,
+    skudDays: selfMetrics.skudDays,
+    noSkud: selfMetrics.noSkud,
+    avgOutsideMinutes: selfMetrics.avgOutsideMinutes,
+    avgExits: selfMetrics.avgExits,
+    avgExcess: selfMetrics.avgExcess,
     peer: selfPeer.points,
     planned: selfMetrics.planned,
     full: selfMetrics.full,
@@ -363,6 +441,12 @@ export function getScoreSignals(score: WindowScore, noRaiseMonths: number): Scor
   }
   if (score.total < OVERPAID_MAX_SCORE && score.salaryP75 !== null && score.salary > score.salaryP75) {
     signals.push('overpaid')
+  }
+  if (
+    score.skudDays >= SCORE_MIN_SKUD_DAYS
+    && (score.avgExits > BREAKS_SIGNAL_EXITS || score.avgExcess > BREAKS_SIGNAL_EXCESS_MINUTES)
+  ) {
+    signals.push('breaks')
   }
   return signals
 }

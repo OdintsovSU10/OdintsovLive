@@ -29,13 +29,26 @@ interface ComponentRow {
   max: number
 }
 
+// Порядок и подписи компонентов; ключ, которого нет в данных оценки, пропускается
+const COMPONENT_LABELS: ReadonlyArray<readonly [string, string]> = [
+  ['attendance', 'Явка'],
+  ['hours', 'Часы'],
+  ['breaks', 'Перерывы'],
+  ['overtime', 'Сверх нормы'],
+  ['peer', 'Отдача к отделу']
+]
+
 function getRows(score: WindowScore): ComponentRow[] {
-  return [
-    { key: 'attendance', label: 'Явка', points: score.attendance, max: SCORE_MAX.attendance },
-    { key: 'hours', label: 'Часы', points: score.hours, max: SCORE_MAX.hours },
-    { key: 'overtime', label: 'Сверх нормы', points: score.overtime, max: SCORE_MAX.overtime },
-    { key: 'peer', label: 'Отдача к отделу', points: score.peer, max: SCORE_MAX.peer }
-  ]
+  const maxByKey: Record<string, number | undefined> = SCORE_MAX
+  const pointsByKey = score as unknown as Record<string, unknown>
+  const rows: ComponentRow[] = []
+  for (const [key, label] of COMPONENT_LABELS) {
+    const max = maxByKey[key]
+    const points = pointsByKey[key]
+    if (max === undefined || typeof points !== 'number') continue
+    rows.push({ key, label, points, max })
+  }
+  return rows
 }
 
 function formatDelta(delta: number): { text: string; tone: 'up' | 'down' | 'flat' } {
@@ -68,26 +81,26 @@ export function ScoreCard({ view, loading, error, noRaiseMonths, onRetry }: Prop
   const [infoOpen, setInfoOpen] = useState(false)
   const score = view?.current ?? null
 
-  const header = (
-    <div className="emp-card-head">
-      <h3>Оценка сотрудника</h3>
-      <button
-        type="button"
-        className="emp-icon-btn"
-        onClick={() => setInfoOpen(value => !value)}
-        aria-expanded={infoOpen}
-        aria-controls="emp-score-info"
-        aria-label="Как считается оценка"
-      >
-        <Info size={18} aria-hidden="true" />
-      </button>
-    </div>
+  const infoButton = (
+    <button
+      type="button"
+      className="emp-score-info-btn"
+      onClick={() => setInfoOpen(value => !value)}
+      aria-expanded={infoOpen}
+      aria-controls="emp-score-info"
+      aria-label="Как считается оценка"
+    >
+      <Info size={16} aria-hidden="true" />
+    </button>
   )
 
   if (error) {
     return (
       <section className="emp-card emp-score" aria-label="Оценка сотрудника">
-        {header}
+        <div className="emp-score-top">
+          <h3 className="emp-score-title">Оценка сотрудника</h3>
+          {infoButton}
+        </div>
         <div className="emp-state error">
           <span>{error}</span>
           <button type="button" className="emp-text-btn" onClick={onRetry}>Повторить</button>
@@ -99,16 +112,16 @@ export function ScoreCard({ view, loading, error, noRaiseMonths, onRetry }: Prop
   if (loading || !score) {
     return (
       <section className="emp-card emp-score" aria-label="Оценка сотрудника" aria-busy="true">
-        {header}
-        <div className="emp-score-main">
+        <div className="emp-score-top">
           <span className="emp-score-skeleton ring" />
           <div className="emp-score-side">
-            <span className="emp-score-skeleton line" />
             <span className="emp-score-skeleton line short" />
+            <span className="emp-score-skeleton line" />
           </div>
+          {infoButton}
         </div>
         <div className="emp-score-rows">
-          {[0, 1, 2, 3].map(index => <span key={index} className="emp-score-skeleton row" />)}
+          {COMPONENT_LABELS.slice(0, 4).map(([key]) => <span key={key} className="emp-score-skeleton row" />)}
         </div>
       </section>
     )
@@ -118,44 +131,46 @@ export function ScoreCard({ view, loading, error, noRaiseMonths, onRetry }: Prop
   const tone = score.grade ? `score-${score.grade.key}` : 'score-none'
   const signals = getScoreSignals(score, noRaiseMonths)
   const delta = view && view.delta !== null ? formatDelta(view.delta) : null
+  const rows = insufficient ? [] : getRows(score)
 
   return (
     <section className={`emp-card emp-score ${tone}`} aria-label="Оценка сотрудника">
-      {header}
-
-      <div className="emp-score-main">
+      <div className="emp-score-top">
         <ScoreRing total={score.total} tone={tone} />
         <div className="emp-score-side">
-          {insufficient ? (
-            <>
-              <p className="emp-score-grade muted">Мало данных</p>
-              <p className="emp-score-meta">
-                Плановых дней в табеле {score.planned} из {SCORE_MIN_PLANNED_DAYS} нужных
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="emp-score-grade">{score.grade?.label}</p>
-              {score.rank !== null && score.rankTotal > 1 && (
-                <p className="emp-score-meta">{score.rank}-е из {score.rankTotal} в отделе</p>
-              )}
-              {delta && <p className={`emp-score-delta ${delta.tone}`}>{delta.text}</p>}
-            </>
-          )}
+          <h3 className="emp-visually-hidden">Оценка сотрудника</h3>
+          <div className="emp-score-line">
+            {insufficient ? (
+              <>
+                <span className="emp-score-grade muted">Мало данных</span>
+                <span className="emp-score-meta">
+                  Плановых дней в табеле {score.planned} из {SCORE_MIN_PLANNED_DAYS} нужных
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="emp-score-grade">{score.grade?.label}</span>
+                {score.rank !== null && score.rankTotal > 1 && (
+                  <span className="emp-score-meta">{score.rank}-е из {score.rankTotal} в отделе</span>
+                )}
+                {delta && <span className={`emp-score-delta ${delta.tone}`}>{delta.text}</span>}
+              </>
+            )}
+            {signals.length > 0 && (
+              <ul className="emp-score-signals">
+                {signals.map(signal => (
+                  <li key={signal} className={`signal-${signal}`}>{SCORE_SIGNAL_LABELS[signal]}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
+        {infoButton}
       </div>
 
-      {signals.length > 0 && (
-        <ul className="emp-score-signals">
-          {signals.map(signal => (
-            <li key={signal} className={`signal-${signal}`}>{SCORE_SIGNAL_LABELS[signal]}</li>
-          ))}
-        </ul>
-      )}
-
-      {!insufficient && (
+      {rows.length > 0 && (
         <ul className="emp-score-rows">
-          {getRows(score).map(item => (
+          {rows.map(item => (
             <li key={item.key}>
               <span className="label">{item.label}</span>
               <span className="value">{Math.round(item.points)}/{item.max}</span>
@@ -175,16 +190,20 @@ export function ScoreCard({ view, loading, error, noRaiseMonths, onRetry }: Prop
             Сегодняшний день, отпуска, больничные, выходные и дни без записи в табеле не учитываются.
           </p>
           <p>
-            <b>Явка (45)</b> — доля полных дней; неполный день считается за 60%, за каждую неявку минус 5 баллов.
+            <b>Явка ({SCORE_MAX.attendance})</b> — доля полных дней; неполный день считается за 60%, за каждую неявку минус 5 баллов.
           </p>
           <p>
-            <b>Часы (25)</b> — отработанные часы по сравнению с нормой этих дней.
+            <b>Часы ({SCORE_MAX.hours})</b> — отработанные часы по сравнению с нормой этих дней.
           </p>
           <p>
-            <b>Сверх нормы (10)</b> — работа в выходные и часы сверх нормы дня; максимум даёт примерно 4 таких вклада на 60 рабочих дней.
+            <b>Перерывы ({SCORE_MAX.breaks})</b> — по дням с явкой (кроме удалёнки) с данными СКУД: время вне офиса сверх 60 минут
+            и выходы сверх 2 в день снижают баллы (60% веса — время, 40% — выходы). Меньше 10 дней со СКУД — нейтральные 5 баллов.
           </p>
           <p>
-            <b>Отдача к отделу (20)</b> — выработка в сравнении с коллегами отдела и их окладами:
+            <b>Сверх нормы ({SCORE_MAX.overtime})</b> — работа в выходные и часы сверх нормы дня; максимум даёт примерно 4 таких вклада на 60 рабочих дней.
+          </p>
+          <p>
+            <b>Отдача к отделу ({SCORE_MAX.peer})</b> — выработка в сравнении с коллегами отдела и их окладами:
             выше, когда отдача больше, чем у коллег, а оклад не выше. Если коллег меньше трёх — 10 баллов.
           </p>
           <p>

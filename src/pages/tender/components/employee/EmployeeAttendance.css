@@ -1,10 +1,19 @@
 /* Календарь посещения и проходы дня. Тона .tone-* используются и в панели дня. */
 
+/* Карточка ужимается до ширины сетки дней: 7 ячеек + 6 промежутков + отступы карточки */
 .emp-attendance {
-  align-self: start;
-  padding: 8px;
+  --cal-cell: 44px;
+  --cal-gap: 2px;
+  --cal-pad: 8px;
+  --cal-rows-min: calc(5 * var(--cal-cell) + 4 * var(--cal-gap));
+  box-sizing: border-box;
+  width: calc(7 * var(--cal-cell) + 6 * var(--cal-gap) + 2 * var(--cal-pad) + 2px);
+  max-width: 100%;
+  margin-inline: auto;
+  padding: var(--cal-pad);
 }
 
+/* Заголовок: счётчик уходит второй строкой, если не влезает */
 .emp-attendance .emp-card-head {
   padding: 4px 4px 0;
 }
@@ -16,17 +25,14 @@
 }
 
 .emp-cal {
-  max-width: 340px;
-  margin: 0 auto;
   touch-action: pan-y;
 }
 
 .emp-cal-weekdays,
 .emp-cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 44px));
-  justify-content: center;
-  gap: 2px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--cal-gap);
 }
 
 .emp-cal-weekdays span {
@@ -37,12 +43,12 @@
 }
 
 .emp-cal-grid {
-  grid-auto-rows: 44px;
-  min-height: calc(5 * 44px + 4 * 2px);
+  grid-auto-rows: var(--cal-cell);
+  min-height: var(--cal-rows-min);
 }
 
 .emp-cal .emp-state {
-  min-height: calc(5 * 44px + 4 * 2px);
+  min-height: var(--cal-rows-min);
 }
 
 .emp-day {
@@ -52,7 +58,7 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--cal-cell);
   padding: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -183,7 +189,9 @@
 
 .emp-legend ul {
   display: flex;
+  flex: 1 1 0;
   flex-wrap: wrap;
+  min-width: 0;
   gap: 2px 12px;
   padding-left: 4px;
   list-style: none;
@@ -226,20 +234,72 @@
   font-family: var(--font-mono);
 }
 
-/* Проходы дня */
+/* Проходы дня. Высота тела фиксирована: модалка не прыгает при листании дней */
 
-.emp-day-panel-body {
+.emp-day-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  width: 100%;
   min-width: 0;
+  height: min(560px, 64dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-.emp-day-status {
+.emp-day-body > * {
+  flex: 0 0 auto;
+}
+
+/* Пустые состояния занимают всё свободное место тела и стоят по центру */
+.emp-day-body > .emp-state.fill {
+  flex: 1 1 auto;
+}
+
+.emp-day-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+
+.emp-day-hero-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.emp-day-hero-main strong {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.emp-day-hero-main span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.emp-day-hero-side {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 10px;
+}
+
+.emp-day-norm {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.emp-day-short {
+  color: var(--chart-warning);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .emp-day-chip {
@@ -250,14 +310,24 @@
   font-weight: 600;
 }
 
-.emp-day-hours {
+.emp-day-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emp-day-range {
   font-family: var(--font-mono);
   font-size: 13px;
 }
 
 .emp-day-compare {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.emp-day-compare.warn {
+  color: var(--chart-warning);
 }
 
 .emp-day-flag {
@@ -272,7 +342,8 @@
 
 .emp-metrics {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -282,16 +353,21 @@
   background: var(--bg-tertiary);
 }
 
-.emp-metrics span {
+.emp-metrics span,
+.emp-metrics em {
   display: block;
   color: var(--text-muted);
   font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
 }
 
 .emp-metrics strong {
+  display: block;
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .emp-timeline-head,
@@ -338,10 +414,10 @@
 
 .emp-pass {
   display: grid;
-  grid-template-columns: 18px 46px 52px minmax(0, 1fr) auto;
+  grid-template-columns: 16px 46px 48px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
-  min-height: 48px;
+  min-height: 40px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
@@ -359,14 +435,24 @@
   color: var(--chart-negative);
 }
 
-.emp-pass time,
-.emp-pass-duration {
+.emp-pass time {
   font-family: var(--font-mono);
+  font-size: 14px;
 }
 
 .emp-pass-duration {
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+.emp-pass-duration.muted {
+  color: var(--text-muted);
+}
+
+.emp-pass-duration.warn {
+  color: var(--chart-warning);
 }
 
 .emp-pass-dir {
@@ -376,22 +462,9 @@
 .emp-pass-point {
   overflow: hidden;
   color: var(--text-muted);
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.emp-pass-break {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0 4px 24px;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.emp-pass-break strong {
-  font-family: var(--font-mono);
-  font-weight: 500;
 }
 
 .emp-flags {
@@ -430,39 +503,15 @@
 
 @media (min-width: 768px) {
   .emp-attendance {
-    padding: 12px;
+    --cal-pad: 12px;
   }
 }
 
-@media (min-width: 1100px) {
-  .emp-area-attendance .emp-attendance {
-    max-width: none;
-  }
-}
-
-/* Десктоп с мышью: компактный календарь около 280 px */
-@media (pointer: fine) and (min-width: 1100px) {
-  .emp-cal {
-    max-width: 280px;
-  }
-
-  .emp-cal-weekdays,
-  .emp-cal-grid {
-    grid-template-columns: repeat(7, minmax(0, 36px));
-    gap: 3px;
-  }
-
-  .emp-cal-grid {
-    grid-auto-rows: 36px;
-    min-height: calc(5 * 36px + 4 * 3px);
-  }
-
-  .emp-cal .emp-state {
-    min-height: calc(5 * 36px + 4 * 3px);
-  }
-
-  .emp-day {
-    min-height: 36px;
+/* Десктоп с мышью: ячейки 34 px, промежуток 3 px */
+@media (pointer: fine) and (min-width: 768px) {
+  .emp-attendance {
+    --cal-cell: 34px;
+    --cal-gap: 3px;
   }
 
   .emp-day-num {

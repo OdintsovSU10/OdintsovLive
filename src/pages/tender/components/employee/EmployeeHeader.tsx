@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ChevronLeft, Info } from 'lucide-react'
 import { formatAgeYears, formatMonthsSinceRaise } from '../../utils/tenderPresentation'
 
@@ -13,6 +14,8 @@ interface Props {
   ageYears: number | null
   tenureMonths: number
   noRaiseMonths: number
+  // Переключатель месяца: в строке шапки по центру (телефон — нижней строкой)
+  monthSwitcher: ReactNode
   onBack: () => void
   onOpenInfo: () => void
 }
@@ -26,6 +29,7 @@ export function EmployeeHeader({
   ageYears,
   tenureMonths,
   noRaiseMonths,
+  monthSwitcher,
   onBack,
   onOpenInfo
 }: Props) {
@@ -34,43 +38,49 @@ export function EmployeeHeader({
 
   return (
     <header className="emp-card emp-head">
-      <button type="button" className="emp-head-back" onClick={onBack}>
-        <ChevronLeft size={20} aria-hidden="true" />
-        Список
-      </button>
+      <div className="emp-head-left">
+        <button type="button" className="emp-head-back" onClick={onBack}>
+          <ChevronLeft size={20} aria-hidden="true" />
+          Список
+        </button>
 
-      <span className="emp-head-avatar" aria-hidden="true">{initials}</span>
+        <span className="emp-head-avatar" aria-hidden="true">{initials}</span>
 
-      <div className="emp-head-main">
-        <h2>{fullName}</h2>
-        {subtitle && <p className="emp-head-sub">{subtitle}</p>}
+        <div className="emp-head-main">
+          <h2>{fullName}</h2>
+          {subtitle && <p className="emp-head-sub" title={subtitle}>{subtitle}</p>}
+        </div>
       </div>
 
-      <div className="emp-head-stats">
-        <div className="emp-stat">
-          <strong>{ageYears !== null ? formatAgeYears(ageYears) : '—'}</strong>
-          <span>возраст</span>
-        </div>
-        <div className="emp-stat">
-          <strong>{formatMonthsSinceRaise(tenureMonths)}</strong>
-          <span>стаж</span>
-        </div>
-        {noRaiseMonths >= NO_RAISE_WARN_MONTHS && (
-          <span className={`emp-head-chip ${noRaiseTone}`}>
-            Без повышения {formatMonthsSinceRaise(noRaiseMonths)}
-          </span>
-        )}
-      </div>
+      <div className="emp-head-month">{monthSwitcher}</div>
 
-      <button
-        type="button"
-        className="emp-icon-btn emp-head-info"
-        onClick={onOpenInfo}
-        aria-haspopup="dialog"
-        aria-label="Информация о сотруднике"
-      >
-        <Info size={22} aria-hidden="true" />
-      </button>
+      <div className="emp-head-right">
+        <div className="emp-head-stats">
+          <div className="emp-stat">
+            <strong>{ageYears !== null ? formatAgeYears(ageYears) : '—'}</strong>
+            <span>возраст</span>
+          </div>
+          <div className="emp-stat">
+            <strong>{formatMonthsSinceRaise(tenureMonths)}</strong>
+            <span>стаж</span>
+          </div>
+          {noRaiseMonths >= NO_RAISE_WARN_MONTHS && (
+            <span className={`emp-head-chip ${noRaiseTone}`}>
+              Без повышения {formatMonthsSinceRaise(noRaiseMonths)}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="emp-icon-btn emp-head-info"
+          onClick={onOpenInfo}
+          aria-haspopup="dialog"
+          aria-label="Информация о сотруднике"
+        >
+          <Info size={22} aria-hidden="true" />
+        </button>
+      </div>
     </header>
   )
 }

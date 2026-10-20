@@ -1,4 +1,4 @@
-/* Шапка страницы сотрудника и тулбар месяца */
+/* Шапка страницы сотрудника с переключателем месяца */
 
 /* Шапка */
 
@@ -8,10 +8,23 @@
   grid-template-areas:
     'back back info'
     'avatar main main'
-    'stats stats stats';
+    'stats stats stats'
+    'month month month';
   align-items: center;
   gap: 0 8px;
-  padding: 4px 8px 10px;
+  padding: 4px 8px 6px;
+}
+
+/* До 1100 px группы «прозрачны»: элементы шапки лежат прямо в сетке карточки */
+.emp-head-left,
+.emp-head-right {
+  display: contents;
+}
+
+.emp-head-month {
+  grid-area: month;
+  min-width: 0;
+  margin-top: 4px;
 }
 
 .emp-head-back {
@@ -133,7 +146,7 @@
   --tone: var(--chart-negative);
 }
 
-/* Тулбар месяца: группа строго по центру, «Сегодня» справа поверх, не сдвигая центр */
+/* Переключатель месяца: группа строго по центру, «Сегодня» справа, не сдвигая центр */
 
 .emp-toolbar {
   position: relative;
@@ -189,26 +202,87 @@
   }
 }
 
-@media (min-width: 1100px) {
+/* Средняя ширина: личность и чипы в одной строке, переключатель месяца — второй строкой по центру */
+@container emp (min-width: 620px) {
   .emp-head {
-    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
-    grid-template-areas: 'back avatar main stats info';
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'left right'
+      'month month';
     gap: 0 12px;
+    padding: 8px 12px 6px;
+  }
+
+  .emp-head-left,
+  .emp-head-right {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 12px;
+  }
+
+  .emp-head-left { grid-area: left; }
+
+  .emp-head-right {
+    grid-area: right;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .emp-head-back,
+  .emp-head-avatar,
+  .emp-head-info {
+    flex: 0 0 auto;
+  }
+
+  .emp-head-avatar {
+    margin-left: 0;
+  }
+
+  .emp-head-main {
+    flex: 1 1 auto;
+    padding: 0;
+  }
+
+  .emp-head-stats {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+    margin-top: 0;
+    padding: 0;
+  }
+
+  .emp-stat {
+    min-width: 0;
+    padding: 4px 10px;
+  }
+}
+
+/* Широкая страница: одна строка «слева — личность, по центру — месяц, справа — чипы и ⓘ» */
+@container emp (min-width: 940px) {
+  .emp-head {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: 'left month right';
     padding: 8px 12px;
   }
 
   .emp-head-avatar {
     width: 44px;
     height: 44px;
-    margin-left: 0;
   }
 
-  .emp-head-main {
-    padding: 0;
+  .emp-head-main h2 {
+    -webkit-line-clamp: 2;
+    font-size: 17px;
   }
 
-  .emp-head-stats {
+  .emp-head-month {
     margin-top: 0;
-    padding: 0;
+    /* Запас по бокам под «Сегодня», чтобы группа оставалась строго по центру */
+    padding: 0 52px;
+  }
+
+  .emp-today-btn {
+    right: -48px;
   }
 }

@@ -1,7 +1,7 @@
 import { supabase } from '../../../lib/supabase'
 import { roundTimesheetHours } from './salaryCalculator'
 import type { WorkPlan } from './attendanceDay'
-import type { ScoreMember } from './employeeScore'
+import type { ScoreMember, ScoreSkudDay } from './employeeScore'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
 
 // Загрузка табеля и планов для оценки сотрудников: общая для карточки и списков
@@ -15,11 +15,20 @@ export interface PlanRow extends WorkPlan {
   employee_id: number
 }
 
+export interface SkudRow {
+  employee_id: number
+  work_date: string
+  exits_count: number
+  outside_minutes: number
+}
+
 export interface ScoreData {
   at: number
   ids: Set<number>
   entries: Map<number, TimesheetEntry[]>
   plans: Map<number, Map<string, WorkPlan>>
+  // СКУД по сотрудникам и датам; null — загрузить не удалось
+  skud: Map<number, Map<string, ScoreSkudDay>> | null
 }
 
 // PostgREST отдаёт не больше 1000 строк за запрос: забираем страницами через range
@@ -82,9 +91,32 @@ export async function fetchPlans(ids: number[], from: string, to: string): Promi
   }
 }
 
-// Табель и планы за период, разложенные по сотрудникам
+// СКУД необязателен: при ошибке возвращаем null, и перерывы в оценке нейтральные
+export async function fetchSkud(ids: number[], from: string, to: string): Promise<SkudRow[] | null> {
+  try {
+    const parts = await Promise.all(chunkIds(ids).map(chunk => fetchAllPages<SkudRow>((start, end) => supabase
+      .from('tender_skud_daily')
+      .select('employee_id,work_date,exits_count,outside_minutes')
+      .in('employee_id', chunk)
+      .gte('work_date', from)
+      .lte('work_date', to)
+      .order('employee_id', { ascending: true })
+      .order('work_date', { ascending: true })
+      .range(start, end))))
+    return parts.flat()
+  } catch (err) {
+    console.error('Error loading SKUD data for score:', err)
+    return null
+  }
+}
+
+// Табель, планы и СКУД за период, разложенные по сотрудникам
 export async function loadScoreData(ids: number[], from: string, to: string): Promise<ScoreData> {
-  const [timesheet, planRows] = await Promise.all([fetchTimesheet(ids, from, to), fetchPlans(ids, from, to)])
+  const [timesheet, planRows, skudRows] = await Promise.all([
+    fetchTimesheet(ids, from, to),
+    fetchPlans(ids, from, to),
+    fetchSkud(ids, from, to)
+  ])
 
   const entries = new Map<number, TimesheetEntry[]>()
   for (const row of timesheet) {
@@ -99,7 +131,17 @@ export async function loadScoreData(ids: number[], from: string, to: string): Pr
     plans.set(row.employee_id, byDate)
   }
 
-  return { at: Date.now(), ids: new Set(ids), entries, plans }
+  let skud: Map<number, Map<string, ScoreSkudDay>> | null = null
+  if (skudRows) {
+    skud = new Map<number, Map<string, ScoreSkudDay>>()
+    for (const row of skudRows) {
+      const byDate = skud.get(row.employee_id) || new Map<string, ScoreSkudDay>()
+      byDate.set(row.work_date, { exits: row.exits_count, outsideMinutes: row.outside_minutes })
+      skud.set(row.employee_id, byDate)
+    }
+  }
+
+  return { at: Date.now(), ids: new Set(ids), entries, plans, skud }
 }
 
 export function toScoreMember(employee: EmployeeWithStats, data: ScoreData): ScoreMember {
@@ -112,7 +154,9 @@ export function toScoreMember(employee: EmployeeWithStats, data: ScoreData): Sco
     currentSalary: employee.current_salary,
     salaryHistory: employee.salaryHistory || [],
     entriesByDate,
-    plans: data.plans.get(employee.id) || new Map<string, WorkPlan>()
+    plans: data.plans.get(employee.id) || new Map<string, WorkPlan>(),
+    // Нет строк у сотрудника — пустая карта; null только если СКУД не загрузился
+    skud: data.skud ? data.skud.get(employee.id) || new Map<string, ScoreSkudDay>() : null
   }
 }
 
