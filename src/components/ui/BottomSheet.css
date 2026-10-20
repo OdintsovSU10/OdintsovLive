@@ -1,4 +1,4 @@
-/* Лист снизу (телефон) / панель справа (≥768px). Ниже --z-topbar. */
+/* Лист снизу (телефон) / панель справа или окно по центру (≥768px). Ниже --z-topbar. */
 
 .ui-sheet-root {
   position: fixed;
@@ -130,6 +130,16 @@
   to { transform: translateX(100%); }
 }
 
+@keyframes ui-sheet-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ui-sheet-pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
 @media (min-width: 768px) {
   .ui-sheet-root {
     justify-content: flex-end;
@@ -157,6 +167,29 @@
 
   .ui-sheet-root.closing .ui-sheet {
     animation-name: ui-sheet-slide-out-right;
+  }
+
+  .ui-sheet-root.modal {
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+  }
+
+  .ui-sheet-root.modal .ui-sheet {
+    width: 560px;
+    height: auto;
+    max-height: calc(100dvh - 48px);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    animation-name: ui-sheet-pop-in;
+  }
+
+  .ui-sheet-root.modal.closing .ui-sheet {
+    animation-name: ui-sheet-pop-out;
+  }
+
+  .ui-sheet-root.modal .ui-sheet-footer {
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   }
 }
 

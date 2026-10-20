@@ -86,6 +86,7 @@ export const MeasurementModal = ({ editing, latest, records, onSave, onClose }: 
   return (
     <BottomSheet
       title={editing ? 'Редактировать замер' : 'Новый замер'}
+      variant="modal"
       onClose={onClose}
       footer={
         <>
@@ -113,15 +114,17 @@ export const MeasurementModal = ({ editing, latest, records, onSave, onClose }: 
         <div className="body-form-grid">
           {SINGLE_KEYS.map(key => renderField(key, PARAM_LABELS[key]))}
         </div>
-        {PAIRS.map(pair => (
-          <fieldset key={pair.title} className="body-pair">
-            <legend>{pair.title}</legend>
-            <div className="body-form-grid">
-              {renderField(pair.left, 'Левый')}
-              {renderField(pair.right, 'Правый')}
-            </div>
-          </fieldset>
-        ))}
+        <div className="body-pairs">
+          {PAIRS.map(pair => (
+            <fieldset key={pair.title} className="body-pair">
+              <legend>{pair.title}</legend>
+              <div className="body-form-grid">
+                {renderField(pair.left, 'Левый')}
+                {renderField(pair.right, 'Правый')}
+              </div>
+            </fieldset>
+          ))}
+        </div>
         {error && <p className="body-error" role="alert">{error}</p>}
       </div>
     </BottomSheet>

@@ -130,14 +130,14 @@ export const WeightCard = ({ records, loading, loadError, onSave, onRemove }: IP
             onChange={e => setDate(e.target.value)}
             disabled={saving}
           />
+          <button type="submit" className="body-btn primary" disabled={saving || value.trim() === ''}>
+            {existing ? 'Заменить' : 'Сохранить'}
+          </button>
         </div>
         {existing && (
           <p className="body-muted">За эту дату уже {formatNum(existing.weight, 2)} кг — сохранение заменит</p>
         )}
         {message && <p className="body-error" role="alert">{message}</p>}
-        <button type="submit" className="body-btn primary" disabled={saving || value.trim() === ''}>
-          {existing ? 'Заменить' : 'Сохранить'}
-        </button>
       </form>
 
       <WeightChart records={records} />
