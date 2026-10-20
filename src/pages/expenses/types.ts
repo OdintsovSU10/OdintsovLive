@@ -33,6 +33,8 @@ export interface ExpenseTransaction {
   mapped_category_id: string | null
   source: ExpenseSource
   note: string | null
+  // Из правила мерчанта (на клиенте, в БД не хранится)
+  merchant_name?: string | null
   created_at: string
   updated_at: string
 }
@@ -55,6 +57,15 @@ export interface ExpenseCategoryMapping {
   target_category_id: string
   created_at: string
   updated_at: string
+}
+
+export interface ExpenseMerchantRule {
+  id: string
+  user_id: string
+  merchant_key: string
+  display_name: string | null
+  category_id: string | null
+  source: 'llm' | 'user'
 }
 
 export interface ExpenseImportError {

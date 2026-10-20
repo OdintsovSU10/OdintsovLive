@@ -856,3 +856,8 @@
     animation: none !important;
   }
 }
+
+.category-select {
+  max-width: 180px;
+  min-height: 36px;
+}

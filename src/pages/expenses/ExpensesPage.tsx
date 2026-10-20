@@ -67,6 +67,7 @@ export default function ExpensesPage() {
     updateCategory,
     deleteCategory,
     upsertMapping,
+    setMerchantCategory,
     importStatement
   } = useExpensesData()
 
@@ -256,6 +257,9 @@ export default function ExpensesPage() {
           filters={filters}
           loading={loading}
           onFiltersChange={updateFilters}
+          onSetCategory={(transaction, categoryId) => {
+            setMerchantCategory(transaction.description, categoryId).catch(err => setActionError(err instanceof Error ? err.message : 'Не удалось сохранить категорию'))
+          }}
         />
       )}
 

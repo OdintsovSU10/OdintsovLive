@@ -9,6 +9,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { createEntry, createRest, emptyContext, executeTools, loadContext, undoEntry } from './actions.mjs'
 import { callLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
+import { startMerchantWorker } from './merchants.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
 const ENV_FILE = path.join(DIR, '.env')
@@ -307,6 +308,8 @@ const main = async () => {
   let bot = null
   // очередь фото счётчиков с портала — в этом же процессе, с текущими настройками
   startMeterWorker(rest, () => config, log)
+  // мерчанты новых банковских операций: название и категория от нейронки
+  startMerchantWorker(rest, () => config, log)
   let offset = 0
   let syncedAt = 0
 

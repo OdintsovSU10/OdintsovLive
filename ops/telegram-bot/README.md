@@ -48,6 +48,7 @@ IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `env
 | `llm.mjs` | промпт и инструменты для OpenRouter |
 | `actions.mjs` | запись в Supabase и отмена |
 | `meters.mjs` | распознавание счётчиков и очередь `meter_ocr_jobs` |
+| `merchants.mjs` | раз в 5 минут размечает новых мерчантов банковских операций (название + категория) в `expense_merchant_rules`; правки пользователя (`source='user'`) не трогает |
 | `.env` | доступ к Supabase и часовой пояс (см. `.env.example`) |
 
 Зависимостей нет, нужен Node 22+.

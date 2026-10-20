@@ -18,6 +18,7 @@ interface Props {
   filters: ExpenseFilters
   loading: boolean
   onFiltersChange: (patch: Partial<ExpenseFilters>) => void
+  onSetCategory: (transaction: ExpenseTransaction, categoryId: string | null) => void
 }
 
 export function TransactionsView({
@@ -27,7 +28,8 @@ export function TransactionsView({
   bankCategories,
   filters,
   loading,
-  onFiltersChange
+  onFiltersChange,
+  onSetCategory
 }: Props) {
   const [sortField, setSortField] = useState<SortField>('operation_at')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -132,6 +134,8 @@ export function TransactionsView({
                   key={transaction.id}
                   transaction={transaction}
                   categoryName={getMappedCategoryName(transaction, categoriesById)}
+                  categories={categories}
+                  onSetCategory={onSetCategory}
                 />
               ))}
             </tbody>

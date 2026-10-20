@@ -6,11 +6,12 @@ import type {
   ExpenseFilters,
   ExpenseImportError,
   ExpenseImportSummary,
+  ExpenseMerchantRule,
   ExpenseTransaction,
   ExpenseUserCategory,
   PreparedExpenseTransaction
 } from '../types'
-import { buildInsights, isFailed } from '../utils/analysis'
+import { buildInsights, isFailed, merchantKey } from '../utils/analysis'
 import { normalizeCategoryKey, parseStatementFile } from '../utils/statementParser'
 
 // Без служебных полей импорта (dedupe_key, row_hash, user_id, import_batch_id): два хэша по 64 символа
@@ -134,7 +135,8 @@ export function useExpensesData() {
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [allTransactions, setAllTransactions] = useState<ExpenseTransaction[]>([])
+  const [rawTransactions, setAllTransactions] = useState<ExpenseTransaction[]>([])
+  const [rules, setRules] = useState<ExpenseMerchantRule[]>([])
   const [categories, setCategories] = useState<ExpenseUserCategory[]>([])
   const [mappings, setMappings] = useState<ExpenseCategoryMapping[]>([])
 
@@ -177,6 +179,18 @@ export function useExpensesData() {
     setMappings((data || []) as ExpenseCategoryMapping[])
   }, [userId])
 
+  const loadRules = useCallback(async () => {
+    if (!userId) return
+
+    const { data, error: queryError } = await supabase
+      .from('expense_merchant_rules')
+      .select('id, user_id, merchant_key, display_name, category_id, source')
+      .eq('user_id', userId)
+
+    if (queryError) throw queryError
+    setRules((data || []) as ExpenseMerchantRule[])
+  }, [userId])
+
   // Грузим всю историю: анализу подписок нужны месяцы, фильтры применяются на клиенте
   const loadTransactions = useCallback(async () => {
     if (!userId) return
@@ -213,14 +227,30 @@ export function useExpensesData() {
   useEffect(() => {
     if (!userId) return
 
-    Promise.all([loadCategories(), loadMappings()])
+    Promise.all([loadCategories(), loadMappings(), loadRules()])
       .catch(err => setError(getErrorMessage(err)))
-  }, [loadCategories, loadMappings, userId])
+  }, [loadCategories, loadMappings, loadRules, userId])
 
   useEffect(() => {
     if (!userId) return
     void loadTransactions()
   }, [loadTransactions, userId])
+
+  // Правила мерчантов накладываются на операции на лету: название и категория, а банковские данные не меняются
+  const allTransactions = useMemo(() => {
+    if (rules.length === 0) return rawTransactions
+
+    const byKey = new Map(rules.map(rule => [rule.merchant_key, rule]))
+    return rawTransactions.map(transaction => {
+      const rule = byKey.get(merchantKey(transaction.description))
+      if (!rule) return transaction
+      return {
+        ...transaction,
+        merchant_name: rule.display_name,
+        mapped_category_id: rule.category_id ?? transaction.mapped_category_id
+      }
+    })
+  }, [rawTransactions, rules])
 
   const bankCategories = useMemo(() => {
     const unique = new Set<string>()
@@ -390,6 +420,35 @@ export function useExpensesData() {
     )))
     await loadMappings()
   }, [loadMappings, userId])
+
+  // Ручная правка категории мерчанта: правило source='user' нейронка уже не трогает
+  const setMerchantCategory = useCallback(async (description: string | null, categoryId: string | null) => {
+    if (!userId) return
+
+    const key = merchantKey(description)
+    if (!key) return
+
+    const existing = rules.find(rule => rule.merchant_key === key)
+    const { data, error: queryError } = await supabase
+      .from('expense_merchant_rules')
+      .upsert(
+        {
+          user_id: userId,
+          merchant_key: key,
+          display_name: existing?.display_name ?? null,
+          category_id: categoryId,
+          source: 'user',
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'user_id,merchant_key' }
+      )
+      .select('id, user_id, merchant_key, display_name, category_id, source')
+      .single()
+
+    if (queryError) throw queryError
+    const saved = data as ExpenseMerchantRule
+    setRules(prev => [...prev.filter(rule => rule.merchant_key !== key), saved])
+  }, [rules, userId])
 
   const importStatement = useCallback(async (file: File): Promise<ExpenseImportSummary> => {
     if (!userId) {
@@ -617,6 +676,7 @@ export function useExpensesData() {
     updateCategory,
     deleteCategory,
     upsertMapping,
+    setMerchantCategory,
     importStatement,
     reloadTransactions: loadTransactions
   }
