@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, Fragment, type CSSProperties } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { ClearableInput } from '../../components/ui/ClearableInput'
 import { Toast } from '../../components/ui/Toast'
@@ -31,12 +31,17 @@ const UNDO_TOAST_DURATION_MS = 6000
 
 const textOrDash = (value: string | null | undefined) => value?.trim() || '—'
 
+// Листы панели открываются кнопками в строке вкладок оболочки
+export type AdminPanelSheet = 'subdivisions' | 'addEmployee'
+
 interface Props {
   // Растёт, когда листы «Архив»/«Настройки» что-то поменяли — список перечитывается
   refreshKey: number
+  sheet: AdminPanelSheet | null
+  onSheetClose: () => void
 }
 
-export default function AdminTenderPanel({ refreshKey }: Props) {
+export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Props) {
   const { employees, loading, loadEmployees, selectedYear, selectedMonth } = useTenderData()
   const { toast, showToast, hideToast } = useToast()
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
@@ -53,8 +58,6 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
     const top = listScrollRef.current
     window.requestAnimationFrame(() => window.scrollTo(0, top))
   }
-  const [showAddEmployee, setShowAddEmployee] = useState(false)
-  const [showSubdivisions, setShowSubdivisions] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EditableEmployee | null>(null)
   const [archivingIds, setArchivingIds] = useState<Set<number>>(() => new Set())
   const [search, setSearch] = useState('')
@@ -180,7 +183,7 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
 
       if (error) throw error
 
-      setShowAddEmployee(false)
+      onSheetClose()
       await reloadEmployees()
       notify('Сотрудник добавлен')
       return true
@@ -250,6 +253,12 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
   }, [employees, search, incompleteOnly])
 
   const groupedEmployees = useMemo(() => groupEmployees(filteredEmployees), [filteredEmployees])
+  // Сквозная нумерация по порядку на экране, через все группы
+  const rowNumbers = useMemo(() => {
+    const numbers = new Map<number, number>()
+    groupedEmployees.forEach(group => group.employees.forEach(emp => numbers.set(emp.id, numbers.size + 1)))
+    return numbers
+  }, [groupedEmployees])
 
   if (loading) return <div className="tender-loading"><div className="tender-spinner" /><div>Загрузка...</div></div>
 
@@ -272,19 +281,6 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
     <div className="tender-page admin-panel">
       <div className="tender-content">
         <div className="admin-section">
-          <div className="admin-section-head">
-            <h3>Сотрудники ({employees.length})</h3>
-            <div className="admin-section-actions">
-              <button type="button" className="btn-secondary admin-head-btn" onClick={() => setShowSubdivisions(true)}>
-                Подразделения
-              </button>
-              <button type="button" className="btn-primary admin-head-btn" onClick={() => setShowAddEmployee(true)}>
-                <Plus size={16} strokeWidth={1.5} />
-                <span>Добавить сотрудника</span>
-              </button>
-            </div>
-          </div>
-
           <div className="tender-filters admin-filters">
             <ClearableInput
               wrapperClassName="admin-search"
@@ -306,6 +302,7 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
             <table className="emp-list-table admin-emp-table">
               <thead>
                 <tr>
+                  <th className="emp-list-num">№</th>
                   <th>ФИО</th>
                   <th>Должность</th>
                   <th>Отдел</th>
@@ -324,7 +321,7 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
                       className="emp-list-subdiv-row"
                       style={{ '--subdiv-accent': getSubdivisionAccent(group.name) } as CSSProperties}
                     >
-                      <td colSpan={9}>{group.name} <span>({group.employees.length})</span></td>
+                      <td colSpan={10}>{group.name} <span>({group.employees.length})</span></td>
                     </tr>
                     {group.employees.map(emp => {
                       const noRaiseMonths = getMonthsSinceLastRaise(emp)
@@ -341,6 +338,7 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
                           className="emp-list-row"
                           onClick={() => openEmployee(emp)}
                         >
+                          <td className="emp-list-num">{rowNumbers.get(emp.id)}</td>
                           <td className="emp-list-name">
                             <span>{emp.full_name}</span>
                           </td>
@@ -413,19 +411,19 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
           subdivisions={subdivisionNames}
         />
       )}
-      {showAddEmployee && (
+      {sheet === 'addEmployee' && (
         <AddEmployeeModal
-          onClose={() => setShowAddEmployee(false)}
+          onClose={onSheetClose}
           onSave={handleAddEmployee}
           subdivisions={subdivisionNames}
         />
       )}
-      {showSubdivisions && (
+      {sheet === 'subdivisions' && (
         <SubdivisionsSheet
           subdivisions={subdivisions}
           employees={employees}
           onChanged={loadSubdivisions}
-          onClose={() => setShowSubdivisions(false)}
+          onClose={onSheetClose}
         />
       )}
       <Toast toast={toast} onClose={hideToast} />

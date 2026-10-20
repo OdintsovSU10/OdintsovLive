@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Archive, Settings } from 'lucide-react'
+import { Archive, Building2, Plus, Settings } from 'lucide-react'
 import { useTenderData } from './hooks/useTenderData'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
@@ -8,7 +8,7 @@ import { DashboardOverview } from './components/DashboardOverview'
 import { EmployeeDetail } from './components/EmployeeDetail'
 import { ArchiveSheet } from './components/ArchiveSheet'
 import { SettingsSheet } from './components/SettingsSheet'
-import AdminTenderPanel from './AdminTenderPanel'
+import AdminTenderPanel, { type AdminPanelSheet } from './AdminTenderPanel'
 import type { EmployeeWithStats } from './types'
 import './TenderPage.css'
 
@@ -74,6 +74,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
   const [sheet, setSheet] = useState<SheetKind | null>(null)
+  const [panelSheet, setPanelSheet] = useState<AdminPanelSheet | null>(null)
   const [adminRefreshKey, setAdminRefreshKey] = useState(0)
   const sheetChangedRef = useRef(false)
 
@@ -235,23 +236,53 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
               </div>
             )}
           </div>
-          <nav ref={tabsRef} className="tender-shell-tabs">
-            {tabsOrder.map(tab => (
-              <button
-                key={tab.key}
-                type="button"
-                className={`tender-shell-tab ${activeTab === tab.key ? 'active' : ''}`}
-                onClick={() => handleTabClick(tab.key)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <div className="tender-shell-tabs-row">
+            <nav ref={tabsRef} className="tender-shell-tabs">
+              {tabsOrder.map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`tender-shell-tab ${activeTab === tab.key ? 'active' : ''}`}
+                  onClick={() => handleTabClick(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+            {adminTabActive && (
+              <div className="tender-tab-actions">
+                <button
+                  type="button"
+                  className="tender-tab-action"
+                  onClick={() => setPanelSheet('subdivisions')}
+                  aria-label="Подразделения"
+                  title="Подразделения"
+                >
+                  <Building2 size={16} strokeWidth={1.5} />
+                  <span>Подразделения</span>
+                </button>
+                <button
+                  type="button"
+                  className="tender-tab-action primary"
+                  onClick={() => setPanelSheet('addEmployee')}
+                  aria-label="Добавить сотрудника"
+                  title="Добавить сотрудника"
+                >
+                  <Plus size={16} strokeWidth={1.5} />
+                  <span>Добавить сотрудника</span>
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         <main className="tender-shell-main">
           {adminTabActive ? (
-            <AdminTenderPanel refreshKey={adminRefreshKey} />
+            <AdminTenderPanel
+              refreshKey={adminRefreshKey}
+              sheet={panelSheet}
+              onSheetClose={() => setPanelSheet(null)}
+            />
           ) : selectedEmployee ? (
             <EmployeeDetail
               employee={selectedEmployee}

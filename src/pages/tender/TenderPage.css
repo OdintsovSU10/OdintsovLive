@@ -138,7 +138,15 @@
   transform: translateY(-1px);
 }
 
+.tender-shell-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .tender-shell-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-wrap: nowrap;
   gap: 2px;
@@ -149,6 +157,79 @@
 
 .tender-shell-tabs::-webkit-scrollbar {
   display: none;
+}
+
+/* Кнопки вкладки «Администрирование» — справа в строке вкладок; на телефоне только иконки */
+.tender-tab-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding-bottom: 4px;
+  animation: tender-tab-actions-in 0.2s ease-out;
+}
+
+.tender-tab-action {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(100, 116, 139, 0.24);
+  border-radius: 8px;
+  background: rgba(100, 116, 139, 0.14);
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.tender-tab-action:hover {
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.tender-tab-action.primary {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.24), rgba(56, 189, 248, 0.22));
+  border-color: rgba(129, 140, 248, 0.45);
+  color: #c7d2fe;
+}
+
+.tender-tab-action.primary:hover {
+  border-color: rgba(129, 140, 248, 0.7);
+}
+
+.tender-tab-action span {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .tender-tab-action {
+    width: auto;
+    height: 34px;
+    padding: 0 12px;
+  }
+
+  .tender-tab-action span {
+    display: inline;
+  }
+}
+
+@keyframes tender-tab-actions-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tender-tab-actions {
+    animation: none;
+  }
 }
 
 .tender-shell-tab {

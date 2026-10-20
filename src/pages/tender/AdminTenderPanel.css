@@ -100,35 +100,6 @@
   gap: 10px;
 }
 
-.tender-page .admin-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.tender-page .admin-section-head h3 {
-  margin: 0;
-}
-
-.tender-page .admin-section-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tender-page .admin-head-btn {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
 .tender-page .admin-filters {
   flex-wrap: wrap;
   margin-bottom: 16px;
@@ -197,8 +168,8 @@
 }
 
 .tender-page .admin-check input:focus-visible {
-  outline: 2px solid rgba(129, 140, 248, 0.6);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.3);
 }
 
 /* Десктоп: поиск и галка в масштабе кнопок панели; на телефоне — 44px и 16px против зума Safari */
@@ -259,6 +230,21 @@
   font-size: 0.82rem;
   color: #cbd5e1;
   border-bottom: 1px solid rgba(100, 116, 139, 0.06);
+}
+
+/* В строке админ-таблицы переносится только должность; остальное — в одну строку, таблица листается в обёртке */
+.tender-page .admin-emp-table th,
+.tender-page .admin-emp-table td:not(.emp-list-position) {
+  white-space: nowrap;
+}
+
+.tender-page .emp-list-table .emp-list-num {
+  width: 1%;
+  padding-right: 4px;
+  color: #64748b;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .tender-page .emp-list-subdiv-row td {
