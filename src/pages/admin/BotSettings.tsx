@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Bot, CheckCircle2, Eye, EyeOff, RefreshCw, XCircle } from 'lucide-react'
+import { Bot, CheckCircle2, ChevronDown, Eye, EyeOff, RefreshCw, XCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 // Секреты из базы в браузер не возвращаются — только признак «задан» и подсказка
@@ -40,6 +40,8 @@ export default function BotSettings() {
   const [ownerId, setOwnerId] = useState('')
   const [model, setModel] = useState('')
   const [showSecrets, setShowSecrets] = useState(false)
+  // Бот уже подключён — поля подключения свёрнуты, раскрываются по кнопке
+  const [fieldsOpen, setFieldsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -101,6 +103,7 @@ export default function BotSettings() {
       setOpenrouterKey('')
       setElevenlabsKey('')
       setShowSecrets(false)
+      setFieldsOpen(false)
       setSuccess('Сохранено. Бот подхватит изменения в течение минуты.')
     }
     setSaving(false)
@@ -112,6 +115,8 @@ export default function BotSettings() {
   const changed = Boolean(telegramToken.trim() || openrouterKey.trim() || elevenlabsKey.trim())
     || ownerId.trim() !== (status?.telegram_owner_id || '')
     || model.trim() !== (status?.openrouter_model || '')
+
+  const fieldsHidden = Boolean(status?.has_telegram_token) && !fieldsOpen
 
   const statusTitle = online
     ? `Бот @${status?.bot_username} работает`
@@ -163,7 +168,20 @@ export default function BotSettings() {
         )}
       </div>
 
-      <div className="fot-token-form bot-settings-fields">
+      {status?.has_telegram_token && (
+        <button
+          type="button"
+          className="fot-refresh-btn bot-settings-toggle"
+          onClick={() => setFieldsOpen(current => !current)}
+          aria-expanded={fieldsOpen}
+          aria-controls="bot-settings-fields"
+        >
+          <span>{fieldsOpen ? 'Скрыть подключение' : 'Изменить подключение'}</span>
+          <ChevronDown size={17} className={fieldsOpen ? 'is-open' : ''} />
+        </button>
+      )}
+
+      <div id="bot-settings-fields" className="fot-token-form bot-settings-fields" hidden={fieldsHidden}>
         <div>
           <label htmlFor="bot-telegram-token">Токен Telegram-бота</label>
           <div className="fot-token-input-wrap">
