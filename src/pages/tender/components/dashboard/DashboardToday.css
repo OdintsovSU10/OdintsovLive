@@ -1,0 +1,153 @@
+/* Чипы статусов */
+
+.dash-chips,
+.dash-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dash-chip {
+  --tone: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  border-radius: 999px;
+}
+
+.dash-chip strong {
+  font-family: var(--font-mono);
+  color: var(--tone);
+  white-space: nowrap;
+}
+
+.tone-office { --tone: var(--chart-positive); }
+.tone-remote { --tone: var(--chart-2); }
+.tone-left { --tone: var(--text-secondary); }
+.tone-vacation { --tone: var(--chart-warning); }
+.tone-sick { --tone: var(--chart-7); }
+.tone-dayoff,
+.tone-noData { --tone: var(--text-muted); }
+.tone-noMark,
+.tone-absent { --tone: var(--chart-negative); }
+.tone-notYet,
+.tone-unpaid { --tone: var(--chart-6); }
+.tone-work { --tone: var(--chart-positive); }
+
+.dash-name-group {
+  margin-top: 12px;
+}
+
+.dash-name-group-title {
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.dash-name-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  text-align: left;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--tone, var(--border)) 45%, transparent);
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease-out;
+}
+
+.dash-name-btn:hover {
+  background: color-mix(in srgb, var(--tone, var(--primary)) 14%, transparent);
+}
+
+/* Скелетон загрузки проходов */
+
+.dash-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-skeleton-line {
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--bg-tertiary);
+  animation: dash-pulse 1.2s ease-in-out infinite;
+}
+
+.dash-skeleton-line.short {
+  width: 60%;
+}
+
+@keyframes dash-pulse {
+  50% { opacity: 0.45; }
+}
+
+/* Посещаемость за месяц: горизонтальные полосы */
+
+.dash-hbars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dash-hbar-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.dash-hbar-label {
+  color: var(--text-secondary);
+}
+
+.dash-hbar-track {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.dash-hbar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--tone);
+  transform: scaleX(var(--value, 0));
+  transform-origin: left;
+  transition: transform 0.2s ease-out;
+}
+
+.dash-hbar-value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .dash-hbar-row {
+    grid-template-columns: 120px minmax(0, 1fr) 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-hbar-fill,
+  .dash-name-btn {
+    transition: none;
+  }
+
+  .dash-skeleton-line {
+    animation: none;
+  }
+}

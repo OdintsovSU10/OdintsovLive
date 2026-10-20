@@ -1,0 +1,135 @@
+/* Деньги: столбики план/факт */
+
+.dash-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.dash-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease-out;
+}
+
+.dash-bar-col.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dash-bar-value {
+  font-size: 0.62rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dash-bar-area {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 104px;
+}
+
+.dash-bar {
+  display: block;
+  width: 34%;
+  max-width: 18px;
+  height: 100%;
+  border-radius: 3px 3px 0 0;
+  transform: scaleY(var(--h, 0));
+  transform-origin: bottom;
+  transition: transform 0.2s ease-out;
+}
+
+.dash-bar.plan {
+  background: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.dash-bar.fact {
+  background: var(--primary);
+}
+
+.dash-bar-month {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.dash-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 8px 0 12px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.dash-legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+.dash-legend-item.plan::before {
+  background: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.dash-chart-detail {
+  flex: 1 1 100%;
+  color: var(--text-primary);
+}
+
+.dash-money-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-money-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.dash-money-row dt {
+  color: var(--text-secondary);
+}
+
+.dash-money-row dd {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-money-hint {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-bar,
+  .dash-bar-col {
+    transition: none;
+  }
+}

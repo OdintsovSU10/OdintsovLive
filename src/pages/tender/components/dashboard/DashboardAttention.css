@@ -1,0 +1,73 @@
+/* Требует внимания */
+
+.dash-attention {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.dash-attention-row {
+  --tone: var(--text-secondary);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  text-align: left;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--tone);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease-out;
+}
+
+.dash-attention-row:hover {
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+}
+
+.dash-attention-row.kind-noMark,
+.dash-attention-row.kind-absent { --tone: var(--chart-negative); }
+.dash-attention-row.kind-unfilled { --tone: var(--chart-warning); }
+.dash-attention-row.kind-overtime { --tone: var(--chart-2); }
+
+.dash-attention-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.dash-attention-title {
+  grid-column: 1;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.dash-attention-value {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--tone);
+}
+
+.dash-more-btn {
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  color: var(--primary);
+  background: transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-attention-row {
+    transition: none;
+  }
+}

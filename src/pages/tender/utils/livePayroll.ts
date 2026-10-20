@@ -144,7 +144,7 @@ export function calculateEmployeeMonthlyPayrollPlan(
   return salary + monthlyBonus + extraBonus + safeTransport
 }
 
-function getMoscowParts(date: Date) {
+export function getMoscowParts(date: Date) {
   const parts = Object.fromEntries(
     MOSCOW_PARTS_FORMATTER
       .formatToParts(date)
