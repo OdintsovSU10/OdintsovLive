@@ -97,6 +97,7 @@ Options:
   --limit N                  Maximum records to read
   --dry-run                  Read and match only, do not write
   --skip-import-log          Do not append a tender_imports row
+  --skud                     Also collect daily SKUD stats into tender_skud_daily
   --help                     Show this help
 
 Env:
@@ -104,6 +105,7 @@ Env:
   FOT_TIMESHEET_API or FOT_TIMESHEET_TABLE can override it.
   FOT_TIMESHEET_DEPARTMENT_IDS can narrow public timesheet sync.
   FOT_API and FOT_API_TOKEN are used for FOT access.
+  FOT_EVENTS_API overrides the SKUD events endpoint (--skud).
   VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY are used for writes.`)
 }
 
@@ -111,6 +113,7 @@ function parseArgs(argv) {
   const args = {
     dryRun: false,
     skipImportLog: false,
+    skud: false,
     date: '',
     from: '',
     to: '',
@@ -140,6 +143,9 @@ function parseArgs(argv) {
         break
       case '--skip-import-log':
         args.skipImportLog = true
+        break
+      case '--skud':
+        args.skud = true
         break
       case '--date':
         args.date = next()
@@ -917,6 +923,265 @@ async function logImport(config, dateRange, summary, errors) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// СКУД по дням (флаг --skud).
+// Блок самодостаточный: run-скрипт подаёт этот файл в node через stdin,
+// поэтому импортировать соседние модули на сервере нельзя.
+// ---------------------------------------------------------------------------
+
+const SKUD_PAGE_SIZE = 1000
+const SKUD_MAX_PAGES = 50
+const SKUD_CONCURRENCY = 3
+const SKUD_TIMEOUT_MS = 30000
+const DEFAULT_PUBLIC_EVENTS_API = 'https://fot.su10.ru/api/public/v1/employee-events'
+
+function skudTimeToSeconds(value) {
+  const [hours = 0, minutes = 0, seconds = 0] = String(value).split(':').map(Number)
+  return hours * 3600 + minutes * 60 + seconds
+}
+
+// Приводит ответ FOT к виду { id, date, time, accessPoint, direction }.
+// Как normalizeEvent на фронте (fotEmployeeEvents.ts), плюс время приводится к HH:MM:SS.
+function normalizeSkudEvent(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const date = String(value.event_date ?? '').trim().slice(0, 10)
+  const timeMatch = String(value.event_time ?? '').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !timeMatch) return null
+
+  const time = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}:${timeMatch[3] ?? '00'}`
+  const accessPoint = String(value.access_point ?? '').trim() || null
+  const direction = String(value.direction ?? '').trim().toLowerCase()
+
+  return {
+    id: String(value.id ?? '').trim() || `${date}-${time}-${accessPoint ?? ''}`,
+    date,
+    time,
+    accessPoint,
+    direction: direction === 'entry' || direction === 'exit' ? direction : null
+  }
+}
+
+/**
+ * Дневная статистика СКУД. Повторяет calculateFotSkudDay
+ * (src/pages/tender/utils/skudTimeCalculation.ts):
+ * - события сортируются по времени, затем по id;
+ * - учитываются только закрытые пары вход → выход;
+ * - повторный вход на той же точке заменяет незакрытый вход,
+ *   вход на другой точке открытую пару не сбрасывает;
+ * - выход без входа игнорируется;
+ * - перерыв = промежуток между выходом пары и входом следующей (> 0 сек);
+ * - открытая пара учитывается (закрывается текущим временем) только если
+ *   передан nowSeconds — то есть для сегодняшнего дня; для прошлых дней
+ *   она игнорируется, но has_open_pair всё равно true.
+ */
+export function calculateSkudDayStats(sourceEvents, nowSeconds = null) {
+  const events = [...sourceEvents].sort((left, right) => (
+    left.time.localeCompare(right.time) || left.id.localeCompare(right.id)
+  ))
+  let presenceSeconds = 0
+  let outsideSeconds = 0
+  let exitsCount = 0
+  let openEntry = null
+  let previousPairExit = null
+
+  const addBreak = (entryTime) => {
+    if (!previousPairExit) return
+    const breakSeconds = Math.max(0, skudTimeToSeconds(entryTime) - skudTimeToSeconds(previousPairExit.time))
+    if (breakSeconds > 0) {
+      outsideSeconds += breakSeconds
+      exitsCount += 1
+    }
+  }
+
+  for (const event of events) {
+    if (event.direction === 'entry') {
+      if (openEntry === null || event.accessPoint === openEntry.accessPoint) {
+        openEntry = event
+      }
+      continue
+    }
+
+    if (event.direction !== 'exit' || openEntry === null) continue
+
+    const startSeconds = skudTimeToSeconds(openEntry.time)
+    const endSeconds = skudTimeToSeconds(event.time)
+    if (endSeconds >= startSeconds) {
+      presenceSeconds += endSeconds - startSeconds
+      addBreak(openEntry.time)
+      previousPairExit = event
+    }
+
+    openEntry = null
+  }
+
+  const hasOpenPair = openEntry !== null
+  if (openEntry && nowSeconds !== null) {
+    const startSeconds = skudTimeToSeconds(openEntry.time)
+    if (nowSeconds > startSeconds) {
+      presenceSeconds += nowSeconds - startSeconds
+      addBreak(openEntry.time)
+    }
+  }
+
+  const firstEntry = events.find(event => event.direction === 'entry') || null
+  const lastExit = [...events].reverse().find(event => event.direction === 'exit') || null
+
+  return {
+    events_count: events.length,
+    exits_count: exitsCount,
+    outside_minutes: Math.round(outsideSeconds / 60),
+    presence_minutes: Math.round(presenceSeconds / 60),
+    first_entry: firstEntry ? firstEntry.time : null,
+    last_exit: lastExit ? lastExit.time : null,
+    has_open_pair: hasOpenPair
+  }
+}
+
+function currentSecondsOfDay(timeZone = 'Europe/Moscow') {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+      .formatToParts(new Date())
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value])
+  )
+  return Number(parts.hour) * 3600 + Number(parts.minute) * 60 + Number(parts.second)
+}
+
+function buildEventsUrl(config) {
+  if (config.eventsApi) return config.eventsApi
+  if (isPublicTimesheetEndpoint(config.timesheetApi)) {
+    return config.timesheetApi.replace('/api/public/v1/timesheet', '/api/public/v1/employee-events')
+  }
+  return DEFAULT_PUBLIC_EVENTS_API
+}
+
+// Повтор 1 раз при 5xx, сетевой ошибке и таймауте; 4xx не повторяем.
+async function fetchJsonWithRetry(url, options) {
+  try {
+    return await fetchJson(url, options)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (/^HTTP [1-4]\d\d/.test(message)) throw error
+    return fetchJson(url, options)
+  }
+}
+
+// Все события сотрудника за период (пагинация limit/offset, pagination.has_more/next_offset).
+async function fetchSkudEvents(config, fotEmployeeId, dateRange) {
+  const events = []
+  let offset = 0
+
+  for (let page = 0; page < SKUD_MAX_PAGES; page += 1) {
+    const url = new URL(buildEventsUrl(config))
+    url.searchParams.set('employee_id', fotEmployeeId)
+    url.searchParams.set('from', dateRange.from)
+    url.searchParams.set('to', dateRange.to)
+    url.searchParams.set('limit', String(SKUD_PAGE_SIZE))
+    url.searchParams.set('offset', String(offset))
+
+    const payload = await fetchJsonWithRetry(url, {
+      headers: getFotHeaders(config),
+      timeoutMs: SKUD_TIMEOUT_MS
+    })
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new Error('FOT вернул некорректный ответ событий')
+    }
+
+    if (Array.isArray(payload.data)) {
+      for (const item of payload.data) {
+        const event = normalizeSkudEvent(item)
+        if (event) events.push(event)
+      }
+    }
+
+    const pagination = payload.pagination && typeof payload.pagination === 'object' ? payload.pagination : {}
+    const nextOffset = Number(pagination.next_offset)
+    if (pagination.has_more !== true || !Number.isInteger(nextOffset) || nextOffset <= offset) {
+      return events
+    }
+    offset = nextOffset
+  }
+
+  throw new Error(`Больше ${SKUD_MAX_PAGES} страниц событий — прервано`)
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  let index = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const item = items[index]
+      index += 1
+      await worker(item)
+    }
+  })
+  await Promise.all(runners)
+}
+
+// Обновляет tender_skud_daily за период для сотрудников, у которых есть fot_employee_id.
+// Ошибка по одному сотруднику логируется и не прерывает остальных.
+async function syncSkudDaily(config, dateRange, employees, today) {
+  const summary = { employees: 0, failed: 0, days: 0, deleted: 0 }
+  const nowSeconds = currentSecondsOfDay(config.timeZone)
+
+  await runWithConcurrency(employees, SKUD_CONCURRENCY, async (employee) => {
+    const fotId = String(employee.fot_employee_id || '').trim()
+    try {
+      const eventsByDate = new Map()
+      for (const event of await fetchSkudEvents(config, fotId, dateRange)) {
+        if (event.date < dateRange.from || event.date > dateRange.to) continue
+        const dayEvents = eventsByDate.get(event.date) || []
+        dayEvents.push(event)
+        eventsByDate.set(event.date, dayEvents)
+      }
+
+      const updatedAt = new Date().toISOString()
+      const rows = Array.from(eventsByDate, ([workDate, dayEvents]) => ({
+        employee_id: employee.id,
+        work_date: workDate,
+        ...calculateSkudDayStats(dayEvents, workDate === today ? nowSeconds : null),
+        updated_at: updatedAt
+      }))
+
+      if (!config.dryRun) {
+        await upsertRows(config, 'tender_skud_daily', ['employee_id', 'work_date'], rows)
+
+        // Удаляем ранее записанные дни этого сотрудника в пределах периода, где событий больше нет.
+        const existing = await supabaseRequest(
+          config,
+          `tender_skud_daily?select=work_date&employee_id=eq.${employee.id}`
+            + `&work_date=gte.${dateRange.from}&work_date=lte.${dateRange.to}`
+        )
+        const staleDates = (Array.isArray(existing) ? existing : [])
+          .map(row => String(row.work_date))
+          .filter(workDate => !eventsByDate.has(workDate))
+        if (staleDates.length > 0) {
+          await supabaseRequest(
+            config,
+            `tender_skud_daily?employee_id=eq.${employee.id}&work_date=in.(${staleDates.join(',')})`,
+            { method: 'DELETE', headers: { Prefer: 'return=minimal' } }
+          )
+          summary.deleted += staleDates.length
+        }
+      }
+
+      summary.employees += 1
+      summary.days += rows.length
+    } catch (error) {
+      summary.failed += 1
+      console.error(`SKUD: сотрудник ${employee.id} (FOT ${fotId}): ${error instanceof Error ? error.message : String(error)}`)
+    }
+  })
+
+  return summary
+}
+
 function createConfig(args, env) {
   const fotApi = env.FOT_API || ''
   const fotToken = env.FOT_API_TOKEN || ''
@@ -944,6 +1209,9 @@ function createConfig(args, env) {
     dateField: args.dateField || env.FOT_TIMESHEET_DATE_FIELD || DEFAULT_DATE_FIELD,
     pageSize: Number(env.FOT_TIMESHEET_PAGE_SIZE) || DEFAULT_PAGE_SIZE,
     maxRecords: args.limit || Number(env.FOT_TIMESHEET_MAX_RECORDS) || DEFAULT_MAX_RECORDS,
+    eventsApi: env.FOT_EVENTS_API || '',
+    timeZone: env.FOT_TIMESHEET_TIME_ZONE || 'Europe/Moscow',
+    skud: args.skud,
     dryRun: args.dryRun,
     skipImportLog: args.skipImportLog || env.FOT_TIMESHEET_SKIP_IMPORT_LOG === '1'
   }
@@ -1055,6 +1323,18 @@ async function main() {
     }
   }
 
+  if (config.skud) {
+    // Сотрудники, попавшие в табель/планы этого прогона, у которых есть FOT ID.
+    const syncedIds = new Set([
+      ...upsertPayload.map(row => row.employee_id),
+      ...workPlanPayload.map(row => row.employee_id)
+    ])
+    const skudEmployees = localEmployees.filter(employee => (
+      syncedIds.has(employee.id) && /^\d+$/.test(String(employee.fot_employee_id || '').trim())
+    ))
+    summary.skud = await syncSkudDaily(config, dateRange, skudEmployees, todayIso(config.timeZone))
+  }
+
   console.log(JSON.stringify(summary, null, 2))
 
   if (errors.length > 0) {
@@ -1062,7 +1342,10 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error(error instanceof Error ? error.message : String(error))
-  process.exitCode = 1
-})
+// FOT_SYNC_NO_MAIN=1 — импорт как модуля (тест расчёта дня) без запуска синка.
+if (process.env.FOT_SYNC_NO_MAIN !== '1') {
+  main().catch(error => {
+    console.error(error instanceof Error ? error.message : String(error))
+    process.exitCode = 1
+  })
+}

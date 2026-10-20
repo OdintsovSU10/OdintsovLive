@@ -18,11 +18,16 @@ if [ -z "$DEPARTMENT_IDS" ]; then
 fi
 
 # recent — последние LOOKBACK_DAYS дней (раз в минуту);
-# months — с начала прошлого месяца по сегодня (раз в час), чтобы забирать поздние корректировки FOT.
+# months — с начала прошлого месяца по сегодня (раз в час), чтобы забирать поздние корректировки FOT;
+#          дополнительно собирает дневную статистику СКУД (--skud);
+# skud-backfill — разово: последние 185 дней, только с --skud (после миграции 039).
+TODAY="$(TZ=Europe/Moscow date +%Y-%m-%d)"
 if [ "$MODE" = "months" ]; then
-  TODAY="$(TZ=Europe/Moscow date +%Y-%m-%d)"
   FROM="$(TZ=Europe/Moscow date -d "$(TZ=Europe/Moscow date +%Y-%m-15) -1 month" +%Y-%m-01)"
-  RANGE_ARGS="--from $FROM --to $TODAY"
+  RANGE_ARGS="--from $FROM --to $TODAY --skud"
+elif [ "$MODE" = "skud-backfill" ]; then
+  FROM="$(TZ=Europe/Moscow date -d "$TODAY -185 days" +%Y-%m-%d)"
+  RANGE_ARGS="--from $FROM --to $TODAY --skud"
 else
   RANGE_ARGS="--lookback-days $LOOKBACK_DAYS"
 fi
@@ -33,6 +38,7 @@ docker exec -i \
   fot-token-api sh -eu -c '
     export FOT_API="$FOT_BASE/external/v1/tables/employees"
     export FOT_TIMESHEET_API="$FOT_BASE/api/public/v1/timesheet"
+    export FOT_EVENTS_API="$FOT_BASE/api/public/v1/employee-events"
     export FOT_API_TOKEN="$(cat "$TOKEN_FILE")"
     export SUPABASE_URL="$KONG_URL"
     export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
