@@ -904,3 +904,41 @@
 .tender-page.admin-panel .tender-content {
   padding: 0;
 }
+
+/* Кнопка сортировки в заголовке колонки: на телефоне тап-цель не меньше 44px */
+.tender-page .admin-sort-btn {
+  min-height: 44px;
+  margin: -12px 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease-out;
+}
+
+.tender-page .admin-sort-btn:hover,
+.tender-page .admin-sort-btn.active {
+  color: #c7d2fe;
+}
+
+.tender-page .admin-sort-btn:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (min-width: 768px) {
+  .tender-page .admin-sort-btn {
+    min-height: 0;
+    margin: 0;
+  }
+}

@@ -1,0 +1,59 @@
+/* Плашка оценки сотрудника в списках */
+
+.score-badge-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.score-badge {
+  --tone: var(--text-muted);
+  flex: 0 0 auto;
+  min-width: 38px;
+  height: 22px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tone) 18%, transparent);
+  color: var(--tone);
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.score-badge.tone-excellent { --tone: var(--chart-positive); }
+.score-badge.tone-good { --tone: var(--primary); }
+.score-badge.tone-average { --tone: var(--chart-warning); }
+.score-badge.tone-attention { --tone: var(--chart-negative); }
+
+.score-badge.is-loading {
+  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  animation: scoreBadgePulse 1.2s ease-in-out infinite;
+}
+
+.score-signal {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.score-signal.signal-promotion { color: var(--chart-positive); }
+.score-signal.signal-attention { color: var(--chart-negative); }
+.score-signal.signal-overpaid { color: var(--chart-warning); }
+
+@keyframes scoreBadgePulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-badge.is-loading {
+    animation: none;
+  }
+}

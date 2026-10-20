@@ -10,6 +10,9 @@ import { EmployeeDetail } from './components/EmployeeDetail'
 import { AddEmployeeModal } from './components/AddEmployeeModal'
 import { EmployeeModal } from './components/EmployeeModal'
 import { SubdivisionsSheet } from './components/SubdivisionsSheet'
+import { ScoreBadge } from './components/ScoreBadge'
+import { SortableTh } from './components/SortableTh'
+import { useEmployeeScores } from './hooks/useEmployeeScores'
 import type { EmployeeWithStats, NewEmployee, TenderSubdivision } from './types'
 import {
   formatMonthsSinceRaise,
@@ -20,6 +23,14 @@ import {
 } from './utils/tenderPresentation'
 import { getEffectiveSalaryForDate, getTodayIsoDate, type EditableEmployee } from './utils/adminTenderHelpers'
 import { getMissingFields, getSubdivisionAccent, groupEmployees, isIncompleteEmployee } from './utils/employeeGrouping'
+import {
+  getNextSort,
+  readSavedSort,
+  saveSort,
+  sortEmployees,
+  type EmployeeSortKey,
+  type IEmployeeSort
+} from './utils/employeeListSort'
 import { archiveTenderEmployee, restoreTenderEmployee } from './utils/tenderArchive'
 import { fetchSubdivisions } from './utils/tenderSubdivisions'
 import './TenderPage.css'
@@ -83,6 +94,13 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
     } catch {
       // Хранилище недоступно (приватный режим) — переключатель работает до перезагрузки
     }
+  }
+  // Сортировка внутри групп подразделений; null — порядок по умолчанию
+  const [sort, setSort] = useState<IEmployeeSort | null>(readSavedSort)
+  const handleSort = (key: EmployeeSortKey) => {
+    const next = getNextSort(sort, key)
+    setSort(next)
+    saveSort(next)
   }
   const [subdivisions, setSubdivisions] = useState<TenderSubdivision[]>([])
 
@@ -274,7 +292,15 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
     ))
   }, [employees, search, incompleteOnly])
 
-  const groupedEmployees = useMemo(() => groupEmployees(filteredEmployees), [filteredEmployees])
+  const { scores, loading: scoresLoading } = useEmployeeScores(employees)
+
+  const groupedEmployees = useMemo(
+    () => groupEmployees(filteredEmployees).map(group => ({
+      ...group,
+      employees: sortEmployees(group.employees, sort, scores)
+    })),
+    [filteredEmployees, sort, scores]
+  )
   // Сквозная нумерация по порядку на экране, через все группы
   const rowNumbers = useMemo(() => {
     const numbers = new Map<number, number>()
@@ -336,12 +362,13 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
               <thead>
                 <tr>
                   <th className="emp-list-num">№</th>
-                  <th>ФИО</th>
+                  <SortableTh label="ФИО" sortKey="name" sort={sort} onSort={handleSort} />
                   <th>Должность</th>
                   <th>Отдел</th>
-                  <th>Оклад</th>
-                  <th>Без повыш.</th>
-                  <th>Стаж</th>
+                  <SortableTh label="Оценка" sortKey="score" sort={sort} onSort={handleSort} />
+                  <SortableTh label="Оклад" sortKey="salary" sort={sort} onSort={handleSort} />
+                  <SortableTh label="Без повыш." sortKey="noRaise" sort={sort} onSort={handleSort} />
+                  <SortableTh label="Стаж" sortKey="tenure" sort={sort} onSort={handleSort} />
                   <th>Телефон</th>
                   <th>Email</th>
                   <th></th>
@@ -354,7 +381,7 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
                       className="emp-list-subdiv-row"
                       style={{ '--subdiv-accent': getSubdivisionAccent(group.name) } as CSSProperties}
                     >
-                      <td colSpan={10}>{group.name} <span>({group.employees.length})</span></td>
+                      <td colSpan={11}>{group.name} <span>({group.employees.length})</span></td>
                     </tr>
                     {group.employees.map(emp => {
                       const noRaiseMonths = getMonthsSinceLastRaise(emp)
@@ -380,6 +407,9 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
                           </td>
                           <td className={`emp-list-dept${missing.has('department') ? ' is-missing' : ''}`}>
                             {textOrDash(emp.department)}
+                          </td>
+                          <td className="emp-list-score">
+                            <ScoreBadge score={scores.get(emp.id)} loading={scoresLoading} />
                           </td>
                           <td className={`emp-list-salary${missing.has('salary') ? ' is-missing' : ''}`}>
                             {hideSalaries ? '••• ₽' : `${effectiveSalary.toLocaleString('ru-RU')} ₽`}
