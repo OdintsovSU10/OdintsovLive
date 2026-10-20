@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { TodoItem } from './types'
 
 const DONE_LIMIT = 30
-const TODO_FIELDS = 'id, user_id, title, due_date, done_at, source, created_at'
+const TODO_FIELDS = 'id, user_id, title, due_date, remind_at, done_at, source, created_at'
 
 export function useTodos() {
   const [userId, setUserId] = useState<string | null>(null)
@@ -42,11 +42,11 @@ export function useTodos() {
     void load()
   }, [load])
 
-  const add = useCallback(async (title: string, dueDate: string | null): Promise<boolean> => {
+  const add = useCallback(async (title: string, dueDate: string | null, remindAt: string | null): Promise<boolean> => {
     if (!userId) return false
     const { data, error: queryError } = await supabase
       .from('todo_items')
-      .insert({ user_id: userId, title, due_date: dueDate, source: 'site' })
+      .insert({ user_id: userId, title, due_date: dueDate, remind_at: remindAt, source: 'site' })
       .select(TODO_FIELDS)
       .single<TodoItem>()
     if (queryError || !data) return false
@@ -54,7 +54,7 @@ export function useTodos() {
     return true
   }, [userId])
 
-  const update = useCallback(async (id: string, patch: Pick<TodoItem, 'title' | 'due_date'>): Promise<boolean> => {
+  const update = useCallback(async (id: string, patch: Pick<TodoItem, 'title' | 'due_date' | 'remind_at'>): Promise<boolean> => {
     const { error: queryError } = await supabase.from('todo_items').update(patch).eq('id', id)
     if (queryError) return false
     setOpen(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)))

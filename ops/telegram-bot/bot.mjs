@@ -11,6 +11,7 @@ import { askLlm, transcribe } from './llm.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { startReminders } from './reminders.mjs'
+import { startTodoAlerts } from './todoAlerts.mjs'
 import { askNextTransferNote, saveTransferNote } from './transferNotes.mjs'
 import { importStatement } from './statement.mjs'
 
@@ -402,6 +403,7 @@ const main = async () => {
   // мерчанты новых банковских операций: название и категория от нейронки
   startMerchantWorker(rest, () => config, log)
   startReminders(rest, () => config, () => bot, log)
+  startTodoAlerts(rest, () => config, () => bot, log)
   let offset = 0
   let syncedAt = 0
 

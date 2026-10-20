@@ -240,12 +240,34 @@ const addPurchase = async ({ rest, ctx, track, entryId, index, args }) => {
   return `🛒 ${what}${merchant ? ` (${merchant})` : ''}: ${fmtMoney(amount)} · ${category} · ${date}${receipt}`
 }
 
+// YYYY-MM-DDTHH:MM[:SS][смещение] → ISO с московским смещением +03:00; смещения нет — считаем московским временем
+const REMIND_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/
+const MOSCOW_OFFSET = '+03:00'
+const parseRemindAt = value => {
+  const m = REMIND_RE.exec(String(value ?? '').trim())
+  if (!m) return null
+  const [, date, hh, mm, ss = '00', offset] = m
+  if (Number(hh) > 23 || Number(mm) > 59 || Number(ss) > 59) return null
+  const local = `${date}T${hh}:${mm}:${ss}`
+  if (!offset) return Number.isNaN(Date.parse(`${local}${MOSCOW_OFFSET}`)) ? null : `${local}${MOSCOW_OFFSET}`
+  const ms = Date.parse(`${local}${offset.length === 5 ? `${offset.slice(0, 3)}:${offset.slice(3)}` : offset}`)
+  if (Number.isNaN(ms)) return null
+  // другое смещение приводим к московскому
+  return `${new Date(ms + 3 * 60 * 60 * 1000).toISOString().slice(0, 19)}${MOSCOW_OFFSET}`
+}
+
 const addTask = async ({ rest, ctx, track, args }) => {
   const title = String(args.title ?? '').trim()
   if (!title) throw new UserError('Не понял, какое дело записать')
-  const dueDate = DATE_RE.test(args.due_date || '') ? args.due_date : null
-  await insertOne(rest, 'todo_items', { user_id: ctx.userId, title, due_date: dueDate, source: 'telegram' }, track)
-  return `📝 Дело: ${title}${dueDate ? ` — до ${dueDate.slice(8, 10)}.${dueDate.slice(5, 7)}` : ''}`
+  const remindAt = parseRemindAt(args.remind_at)
+  // времени без даты срока достаточно: дата — московская дата момента напоминания
+  const givenDue = DATE_RE.test(args.due_date || '') ? args.due_date : null
+  const dueDate = givenDue ?? (remindAt ? remindAt.slice(0, 10) : null)
+  await insertOne(rest, 'todo_items', { user_id: ctx.userId, title, due_date: dueDate, remind_at: remindAt, source: 'telegram' }, track)
+  const shownDate = remindAt ? remindAt.slice(0, 10) : dueDate
+  const when = shownDate ? `${shownDate.slice(8, 10)}.${shownDate.slice(5, 7)}` : ''
+  if (remindAt) return `📝 Дело: ${title} — ${when}, ${remindAt.slice(11, 16)} 🔔`
+  return `📝 Дело: ${title}${when ? ` — до ${when}` : ''}`
 }
 
 // Открытое дело по части названия: точное совпадение важнее подстроки; из нескольких — самое срочное

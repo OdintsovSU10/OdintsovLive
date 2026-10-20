@@ -4,7 +4,7 @@ import { ClearableInput } from '../components/ui/ClearableInput'
 import { Toast } from '../components/ui/Toast'
 import { useToast } from '../hooks/useToast'
 import { TodoRow } from './todo/TodoRow'
-import { getMoscowToday, sortOpen } from './todo/todoDates'
+import { getMoscowToday, sortOpen, toMoscowISO } from './todo/todoDates'
 import type { TodoItem } from './todo/types'
 import { useTodos } from './todo/useTodos'
 import './TodoPage.css'
@@ -16,6 +16,7 @@ export default function TodoPage() {
   const { toast, showToast, hideToast } = useToast()
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [dueTime, setDueTime] = useState('')
   const [adding, setAdding] = useState(false)
   const [doneOpen, setDoneOpen] = useState(false)
 
@@ -30,11 +31,13 @@ export default function TodoPage() {
     if (!trimmed || adding) return
 
     setAdding(true)
-    const ok = await add(trimmed, dueDate || null)
+    const date = dueDate || (dueTime ? today : '')
+    const ok = await add(trimmed, date || null, dueTime ? toMoscowISO(date, dueTime) : null)
     setAdding(false)
     if (!ok) return failToast('Не удалось добавить')
     setTitle('')
     setDueDate('')
+    setDueTime('')
   }
 
   const handleToggle = async (item: TodoItem) => {
@@ -62,8 +65,8 @@ export default function TodoPage() {
     })
   }
 
-  const handleSave = async (item: TodoItem, nextTitle: string, nextDue: string | null) => {
-    const ok = await update(item.id, { title: nextTitle, due_date: nextDue })
+  const handleSave = async (item: TodoItem, nextTitle: string, nextDue: string | null, nextRemindAt: string | null) => {
+    const ok = await update(item.id, { title: nextTitle, due_date: nextDue, remind_at: nextRemindAt })
     if (!ok) failToast()
     return ok
   }
@@ -97,6 +100,15 @@ export default function TodoPage() {
               type="date"
               value={dueDate}
               onChange={event => setDueDate(event.target.value)}
+            />
+          </label>
+          <label className="todo-date-field todo-time-field">
+            <span>Время (необязательно)</span>
+            <input
+              className="todo-input todo-date-input todo-time-input"
+              type="time"
+              value={dueTime}
+              onChange={event => setDueTime(event.target.value)}
             />
           </label>
           <button type="submit" className="todo-add-btn" disabled={!title.trim() || adding}>

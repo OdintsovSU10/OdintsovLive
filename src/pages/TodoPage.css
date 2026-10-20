@@ -39,13 +39,14 @@
 
 .todo-add-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
 }
 
 .todo-date-field {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 150px;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
@@ -80,8 +81,13 @@
   text-align: left;
 }
 
+/* Время короче даты: 360px помещает дату и время в одну строку */
+.todo-time-field {
+  flex: 0 0 110px;
+}
+
 .todo-add-btn {
-  flex: 0 0 auto;
+  flex: 1 1 100%;
   min-height: 48px;
   padding: 0 20px;
   border: none;
@@ -102,6 +108,12 @@
 .todo-add-btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+@media (min-width: 600px) {
+  .todo-add-btn {
+    flex: 0 0 auto;
+  }
 }
 
 .todo-alert {
@@ -211,7 +223,16 @@
   font-size: 0.8rem;
 }
 
-.todo-row.overdue .todo-due {
+.todo-remind {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--primary);
+  font-size: 0.8rem;
+}
+
+.todo-row.overdue .todo-due,
+.todo-row.overdue .todo-remind {
   color: var(--danger);
   font-weight: 500;
 }
@@ -278,11 +299,24 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
-.todo-edit-row .todo-date-input {
-  flex: 1 1 auto;
+.todo-edit-fields {
+  display: flex;
+  flex: 1 1 240px;
+  gap: 4px;
   min-width: 0;
+}
+
+.todo-edit-fields .todo-date-input {
+  flex: 1 1 130px;
+  width: auto;
+  min-width: 0;
+}
+
+.todo-edit-fields .todo-time-input {
+  flex: 0 0 100px;
 }
 
 /* Пустое состояние и загрузка */

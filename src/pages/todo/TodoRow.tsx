@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
-import { Check, Mic, Trash2, X } from 'lucide-react'
+import { Bell, Check, Mic, Trash2, X } from 'lucide-react'
 import { ClearableInput } from '../../components/ui/ClearableInput'
-import { formatDueLabel, isOverdue } from './todoDates'
+import { formatDueLabel, formatRemindLabel, isOverdue, moscowTime, toMoscowISO } from './todoDates'
 import type { TodoItem } from './types'
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   today: string
   onToggle: (item: TodoItem) => void
   onDelete: (item: TodoItem) => void
-  onSave: (item: TodoItem, title: string, dueDate: string | null) => Promise<boolean>
+  onSave: (item: TodoItem, title: string, dueDate: string | null, remindAt: string | null) => Promise<boolean>
 }
 
 export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
@@ -18,10 +18,12 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(item.title)
   const [dueDate, setDueDate] = useState(item.due_date ?? '')
+  const [dueTime, setDueTime] = useState(item.remind_at ? moscowTime(item.remind_at) : '')
 
   const startEdit = () => {
     setTitle(item.title)
     setDueDate(item.due_date ?? '')
+    setDueTime(item.remind_at ? moscowTime(item.remind_at) : '')
     setEditing(true)
   }
 
@@ -29,7 +31,8 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
     event.preventDefault()
     const trimmed = title.trim()
     if (!trimmed) return
-    const ok = await onSave(item, trimmed, dueDate || null)
+    const date = dueDate || (dueTime ? today : '')
+    const ok = await onSave(item, trimmed, date || null, dueTime ? toMoscowISO(date, dueTime) : null)
     if (ok) setEditing(false)
   }
 
@@ -53,13 +56,22 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
             onClear={() => setTitle('')}
           />
           <div className="todo-edit-row">
-            <input
-              className="todo-input todo-date-input"
-              type="date"
-              value={dueDate}
-              aria-label="Срок"
-              onChange={event => setDueDate(event.target.value)}
-            />
+            <div className="todo-edit-fields">
+              <input
+                className="todo-input todo-date-input"
+                type="date"
+                value={dueDate}
+                aria-label="Срок"
+                onChange={event => setDueDate(event.target.value)}
+              />
+              <input
+                className="todo-input todo-date-input todo-time-input"
+                type="time"
+                value={dueTime}
+                aria-label="Время"
+                onChange={event => setDueTime(event.target.value)}
+              />
+            </div>
             <button type="submit" className="todo-icon-btn" aria-label="Сохранить" disabled={!title.trim()}>
               <Check size={20} strokeWidth={1.5} />
             </button>
@@ -94,7 +106,14 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
       ) : (
         <button type="button" className="todo-main todo-main-btn" onClick={startEdit} aria-label={`Изменить: ${item.title}`}>
           <span className="todo-title">{item.title}</span>
-          {item.due_date && <span className="todo-due">{formatDueLabel(item.due_date, today)}</span>}
+          {item.remind_at ? (
+            <span className="todo-remind">
+              <Bell size={12} strokeWidth={1.5} />
+              {formatRemindLabel(item.remind_at, today)}
+            </span>
+          ) : (
+            item.due_date && <span className="todo-due">{formatDueLabel(item.due_date, today)}</span>
+          )}
         </button>
       )}
 

@@ -53,7 +53,8 @@ export const startReminders = (rest, getConfig, getBot, log) => {
               if (last && daysAgo(today, last) < check.repeatDays) continue
               try {
                 const text = await check.run(rest, config, today, bot)
-                if (!text) continue
+                // проверки из notify.mjs возвращают true/false от once — это не текст
+                if (typeof text !== 'string' || !text) continue
                 await bot.tg('sendMessage', { chat_id: config.ownerTelegramId, text })
                 sentOn.set(check.key, today)
                 log(`напоминание ${check.key}`)

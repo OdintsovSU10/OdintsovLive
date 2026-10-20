@@ -33,6 +33,23 @@ export function formatDueLabel(iso: string, today: string): string {
   }).replace(' г.', '')
 }
 
+export function formatRemindLabel(iso: string, today: string): string {
+  const dt = new Date(iso)
+  const time = moscowTime(iso)
+  const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(dt)
+  return `${formatDueLabel(dateStr, today)} ${time}`
+}
+
+// Дата YYYY-MM-DD и время HH:MM (по Москве) → ISO со смещением +03:00
+export function toMoscowISO(date: string, time: string): string {
+  return `${date}T${time}:00+03:00`
+}
+
+// ЧЧ:ММ по Москве
+export function moscowTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('ru-RU', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit' })
+}
+
 export function isOverdue(item: TodoItem, today: string): boolean {
   return item.due_date !== null && item.due_date < today
 }
