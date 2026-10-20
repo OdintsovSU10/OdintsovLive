@@ -93,7 +93,7 @@ export const MonthSummarySheet = ({
               <span className="ms-day-value">{stats.work}</span>
             </div>
             <div className="ms-day">
-              <span className="ms-day-label"><span className="ms-dot worked" />Выходные с работой</span>
+              <span className="ms-day-label"><span className="ms-dot worked" />Выходные</span>
               <span className="ms-day-value">{stats.worked}</span>
             </div>
             <div className="ms-day">

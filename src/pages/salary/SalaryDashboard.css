@@ -260,7 +260,8 @@
 /* База: карточка из двух строк — месяц и остаток, затем дни и деньги */
 .sd-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Левая колонка по содержимому (месяц, дни), деньги справа переносятся, а не наезжают */
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
     'month balance'
     'days money';
@@ -288,14 +289,16 @@ button.sd-row:hover {
 }
 
 .sd-month-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 0 0 auto;
   white-space: nowrap;
   font-weight: 500;
 }
 
 .sd-badge {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--bg-tertiary);
@@ -315,8 +318,9 @@ button.sd-row:hover {
 .sd-money {
   grid-area: money;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 0 10px;
   color: var(--text-secondary);
   font-size: 0.75rem;
 }
@@ -328,6 +332,8 @@ button.sd-row:hover {
 
 .sd-balance {
   grid-area: balance;
+  justify-self: end;
+  text-align: right;
   font-weight: 600;
 }
 
