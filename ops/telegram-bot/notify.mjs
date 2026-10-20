@@ -35,6 +35,8 @@ const markSent = (rest, userId, key) => once(rest, userId, key, async () => {})
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS)
 const ruDate = date => date.slice(5).split('-').reverse().join('.')
 const ruDateFull = date => date.split('-').reverse().join('.')
+// деньги в сводках — до рубля, копейки только шумят
+const rub = n => fmtNum(Math.round(n))
 const signed = n => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmtNum(Math.abs(n))}`
 
 const loadCars = async (rest, userId, today) => (await READ_HANDLERS.get_car(rest, { userId, today }, {})).cars || []
@@ -130,7 +132,7 @@ const buildWeekly = async (rest, config, today) => {
   const total = sumCost(week, 'amount')
   const prevTotal = sumCost(spent.filter(op => op.date < from), 'amount')
   if (total > 0) {
-    let line = `💸 Потрачено ${fmtNum(total)} ₽`
+    let line = `💸 Потрачено ${rub(total)} ₽`
     if (prevTotal > 0) {
       const pct = Math.round(((total - prevTotal) / prevTotal) * 100)
       line += ` (${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct)}% к прошлой неделе)`
@@ -142,7 +144,7 @@ const buildWeekly = async (rest, config, today) => {
       byCategory.set(name, (byCategory.get(name) || 0) + op.amount)
     }
     const top = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, TOP_CATEGORIES)
-    lines.push(`Топ: ${top.map(([name, sum]) => `${name} ${fmtNum(sum)} ₽`).join(', ')}`)
+    lines.push(`Топ: ${top.map(([name, sum]) => `${name} ${rub(sum)} ₽`).join(', ')}`)
   }
 
   const done = doneRows.filter(r => {
@@ -164,7 +166,7 @@ const buildWeekly = async (rest, config, today) => {
       rest(`car_expenses?car_id=in.(${ids})&date=gte.${from}&date=lte.${to}&select=cost&limit=1000`)
     ])
     const carTotal = sumCost(fuel, 'total_cost') + sumCost(expenses, 'cost')
-    if (carTotal > 0) lines.push(`🚗 На машину ${fmtNum(carTotal)} ₽`)
+    if (carTotal > 0) lines.push(`🚗 На машину ${rub(carTotal)} ₽`)
   }
 
   return lines.length > 0 ? [`📊 Неделя ${ruDate(from)}–${ruDate(to)}`, ...lines].join('\n') : null
@@ -188,11 +190,11 @@ export const budgetLimits = async (rest, config, today, bot) => {
     const key80 = `budget80:${c.category_id}:${budget.start}`
     const key100 = `budget100:${c.category_id}:${budget.start}`
     if (c.share >= 1) {
-      await once(rest, config.userId, key100, () => send(config, bot, `🔴 ${c.name}: лимит превышен на ${fmtNum(-c.left)} ₽`))
+      await once(rest, config.userId, key100, () => send(config, bot, `🔴 ${c.name}: лимит превышен на ${rub(-c.left)} ₽`))
       await markSent(rest, config.userId, key80)
     } else {
       const pct = Math.round(c.share * 100)
-      await once(rest, config.userId, key80, () => send(config, bot, `⚠️ ${c.name}: ${fmtNum(c.spent)} из ${fmtNum(c.limit)} ₽ (${pct}%). Осталось ${fmtNum(c.left)} ₽ до конца месяца`))
+      await once(rest, config.userId, key80, () => send(config, bot, `⚠️ ${c.name}: ${rub(c.spent)} из ${rub(c.limit)} ₽ (${pct}%). Осталось ${rub(c.left)} ₽ до конца месяца`))
     }
   }
   return null
