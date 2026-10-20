@@ -143,6 +143,34 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Ярлык «Скрыть оклады» — справа в строке фильтров */
+.tender-page .admin-icon-toggle {
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(100, 116, 139, 0.24);
+  border-radius: 8px;
+  background: rgba(100, 116, 139, 0.14);
+  color: #cbd5e1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
+}
+
+.tender-page .admin-icon-toggle:hover {
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.tender-page .admin-icon-toggle.active {
+  border-color: rgba(129, 140, 248, 0.6);
+  background: rgba(129, 140, 248, 0.22);
+  color: #c7d2fe;
+}
+
 .tender-page .admin-check input {
   flex: 0 0 auto;
   width: 16px;
@@ -192,6 +220,11 @@
 
   .tender-page .admin-check {
     min-height: 34px;
+  }
+
+  .tender-page .admin-icon-toggle {
+    width: 34px;
+    height: 34px;
   }
 }
 

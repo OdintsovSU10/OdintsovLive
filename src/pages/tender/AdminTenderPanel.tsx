@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, Fragment, type CSSProperties } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { ClearableInput } from '../../components/ui/ClearableInput'
 import { Toast } from '../../components/ui/Toast'
@@ -30,6 +30,17 @@ const QUICK_ARCHIVE_REASON = 'Уволился'
 const UNDO_TOAST_DURATION_MS = 6000
 
 const textOrDash = (value: string | null | undefined) => value?.trim() || '—'
+
+// Скрытие окладов запоминаем в браузере — чтобы не светить суммы при показе экрана
+const HIDE_SALARIES_KEY = 'tender-admin-hide-salaries'
+
+const readHideSalaries = () => {
+  try {
+    return localStorage.getItem(HIDE_SALARIES_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 // Листы панели открываются кнопками в строке вкладок оболочки
 export type AdminPanelSheet = 'subdivisions' | 'addEmployee'
@@ -62,6 +73,17 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
   const [archivingIds, setArchivingIds] = useState<Set<number>>(() => new Set())
   const [search, setSearch] = useState('')
   const [incompleteOnly, setIncompleteOnly] = useState(false)
+  const [hideSalaries, setHideSalaries] = useState(readHideSalaries)
+
+  const toggleHideSalaries = () => {
+    const next = !hideSalaries
+    setHideSalaries(next)
+    try {
+      localStorage.setItem(HIDE_SALARIES_KEY, next ? '1' : '0')
+    } catch {
+      // Хранилище недоступно (приватный режим) — переключатель работает до перезагрузки
+    }
+  }
   const [subdivisions, setSubdivisions] = useState<TenderSubdivision[]>([])
 
   const subdivisionNames = useMemo(
@@ -296,6 +318,16 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
               <input type="checkbox" checked={incompleteOnly} onChange={e => setIncompleteOnly(e.target.checked)} />
               <span>Неполные данные ({incompleteCount})</span>
             </label>
+            <button
+              type="button"
+              className={`admin-icon-toggle${hideSalaries ? ' active' : ''}`}
+              onClick={toggleHideSalaries}
+              aria-pressed={hideSalaries}
+              aria-label={hideSalaries ? 'Показать оклады' : 'Скрыть оклады'}
+              title={hideSalaries ? 'Показать оклады' : 'Скрыть оклады'}
+            >
+              {hideSalaries ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+            </button>
           </div>
 
           <div className="emp-list-wrapper">
@@ -349,7 +381,7 @@ export default function AdminTenderPanel({ refreshKey, sheet, onSheetClose }: Pr
                             {textOrDash(emp.department)}
                           </td>
                           <td className={`emp-list-salary${missing.has('salary') ? ' is-missing' : ''}`}>
-                            {effectiveSalary.toLocaleString('ru-RU')} ₽
+                            {hideSalaries ? '••• ₽' : `${effectiveSalary.toLocaleString('ru-RU')} ₽`}
                           </td>
                           <td className="emp-list-no-raise" style={{ color: getNoRaiseColor(noRaiseMonths) }}>
                             {formatMonthsSinceRaise(noRaiseMonths)}
