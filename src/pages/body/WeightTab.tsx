@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { getUserId } from '../lib/auth'
-import { supabase } from '../lib/supabase'
-import './WeightPage.css'
+import { getUserId } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
+import '../WeightPage.css'
 
 interface WeightRecord {
   id: string
@@ -14,7 +14,7 @@ interface WeightRecord {
 
 type Tab = 'chart' | 'history'
 
-export default function WeightPage() {
+export default function WeightTab() {
   const [records, setRecords] = useState<WeightRecord[]>([])
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(true)

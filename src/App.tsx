@@ -17,8 +17,7 @@ const RentPage = lazy(() => import('./pages/RentPage'))
 const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
 const ExpensesPage = lazy(() => import('./pages/expenses'))
 const TodoPage = lazy(() => import('./pages/TodoPage'))
-const WeightPage = lazy(() => import('./pages/WeightPage'))
-const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
+const BodyPage = lazy(() => import('./pages/body/BodyPage'))
 const CarPage = lazy(() => import('./pages/car'))
 const TenderPage = lazy(() => import('./pages/tender'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
@@ -391,8 +390,9 @@ function App() {
               <Route path="/rent/:year/:month" element={<RentMonthPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/todo" element={<TodoPage />} />
-              <Route path="/body/weight" element={<WeightPage />} />
-              <Route path="/body/params" element={<BodyParamsPage />} />
+              <Route path="/body" element={<BodyPage />} />
+              <Route path="/body/weight" element={<Navigate to="/body" replace />} />
+              <Route path="/body/params" element={<Navigate to="/body?tab=params" replace />} />
               <Route path="/car" element={<CarPage />} />
               <Route path="/tender" element={<TenderPage isAdmin={!!profile?.is_admin} />} />
               <Route path="/tender/admin" element={<Navigate to={profile?.is_admin ? '/tender?tab=employees' : '/tender'} replace />} />

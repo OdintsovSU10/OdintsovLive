@@ -1,0 +1,27 @@
+/* Страница «Тело» с вкладками: внешние отступы даёт .body-shell */
+.body-shell {
+  padding: 24px 24px 0;
+  max-width: 900px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+/* Вложенные страницы: свои внешние отступы и ширина убраны — обе вкладки во всю ширину раздела */
+.body-shell .weight-page,
+.body-shell .body-params-page {
+  padding: 16px 0 24px;
+  margin: 0;
+  max-width: none;
+}
+
+/* Заголовок вкладки «Параметры» даёт сама вкладка — остаётся только кнопка замера */
+.body-shell .body-params-page .page-header {
+  justify-content: flex-end;
+  padding-right: 0;
+}
+
+@media (max-width: 430px) {
+  .body-shell {
+    padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 0;
+  }
+}

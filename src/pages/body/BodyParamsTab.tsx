@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
-import { getUserId } from '../lib/auth'
-import { supabase } from '../lib/supabase'
-import { useOverlayClose } from '../hooks/useOverlayClose'
-import './BodyParamsPage.css'
+import { getUserId } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
+import { useOverlayClose } from '../../hooks/useOverlayClose'
+import '../BodyParamsPage.css'
 
 interface BodyParams {
   id: string
@@ -54,7 +54,7 @@ const emptyForm: Record<ParamKey, string> = {
   thigh_right: '',
 }
 
-export default function BodyParamsPage() {
+export default function BodyParamsTab() {
   const [records, setRecords] = useState<BodyParams[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -171,7 +171,6 @@ export default function BodyParamsPage() {
   return (
     <div className="body-params-page">
       <div className="page-header">
-        <h1>Параметры тела</h1>
         <button className="add-btn" onClick={openAddModal}>
           <Plus size={20} />
           <span>Новый замер</span>

@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
+import { PageTabs } from '../../components/PageTabs'
 import Calendar from '../../components/Calendar'
 import SalaryMonthsTab from './SalaryMonthsTab'
 import VacationRateTab from './VacationRateTab'
@@ -26,20 +27,7 @@ export default function SalaryPage() {
 
   return (
     <div className="salary-shell">
-      <div className="salary-tabs" role="tablist" aria-label="Разделы зарплаты">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={`salary-tab ${tab === id ? 'active' : ''}`}
-            onClick={() => selectTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <PageTabs tabs={TABS} active={tab} onChange={selectTab} ariaLabel="Разделы зарплаты" />
 
       <div role="tabpanel">
         {tab === 'months' && <SalaryMonthsTab />}
