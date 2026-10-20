@@ -40,6 +40,19 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
   const { employees, loading, loadEmployees, selectedYear, selectedMonth } = useTenderData()
   const { toast, showToast, hideToast } = useToast()
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
+
+  // Позиция прокрутки списка: запоминаем при открытии карточки и возвращаем при закрытии
+  const listScrollRef = useRef(0)
+  const openEmployee = (employee: EmployeeWithStats) => {
+    listScrollRef.current = window.scrollY
+    setSelectedEmployee(employee)
+    window.scrollTo(0, 0)
+  }
+  const closeEmployee = () => {
+    setSelectedEmployee(null)
+    const top = listScrollRef.current
+    window.requestAnimationFrame(() => window.scrollTo(0, top))
+  }
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [showSubdivisions, setShowSubdivisions] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EditableEmployee | null>(null)
@@ -248,7 +261,7 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
             employee={selectedEmployee}
             year={selectedYear}
             month={selectedMonth}
-            onBack={() => setSelectedEmployee(null)}
+            onBack={closeEmployee}
           />
         </div>
       </div>
@@ -326,7 +339,7 @@ export default function AdminTenderPanel({ refreshKey }: Props) {
                         <tr
                           key={emp.id}
                           className="emp-list-row"
-                          onClick={() => setSelectedEmployee(emp)}
+                          onClick={() => openEmployee(emp)}
                         >
                           <td className="emp-list-name">
                             <span>{emp.full_name}</span>

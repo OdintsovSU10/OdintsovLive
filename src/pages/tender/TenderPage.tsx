@@ -77,6 +77,19 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
   const [adminRefreshKey, setAdminRefreshKey] = useState(0)
   const sheetChangedRef = useRef(false)
 
+  // Позиция прокрутки списка: запоминаем при открытии карточки и возвращаем при закрытии
+  const listScrollRef = useRef(0)
+  const openEmployee = (employee: EmployeeWithStats) => {
+    listScrollRef.current = window.scrollY
+    setSelectedEmployee(employee)
+    window.scrollTo(0, 0)
+  }
+  const closeEmployee = () => {
+    setSelectedEmployee(null)
+    const top = listScrollRef.current
+    window.requestAnimationFrame(() => window.scrollTo(0, top))
+  }
+
   const tabsOrder = isAdmin ? [...BASE_TABS, ...ADMIN_TABS] : BASE_TABS
   const rawTabParam = searchParams.get('tab')
   const legacyTarget = rawTabParam ? LEGACY_ADMIN_TABS.get(rawTabParam) : undefined
@@ -244,7 +257,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
               employee={selectedEmployee}
               year={selectedYear}
               month={selectedMonth}
-              onBack={() => setSelectedEmployee(null)}
+              onBack={closeEmployee}
             />
           ) : (
             <>
@@ -253,7 +266,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                   employees={employees}
                   year={selectedYear}
                   month={selectedMonth}
-                  onSelectEmployee={setSelectedEmployee}
+                  onSelectEmployee={openEmployee}
                 />
               )}
 
@@ -270,7 +283,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                   employees={employees}
                   year={selectedYear}
                   month={selectedMonth}
-                  onSelectEmployee={setSelectedEmployee}
+                  onSelectEmployee={openEmployee}
                 />
               )}
             </>
