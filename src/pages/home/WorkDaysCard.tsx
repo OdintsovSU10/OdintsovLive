@@ -9,14 +9,14 @@ interface Props {
 
 export function WorkDaysCard({ summary }: Props) {
   if (!summary) {
-    return <HomeCard Icon={CalendarDays} title="Рабочие дни" to="/calendar" span="half"><CardPlaceholder /></HomeCard>
+    return <HomeCard Icon={CalendarDays} title="Рабочие дни" to="/salary?tab=days" span="half"><CardPlaceholder /></HomeCard>
   }
 
   const { stats, norm } = summary
   const share = norm > 0 ? Math.min(stats.work / norm, 1) : 0
 
   return (
-    <HomeCard Icon={CalendarDays} title="Рабочие дни" to="/calendar" span="half" aside={MONTHS[summary.month]}>
+    <HomeCard Icon={CalendarDays} title="Рабочие дни" to="/salary?tab=days" span="half" aside={MONTHS[summary.month]}>
       <div className="home-value">{stats.work}<span className="home-value-of"> из {norm}</span></div>
       <div className="home-progress" role="progressbar" aria-valuemin={0} aria-valuemax={norm} aria-valuenow={stats.work}>
         <div className="home-progress-fill" style={{ transform: `scaleX(${share})` }} />

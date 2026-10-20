@@ -107,10 +107,23 @@
 
 .tender-shell-tabs {
   display: flex;
+  flex-wrap: nowrap;
   gap: 2px;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.tender-shell-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tender-shell-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   padding: 9px 18px;
   border: none;
   border-radius: 8px 8px 0 0;

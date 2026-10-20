@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Calendar, Wallet, Umbrella, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks, type LucideIcon } from 'lucide-react'
+import { Wallet, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Scale, Ruler, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { syncThemeColor } from '../lib/themeColor'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
@@ -24,10 +24,7 @@ interface WorkLink {
 
 const workLinks: WorkLink[] = [
   { path: '/tender', icon: Users, label: 'Тендерное управление' },
-  { path: '/tender/admin', icon: Settings, label: 'Администрирование ТУ', adminOnly: true },
-  { path: '/calendar', icon: Calendar, label: 'Календарь' },
   { path: '/salary', icon: Wallet, label: 'Зарплата' },
-  { path: '/vacation-rate', icon: Umbrella, label: 'Отпускные' },
 ]
 
 const bodyLinks = [

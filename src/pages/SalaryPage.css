@@ -693,3 +693,72 @@
     padding: 2px 4px;
   }
 }
+
+/* Вкладки страницы зарплаты */
+.salary-shell {
+  padding: 24px 24px 0;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.salary-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.salary-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.salary-tab {
+  flex: 1 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.2s ease-out, color 0.2s ease-out;
+}
+
+.salary-tab.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Вложенные страницы: внешние отступы даёт .salary-shell */
+.salary-shell .salary-page,
+.salary-shell .vacation-rate-page,
+.salary-shell .calendar-page {
+  padding: 16px 0 24px;
+}
+
+@media (max-width: 430px) {
+  .salary-shell {
+    padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .salary-tabs {
+    align-self: flex-start;
+    width: fit-content;
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salary-tab {
+    transition: none;
+  }
+}

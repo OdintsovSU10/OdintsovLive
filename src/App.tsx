@@ -11,10 +11,8 @@ import AppUpdatePrompt from './components/AppUpdatePrompt'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 
-const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 const SalaryPage = lazy(() => import('./pages/salary'))
 const SalaryMonthPage = lazy(() => import('./pages/SalaryMonthPage'))
-const VacationRatePage = lazy(() => import('./pages/VacationRatePage'))
 const RentPage = lazy(() => import('./pages/RentPage'))
 const RentMonthPage = lazy(() => import('./pages/RentMonthPage'))
 const ExpensesPage = lazy(() => import('./pages/expenses'))
@@ -23,7 +21,6 @@ const WeightPage = lazy(() => import('./pages/WeightPage'))
 const BodyParamsPage = lazy(() => import('./pages/BodyParamsPage'))
 const CarPage = lazy(() => import('./pages/car'))
 const TenderPage = lazy(() => import('./pages/tender'))
-const AdminTenderPage = lazy(() => import('./pages/tender/AdminTenderPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 type Theme = 'light' | 'dark'
@@ -386,10 +383,10 @@ function App() {
           <Suspense fallback={<div className="page-loading"><div className="loading-spinner" /></div>}>
             <Routes>
               <Route path="/" element={<HomePage userId={user.id} />} />
-              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/calendar" element={<Navigate to="/salary?tab=days" replace />} />
               <Route path="/salary" element={<SalaryPage />} />
               <Route path="/salary/:year/:month" element={<SalaryMonthPage />} />
-              <Route path="/vacation-rate" element={<VacationRatePage />} />
+              <Route path="/vacation-rate" element={<Navigate to="/salary?tab=vacation" replace />} />
               <Route path="/rent" element={<RentPage />} />
               <Route path="/rent/:year/:month" element={<RentMonthPage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
@@ -397,8 +394,8 @@ function App() {
               <Route path="/body/weight" element={<WeightPage />} />
               <Route path="/body/params" element={<BodyParamsPage />} />
               <Route path="/car" element={<CarPage />} />
-              <Route path="/tender" element={<TenderPage />} />
-              <Route path="/tender/admin" element={profile?.is_admin ? <AdminTenderPage /> : <Navigate to="/tender" replace />} />
+              <Route path="/tender" element={<TenderPage isAdmin={!!profile?.is_admin} />} />
+              <Route path="/tender/admin" element={<Navigate to={profile?.is_admin ? '/tender?tab=employees' : '/tender'} replace />} />
               {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
             </Routes>
           </Suspense>

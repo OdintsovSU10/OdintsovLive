@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { getUserId } from '../lib/auth'
-import { supabase } from '../lib/supabase'
-import { MONTHS, YEARS } from '../lib/constants'
-import './VacationRatePage.css'
+import { getUserId } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
+import { MONTHS, YEARS } from '../../lib/constants'
+import '../VacationRatePage.css'
 
 interface MonthData {
   month: number
@@ -20,7 +20,7 @@ function isManualMonth(year: number, month: number): boolean {
   return year < 2025 || (year === 2025 && month <= 2)
 }
 
-export default function VacationRatePage() {
+export default function VacationRateTab() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [userId, setUserId] = useState<string | null>(null)
   const [data, setData] = useState<MonthData[]>([])

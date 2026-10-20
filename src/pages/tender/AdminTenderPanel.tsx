@@ -7,22 +7,23 @@ import { useTenderData } from './hooks/useTenderData'
 import { ImportEmployeesModal } from './components/ImportEmployeesModal'
 import { ImportSalaryHistoryModal } from './components/ImportSalaryHistoryModal'
 import { QuickAddEmployee } from './components/QuickAddEmployee'
-import { EmployeeDetail } from './TenderPage'
-import type { Employee, EmployeeWithStats, NewEmployee, SalaryHistory, TenderEmployeeEvent, TenderSubdivision } from './types'
+import { EmployeeDetail } from './components/EmployeeDetail'
+import { AddEmployeeModal } from './components/AddEmployeeModal'
+import { EmployeeModal } from './components/EmployeeModal'
+import type { Employee, EmployeeWithStats, NewEmployee, TenderEmployeeEvent, TenderSubdivision } from './types'
 import { syncFotTimesheetMonth } from './utils/fotTimesheetSync'
 import {
-  formatAgeYears,
   formatMonthsSinceRaise,
-  getAgeFromBirthDate,
   getEmployeeTenureMonths,
   getMonthsSinceLastRaise,
   getDurationHighlightColor,
   getNoRaiseColor
 } from './utils/tenderPresentation'
+import { getEffectiveSalaryForDate, getTodayIsoDate, normalizeSubdivisionName, type EditableEmployee } from './utils/adminTenderHelpers'
 import './TenderPage.css'
-import './AdminTenderPage.css'
+import './AdminTenderPanel.css'
 
-type AdminTab = 'employees' | 'timesheet' | 'subdivisions' | 'archive' | 'settings'
+export type AdminTab = 'employees' | 'subdivisions' | 'archive' | 'settings'
 
 interface ToastAction {
   label: string
@@ -91,107 +92,11 @@ function getSubdivisionAccent(name: string): string {
   return SUBDIVISION_ACCENTS[hashText(name) % SUBDIVISION_ACCENTS.length]
 }
 
-function parseMoneyInput(value: string): number {
-  const digits = value.replace(/\D/g, '')
-  if (!digits) return 0
-  return Number(digits)
-}
-
-function formatMoneyInput(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return ''
-  return Math.round(value).toLocaleString('ru-RU')
-}
-
-function toStableDate(value: string): Date | null {
-  if (!value) return null
-  const parsed = new Date(`${value}T12:00:00`)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function getMonthsFromDate(date: Date): number {
-  const now = new Date()
-  return Math.max(0, (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth()))
-}
-
-function getTenureMonthsFromHistory(_salaryHistory: SalaryHistory[], hireDate: string): number {
-  const hireDateValue = toStableDate(hireDate)
-  return hireDateValue ? getMonthsFromDate(hireDateValue) : 0
-}
-
-function getNoRaiseMonthsFromHistory(salaryHistory: SalaryHistory[], hireDate: string): number {
-  const todayIsoDate = getTodayIsoDate()
-  const sorted = [...salaryHistory]
-    .filter(item => item.effective_date <= todayIsoDate)
-    .sort((left, right) => (
-      new Date(`${left.effective_date}T12:00:00`).getTime() - new Date(`${right.effective_date}T12:00:00`).getTime()
-    ))
-
-  if (sorted.length === 0) {
-    const fallbackDate = toStableDate(hireDate)
-    return fallbackDate ? getMonthsFromDate(fallbackDate) : 0
-  }
-
-  let lastRaiseDate: Date | null = null
-  for (let i = 1; i < sorted.length; i++) {
-    const previous = sorted[i - 1]
-    const current = sorted[i]
-    if (current.salary > previous.salary) {
-      lastRaiseDate = toStableDate(current.effective_date)
-    }
-  }
-
-  if (lastRaiseDate) {
-    return getMonthsFromDate(lastRaiseDate)
-  }
-
-  const firstDate = toStableDate(sorted[0].effective_date)
-  if (firstDate) {
-    return getMonthsFromDate(firstDate)
-  }
-
-  const fallbackDate = toStableDate(hireDate)
-  return fallbackDate ? getMonthsFromDate(fallbackDate) : 0
-}
-
-function getTodayIsoDate(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function getEffectiveSalaryForDate(
-  salaryHistory: SalaryHistory[],
-  fallbackSalary: number,
-  targetDateIso: string
-): number {
-  if (!salaryHistory || salaryHistory.length === 0) return fallbackSalary
-
-  const sorted = [...salaryHistory]
-    .sort((left, right) => (
-      new Date(`${left.effective_date}T12:00:00`).getTime() - new Date(`${right.effective_date}T12:00:00`).getTime()
-    ))
-
-  let effectiveSalary = fallbackSalary
-  for (const item of sorted) {
-    if (item.effective_date <= targetDateIso) {
-      effectiveSalary = item.salary
-    }
-  }
-
-  return effectiveSalary
-}
-
 function formatDateTime(value: string | null): string {
   if (!value) return '—'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return '—'
   return parsed.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function normalizeSubdivisionName(name: string): string {
-  return name.trim().toLowerCase()
 }
 
 function isMissingRpcError(
@@ -226,640 +131,8 @@ function isMissingEmployeeEventsTableError(
   return combined.includes('tender_employee_events')
 }
 
-interface EditableEmployee {
-  id: number
-  full_name: string
-  last_name: string
-  first_name: string
-  middle_name: string
-  position: string
-  department: string
-  subdivision: string
-  current_salary: number
-  monthly_bonus: number
-  hire_date: string
-  birth_date: string
-  email: string
-  phone: string
-  snils: string
-  company: string
-  country: string
-}
-
-interface NewSalaryEntry {
-  salary: number
-  effective_date: string
-  note: string
-}
-
-function AddEmployeeModal({ onClose, onSave, subdivisions }: {
-  onClose: () => void
-  onSave: (emp: NewEmployee) => void
-  subdivisions: string[]
-}) {
-  const [form, setForm] = useState<NewEmployee>({
-    full_name: '',
-    last_name: '',
-    first_name: '',
-    middle_name: '',
-    position: '',
-    department: '',
-    subdivision: '',
-    current_salary: 0,
-    monthly_bonus: 0,
-    hire_date: new Date().toISOString().split('T')[0],
-    company: ''
-  })
-  const [saving, setSaving] = useState(false)
-  const overlayClose = useOverlayClose(onClose)
-
-  const handleChange = (field: keyof NewEmployee, value: string | number) => {
-    setForm(prev => ({ ...prev, [field]: value }))
-  }
-
-  const updateFullName = (lastName: string, firstName: string, middleName: string) => {
-    const parts = [lastName, firstName, middleName].filter(Boolean)
-    setForm(prev => ({ ...prev, full_name: parts.join(' ') }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.full_name.trim() || !form.position.trim()) return
-    setSaving(true)
-    try {
-      await onSave(form)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="modal-overlay" {...overlayClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Добавить сотрудника</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="edit-form-grid">
-            <div className="form-group">
-              <label>Фамилия *</label>
-              <input value={form.last_name} onChange={e => { handleChange('last_name', e.target.value); updateFullName(e.target.value, form.first_name, form.middle_name) }} />
-            </div>
-            <div className="form-group">
-              <label>Имя *</label>
-              <input value={form.first_name} onChange={e => { handleChange('first_name', e.target.value); updateFullName(form.last_name, e.target.value, form.middle_name) }} />
-            </div>
-            <div className="form-group">
-              <label>Отчество</label>
-              <input value={form.middle_name} onChange={e => { handleChange('middle_name', e.target.value); updateFullName(form.last_name, form.first_name, e.target.value) }} />
-            </div>
-            <div className="form-group">
-              <label>Дата приёма</label>
-              <input type="date" value={form.hire_date} onChange={e => handleChange('hire_date', e.target.value)} />
-            </div>
-            <div className="form-group form-group-full">
-              <label>Должность *</label>
-              <input value={form.position} onChange={e => handleChange('position', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Отдел</label>
-              <input value={form.department} onChange={e => handleChange('department', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Подразделение</label>
-              <select value={form.subdivision} onChange={e => handleChange('subdivision', e.target.value)}>
-                <option value="">— Без подразделения —</option>
-                {subdivisions.map(subdivision => (
-                  <option key={subdivision} value={subdivision}>
-                    {subdivision}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Оклад</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={formatMoneyInput(form.current_salary)}
-                onChange={e => handleChange('current_salary', parseMoneyInput(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            <div className="form-group">
-              <label>Ежемес. бонус</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={formatMoneyInput(form.monthly_bonus)}
-                onChange={e => handleChange('monthly_bonus', parseMoneyInput(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            <div className="form-group">
-              <label>Компания</label>
-              <input value={form.company} onChange={e => handleChange('company', e.target.value)} />
-            </div>
-          </div>
-          <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={onClose}>Отмена</button>
-            <button type="submit" className="btn-primary" disabled={saving || !form.full_name.trim() || !form.position.trim()}>
-              {saving ? 'Сохранение...' : 'Добавить'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function EmployeeModal({ employee, onClose, onSave, onSalaryHistoryChange, onArchive, subdivisions }: {
-  employee: EditableEmployee
-  onClose: () => void
-  onSave: (emp: EditableEmployee) => void
-  onSalaryHistoryChange: () => void
-  onArchive: (id: number, reason: string) => Promise<void>
-  subdivisions: string[]
-}) {
-  const [editMode, setEditMode] = useState(false)
-  const [form, setForm] = useState<EditableEmployee>(employee)
-  const [saving, setSaving] = useState(false)
-  const [salaryHistory, setSalaryHistory] = useState<SalaryHistory[]>([])
-  const [loadingHistory, setLoadingHistory] = useState(true)
-  const [showAddSalary, setShowAddSalary] = useState(false)
-  const [displaySalary, setDisplaySalary] = useState(employee.current_salary)
-  const [newSalary, setNewSalary] = useState<NewSalaryEntry>({
-    salary: employee.current_salary,
-    effective_date: getTodayIsoDate(),
-    note: 'Повышение оклада'
-  })
-  const [savingSalary, setSavingSalary] = useState(false)
-  const [showArchiveReasonModal, setShowArchiveReasonModal] = useState(false)
-  const [archiveReason, setArchiveReason] = useState('')
-  const [archiving, setArchiving] = useState(false)
-  const salaryHistoryChronological = useMemo(() => (
-    [...salaryHistory].sort((left, right) => (
-      new Date(`${left.effective_date}T12:00:00`).getTime() - new Date(`${right.effective_date}T12:00:00`).getTime()
-    ))
-  ), [salaryHistory])
-  const noRaiseMonths = useMemo(
-    () => getNoRaiseMonthsFromHistory(salaryHistoryChronological, employee.hire_date),
-    [employee.hire_date, salaryHistoryChronological]
-  )
-  const tenureMonths = useMemo(
-    () => getTenureMonthsFromHistory(salaryHistoryChronological, employee.hire_date),
-    [employee.hire_date, salaryHistoryChronological]
-  )
-  const employeeAgeYears = useMemo(
-    () => getAgeFromBirthDate(employee.birth_date),
-    [employee.birth_date]
-  )
-  const subdivisionOptions = useMemo(() => {
-    const map = new Map<string, string>()
-    subdivisions.forEach(name => map.set(normalizeSubdivisionName(name), name))
-    if (form.subdivision.trim() && !map.has(normalizeSubdivisionName(form.subdivision))) {
-      map.set(normalizeSubdivisionName(form.subdivision), form.subdivision)
-    }
-    return Array.from(map.values()).sort((left, right) => left.localeCompare(right, 'ru-RU'))
-  }, [form.subdivision, subdivisions])
-
-  useEffect(() => {
-    loadSalaryHistory()
-  }, [employee.id])
-
-  const loadSalaryHistory = async () => {
-    setLoadingHistory(true)
-    try {
-      const { data } = await supabase
-        .from('tender_salary_history')
-        .select('*')
-        .eq('employee_id', employee.id)
-        .order('effective_date', { ascending: false })
-      const loadedHistory = data || []
-      setSalaryHistory(loadedHistory)
-
-      const effectiveTodaySalary = getEffectiveSalaryForDate(
-        loadedHistory,
-        employee.current_salary,
-        getTodayIsoDate()
-      )
-      setDisplaySalary(effectiveTodaySalary)
-    } finally {
-      setLoadingHistory(false)
-    }
-  }
-
-  const handleChange = (field: keyof EditableEmployee, value: string | number) => {
-    setForm(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    try {
-      await onSave(form)
-      setEditMode(false)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleAddSalary = async () => {
-    if (!newSalary.salary || !newSalary.effective_date) return
-    setSavingSalary(true)
-    try {
-      const { error } = await supabase
-        .from('tender_salary_history')
-        .insert({
-          employee_id: employee.id,
-          salary: newSalary.salary,
-          effective_date: newSalary.effective_date,
-          note: newSalary.note || null
-        })
-      if (error) throw error
-
-      // Обновляем текущий оклад только если дата повышения уже наступила.
-      if (newSalary.effective_date <= getTodayIsoDate()) {
-        const { error: updateError } = await supabase
-          .from('tender_employees')
-          .update({ current_salary: newSalary.salary })
-          .eq('id', employee.id)
-        if (updateError) throw updateError
-      }
-
-      await loadSalaryHistory()
-      onSalaryHistoryChange()
-      setShowAddSalary(false)
-      setNewSalary({ salary: newSalary.salary, effective_date: getTodayIsoDate(), note: 'Повышение оклада' })
-    } catch (err) {
-      console.error('Error adding salary:', err)
-    } finally {
-      setSavingSalary(false)
-    }
-  }
-
-  const handleDeleteSalary = async (id: number) => {
-    if (!confirm('Удалить запись?')) return
-    try {
-      await supabase.from('tender_salary_history').delete().eq('id', id)
-      await loadSalaryHistory()
-      onSalaryHistoryChange()
-    } catch (err) {
-      console.error('Error deleting salary:', err)
-    }
-  }
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-  }
-
-  const formatDate = (date: string) => {
-    if (!date) return '—'
-    return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
-  }
-
-  const handleArchive = async () => {
-    const reason = archiveReason.trim()
-    if (!reason) return
-    setArchiving(true)
-    try {
-      await onArchive(employee.id, reason)
-      setShowArchiveReasonModal(false)
-      setArchiveReason('')
-    } catch {
-      // Ошибку и уведомление показывает родительский компонент.
-    } finally {
-      setArchiving(false)
-    }
-  }
-
-  const closeArchiveReasonModal = () => {
-    if (archiving) return
-    setShowArchiveReasonModal(false)
-    setArchiveReason('')
-  }
-
-  const overlayClose = useOverlayClose(onClose)
-  const archiveOverlayClose = useOverlayClose(closeArchiveReasonModal)
-
-  // Режим редактирования
-  if (editMode) {
-    return (
-      <div className="modal-overlay" {...overlayClose}>
-        <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
-          <div className="modal-header">
-            <h3>Редактирование</h3>
-            <button className="modal-close" onClick={() => setEditMode(false)}>✕</button>
-          </div>
-          <form onSubmit={handleSubmit} className="modal-body">
-            <div className="edit-form-grid">
-              <div className="form-group">
-                <label>Фамилия</label>
-                <input value={form.last_name} onChange={e => handleChange('last_name', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Имя</label>
-                <input value={form.first_name} onChange={e => handleChange('first_name', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Отчество</label>
-                <input value={form.middle_name} onChange={e => handleChange('middle_name', e.target.value)} />
-              </div>
-              <div className="form-group form-group-full">
-                <label>ФИО (полное)</label>
-                <input value={form.full_name} onChange={e => handleChange('full_name', e.target.value)} />
-              </div>
-              <div className="form-group form-group-full">
-                <label>Должность</label>
-                <input value={form.position} onChange={e => handleChange('position', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Отдел</label>
-                <input value={form.department} onChange={e => handleChange('department', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Подразделение</label>
-                <select value={form.subdivision} onChange={e => handleChange('subdivision', e.target.value)}>
-                  <option value="">— Без подразделения —</option>
-                  {subdivisionOptions.map(subdivision => (
-                    <option key={subdivision} value={subdivision}>
-                      {subdivision}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Оклад</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatMoneyInput(form.current_salary)}
-                  onChange={e => handleChange('current_salary', parseMoneyInput(e.target.value))}
-                  placeholder="0"
-                />
-              </div>
-              <div className="form-group">
-                <label>Ежемес. бонус</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatMoneyInput(form.monthly_bonus)}
-                  onChange={e => handleChange('monthly_bonus', parseMoneyInput(e.target.value))}
-                  placeholder="0"
-                />
-              </div>
-              <div className="form-group">
-                <label>Компания</label>
-                <input value={form.company} onChange={e => handleChange('company', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Дата приёма</label>
-                <input type="date" value={form.hire_date} onChange={e => handleChange('hire_date', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Дата рождения</label>
-                <input type="date" value={form.birth_date} onChange={e => handleChange('birth_date', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" value={form.email} onChange={e => handleChange('email', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Телефон</label>
-                <input value={form.phone} onChange={e => handleChange('phone', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>СНИЛС</label>
-                <input value={form.snils} onChange={e => handleChange('snils', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Страна</label>
-                <input value={form.country} onChange={e => handleChange('country', e.target.value)} />
-              </div>
-            </div>
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setEditMode(false)}>Отмена</button>
-              <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Сохранение...' : 'Сохранить'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
-  // Режим просмотра
-  return (
-    <div className="modal-overlay" {...overlayClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <div className="emp-detail-header">
-            <div className="emp-avatar emp-avatar-lg">{getInitials(employee.full_name)}</div>
-            <div>
-              <h3 className="emp-detail-name">{employee.full_name}</h3>
-              <div className="emp-detail-position">{employee.position}</div>
-            </div>
-          </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="modal-body">
-          {/* Основная информация */}
-          <div className="emp-detail-tags">
-            {employee.department && <span className="emp-tag emp-tag-dept">{employee.department}</span>}
-            {employee.company && <span className="emp-tag emp-tag-date">{employee.company}</span>}
-          </div>
-
-          <div className="emp-detail-grid">
-            <div className="emp-detail-card">
-              <div className="emp-detail-label">Оклад</div>
-              <div className="emp-detail-value" style={{ color: 'var(--primary)', fontSize: '1.1rem' }}>
-                {displaySalary.toLocaleString('ru-RU')} ₽
-              </div>
-            </div>
-            <div className="emp-detail-card">
-              <div className="emp-detail-label">Ежемесячный бонус</div>
-              <div className="emp-detail-value" style={{ color: 'var(--primary)' }}>
-                {employee.monthly_bonus.toLocaleString('ru-RU')} ₽
-              </div>
-            </div>
-            <div className="emp-detail-card">
-              <div className="emp-detail-label">Дата приёма</div>
-              <div className="emp-detail-value">{formatDate(employee.hire_date)}</div>
-            </div>
-            <div className="emp-detail-card">
-              <div className="emp-detail-label">Без повышения</div>
-              <div className="emp-detail-value" style={{ color: getNoRaiseColor(noRaiseMonths) }}>
-                {formatMonthsSinceRaise(noRaiseMonths)}
-              </div>
-            </div>
-            <div className="emp-detail-card">
-              <div className="emp-detail-label">Стаж в компании</div>
-              <div className="emp-detail-value" style={{ color: getDurationHighlightColor(tenureMonths) }}>
-                {formatMonthsSinceRaise(tenureMonths)}
-              </div>
-            </div>
-            {employee.birth_date && (
-              <div className="emp-detail-card">
-                <div className="emp-detail-label">Дата рождения</div>
-                <div className="emp-detail-value">
-                  {formatDate(employee.birth_date)}
-                  {employeeAgeYears !== null && (
-                    <span className="emp-detail-age-inline"> ({formatAgeYears(employeeAgeYears)})</span>
-                  )}
-                </div>
-              </div>
-            )}
-            <div className="emp-detail-card">
-              <div className="emp-detail-label">Телефон</div>
-              <div className="emp-detail-value">{formatRuPhone(employee.phone, { dash: true })}</div>
-            </div>
-            {employee.email && (
-              <div className="emp-detail-card">
-                <div className="emp-detail-label">Email</div>
-                <div className="emp-detail-value">{employee.email}</div>
-              </div>
-            )}
-            {employee.snils && (
-              <div className="emp-detail-card">
-                <div className="emp-detail-label">СНИЛС</div>
-                <div className="emp-detail-value">{employee.snils}</div>
-              </div>
-            )}
-          </div>
-
-          {/* История окладов */}
-          <div className="salary-history-section">
-            <div className="salary-history-header">
-              <h4>История окладов</h4>
-              <button type="button" className="btn-small btn-primary" onClick={() => setShowAddSalary(true)}>
-                Повысить оклад
-              </button>
-            </div>
-
-            {showAddSalary && (
-              <div className="add-salary-form">
-                <div className="add-salary-grid">
-                  <div className="form-group">
-                    <label>Новый оклад</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formatMoneyInput(newSalary.salary)}
-                      onChange={e => setNewSalary(prev => ({ ...prev, salary: parseMoneyInput(e.target.value) }))}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Дата вступления</label>
-                    <input
-                      type="date"
-                      value={newSalary.effective_date}
-                      onChange={e => setNewSalary(prev => ({ ...prev, effective_date: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Примечание</label>
-                  <input
-                    value={newSalary.note}
-                    onChange={e => setNewSalary(prev => ({ ...prev, note: e.target.value }))}
-                    placeholder="Причина изменения"
-                  />
-                </div>
-                <div className="add-salary-actions">
-                  <button type="button" className="btn-secondary btn-small" onClick={() => setShowAddSalary(false)}>
-                    Отмена
-                  </button>
-                  <button type="button" className="btn-primary btn-small" onClick={handleAddSalary} disabled={savingSalary}>
-                    {savingSalary ? 'Сохранение...' : 'Добавить'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {loadingHistory ? (
-              <div className="salary-history-loading">Загрузка...</div>
-            ) : salaryHistory.length === 0 ? (
-              <div className="salary-history-empty">Нет записей об изменении оклада</div>
-            ) : (
-              <div className="emp-history">
-                {salaryHistory.map((h, idx) => (
-                  <div key={h.id} className={`emp-history-item ${idx === 0 ? 'current' : ''}`}>
-                    <div className="emp-history-date">{formatDate(h.effective_date)}</div>
-                    <div className="emp-history-desc">
-                      <span className="history-salary">{h.salary.toLocaleString('ru-RU')} ₽</span>
-                      {h.note && <span className="history-note">{h.note}</span>}
-                    </div>
-                    <button type="button" className="btn-delete-small" onClick={() => handleDeleteSalary(h.id)}>✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Действия */}
-          <div className="form-actions">
-            <button type="button" className="btn-danger" onClick={() => setShowArchiveReasonModal(true)}>
-              В архив
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => setEditMode(true)}>
-              ✎ Редактировать
-            </button>
-          </div>
-
-          {showArchiveReasonModal && (
-            <div className="modal-overlay modal-overlay-inner" {...archiveOverlayClose}>
-              <div className="modal-content archive-reason-modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h3>Причина архивации</h3>
-                  <button className="modal-close" onClick={closeArchiveReasonModal}>✕</button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label>Укажите причину *</label>
-                    <textarea
-                      className="archive-reason-input"
-                      value={archiveReason}
-                      onChange={e => setArchiveReason(e.target.value)}
-                      placeholder="Например: Уволился или Перевод в отдел РД"
-                      rows={4}
-                    />
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={closeArchiveReasonModal}
-                      disabled={archiving}
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-danger"
-                      onClick={handleArchive}
-                      disabled={archiving || archiveReason.trim().length === 0}
-                    >
-                      {archiving ? 'Архивируем...' : 'Подтвердить'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function AdminTenderPage() {
+export default function AdminTenderPanel({ tab }: { tab: AdminTab }) {
   const { employees, loading, loadEmployees, clearAllEmployees, selectedYear, selectedMonth } = useTenderData()
-  const [activeTab, setActiveTab] = useState<AdminTab>('employees')
-  const [detailSourceTab, setDetailSourceTab] = useState<AdminTab>('employees')
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
   const [showImportEmployees, setShowImportEmployees] = useState(false)
   const [showImportSalaryHistory, setShowImportSalaryHistory] = useState(false)
@@ -1075,10 +348,15 @@ export default function AdminTenderPage() {
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'archive') {
+    if (tab === 'archive') {
       loadArchivedEmployees()
     }
-  }, [activeTab])
+  }, [tab])
+
+  // Открытая карточка сотрудника закрывается при смене вкладки
+  useEffect(() => {
+    setSelectedEmployee(null)
+  }, [tab])
 
   const getMonthStatus = (month: number) => {
     if (!timesheetYear) return undefined
@@ -1496,23 +774,13 @@ export default function AdminTenderPage() {
 
   if (selectedEmployee) {
     return (
-      <div className="tender-page">
-        <header className="tender-header">
-          <div className="tender-logo">
-            <div className="tender-icon">А</div>
-            <div><h1>Администрирование ТУ</h1><span>Управление данными</span></div>
-          </div>
-        </header>
-
+      <div className="tender-page admin-panel">
         <div className="tender-content">
           <EmployeeDetail
             employee={selectedEmployee}
             year={selectedYear}
             month={selectedMonth}
-            onBack={() => {
-              setSelectedEmployee(null)
-              setActiveTab(detailSourceTab)
-            }}
+            onBack={() => setSelectedEmployee(null)}
           />
         </div>
       </div>
@@ -1520,24 +788,9 @@ export default function AdminTenderPage() {
   }
 
   return (
-    <div className="tender-page">
-      <header className="tender-header">
-        <div className="tender-logo">
-          <div className="tender-icon">А</div>
-          <div><h1>Администрирование ТУ</h1><span>Управление данными</span></div>
-        </div>
-      </header>
-
+    <div className="tender-page admin-panel">
       <div className="tender-content">
-        <div className="tender-tabs">
-          <button className={`tab-btn ${activeTab === 'employees' ? 'active' : ''}`} onClick={() => setActiveTab('employees')}>Сотрудники</button>
-          <button className={`tab-btn ${activeTab === 'timesheet' ? 'active' : ''}`} onClick={() => setActiveTab('timesheet')}>Табель</button>
-          <button className={`tab-btn ${activeTab === 'subdivisions' ? 'active' : ''}`} onClick={() => setActiveTab('subdivisions')}>Управление подразделениями</button>
-          <button className={`tab-btn ${activeTab === 'archive' ? 'active' : ''}`} onClick={() => setActiveTab('archive')}>Архив</button>
-          <button className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>Настройки</button>
-        </div>
-
-        {activeTab === 'employees' && (
+        {tab === 'employees' && (
           <>
             <div className="admin-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -1592,10 +845,7 @@ export default function AdminTenderPage() {
                         <tr
                           key={emp.id}
                           className="emp-list-row"
-                          onClick={() => {
-                            setDetailSourceTab(activeTab)
-                            setSelectedEmployee(emp)
-                          }}
+                          onClick={() => setSelectedEmployee(emp)}
                         >
                           <td className="emp-list-name">
                             <span>{emp.full_name}</span>
@@ -1642,45 +892,7 @@ export default function AdminTenderPage() {
           </>
         )}
 
-        {activeTab === 'timesheet' && (
-          <div className="admin-section">
-            <div className="timesheet-year-nav">
-              <button className="month-btn" onClick={() => setTimesheetYear(displayYear - 1)}>←</button>
-              <span className="timesheet-year-title">{displayYear}</span>
-              <button className="month-btn" onClick={() => setTimesheetYear(displayYear + 1)}>→</button>
-            </div>
-
-            {loadingTimesheet ? (
-              <div className="tender-loading" style={{ minHeight: 200 }}><div className="tender-spinner" /></div>
-            ) : (
-              <div className="timesheet-months-grid">
-                {monthNames.map((name, idx) => {
-                  const month = idx + 1
-                  const status = getMonthStatus(month)
-                  const isLoaded = !!status
-                  return (
-                    <div key={month} className={`timesheet-month-card ${isLoaded ? 'loaded' : 'empty'}`}>
-                      <div className="timesheet-month-name">{name}</div>
-                      {isLoaded ? (
-                        <div className="timesheet-month-status">
-                          <span className="timesheet-check">✓</span>
-                          <span className="timesheet-count">{status.employees_count} сотр.</span>
-                        </div>
-                      ) : (
-                        <div className="timesheet-month-status">
-                          <span className="timesheet-cross">✗</span>
-                          <span className="timesheet-count">нет данных</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'subdivisions' && (
+        {tab === 'subdivisions' && (
           <div className="admin-section">
             <div className="subdivisions-top">
               <h3>Управление подразделениями</h3>
@@ -1715,7 +927,7 @@ export default function AdminTenderPage() {
           </div>
         )}
 
-        {activeTab === 'archive' && (
+        {tab === 'archive' && (
           <div className="admin-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0 }}>Архив сотрудников ({archivedEmployees.length})</h3>
@@ -1769,7 +981,7 @@ export default function AdminTenderPage() {
           </div>
         )}
 
-        {activeTab === 'settings' && (
+        {tab === 'settings' && (
           <div className="settings-list">
             <div className="settings-row">
               <div className="settings-row-copy">
@@ -1785,6 +997,43 @@ export default function AdminTenderPage() {
                 <p>Импорт изменений окладов сотрудников</p>
               </div>
               <button className="btn-primary" onClick={() => setShowImportSalaryHistory(true)}>Импортировать</button>
+            </div>
+
+            <div className="settings-timesheet-status">
+              <h3>Загрузка табеля</h3>
+              <div className="timesheet-year-nav">
+                <button className="month-btn" onClick={() => setTimesheetYear(displayYear - 1)}>←</button>
+                <span className="timesheet-year-title">{displayYear}</span>
+                <button className="month-btn" onClick={() => setTimesheetYear(displayYear + 1)}>→</button>
+              </div>
+
+              {loadingTimesheet ? (
+                <div className="tender-loading" style={{ minHeight: 200 }}><div className="tender-spinner" /></div>
+              ) : (
+                <div className="timesheet-months-grid">
+                  {monthNames.map((name, idx) => {
+                    const month = idx + 1
+                    const status = getMonthStatus(month)
+                    const isLoaded = !!status
+                    return (
+                      <div key={month} className={`timesheet-month-card ${isLoaded ? 'loaded' : 'empty'}`}>
+                        <div className="timesheet-month-name">{name}</div>
+                        {isLoaded ? (
+                          <div className="timesheet-month-status">
+                            <span className="timesheet-check">✓</span>
+                            <span className="timesheet-count">{status.employees_count} сотр.</span>
+                          </div>
+                        ) : (
+                          <div className="timesheet-month-status">
+                            <span className="timesheet-cross">✗</span>
+                            <span className="timesheet-count">нет данных</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="settings-row settings-row-timesheet">

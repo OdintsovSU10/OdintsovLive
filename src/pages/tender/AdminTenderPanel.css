@@ -1124,3 +1124,26 @@
     justify-content: center;
   }
 }
+
+/* Панель внутри оболочки TenderPage: фон, отступы и высоту даёт оболочка */
+.tender-page.admin-panel {
+  min-height: 0;
+  padding-top: 0;
+  background: none;
+}
+
+.tender-page.admin-panel .tender-content {
+  padding: 0;
+}
+
+.tender-page .settings-timesheet-status {
+  padding: 14px 2px 18px;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.14);
+}
+
+.tender-page .settings-timesheet-status h3 {
+  margin: 0 0 12px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}

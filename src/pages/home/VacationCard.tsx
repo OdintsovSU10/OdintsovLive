@@ -9,7 +9,7 @@ interface Props {
 
 export function VacationCard({ summary }: Props) {
   return (
-    <HomeCard Icon={Umbrella} title="Отпускные" to="/vacation-rate" span="half">
+    <HomeCard Icon={Umbrella} title="Отпускные" to="/salary?tab=vacation" span="half">
       {!summary || summary.vacationRate <= 0 ? (
         <CardPlaceholder />
       ) : (
