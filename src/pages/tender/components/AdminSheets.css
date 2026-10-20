@@ -369,3 +369,66 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Десктоп (панель справа): масштаб как у остального портала; на телефоне — 44px тап-цели и 16px в полях */
+@media (min-width: 768px) {
+  .tsh-btn {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+  }
+
+  .tsh-icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tsh-field .ui-clearable-input,
+  .tsh-control,
+  .tsh-period-field input,
+  .tsh-period-field select {
+    height: 34px;
+    font-size: 0.82rem;
+  }
+
+  .tsh-field .ui-clearable-input {
+    padding-right: 32px;
+  }
+
+  .tsh-field .ui-clearable-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tsh-card {
+    padding: 10px 12px;
+  }
+
+  .tsh-card-title strong,
+  .tsh-setting-copy h3 {
+    font-size: 0.86rem;
+  }
+
+  .tsh-card-title span,
+  .tsh-card-meta,
+  .tsh-setting-copy p,
+  .tsh-reason-text,
+  .tsh-confirm-inline {
+    font-size: 0.76rem;
+  }
+
+  .tsh-form-field > span,
+  .tsh-period-field > span,
+  .tsh-month-name {
+    font-size: 0.76rem;
+  }
+
+  .tsh-month-status {
+    font-size: 0.72rem;
+  }
+
+  .tsh-setting {
+    gap: 10px;
+    padding: 12px 0;
+  }
+}

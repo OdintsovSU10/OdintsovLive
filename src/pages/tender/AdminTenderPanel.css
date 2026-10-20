@@ -165,18 +165,63 @@
   align-items: center;
   gap: 8px;
   color: #cbd5e1;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 .tender-page .admin-check input {
-  width: 20px;
-  height: 20px;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
   margin: 0;
-  accent-color: #818cf8;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(100, 116, 139, 0.45);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.76) center / 12px 12px no-repeat;
   cursor: pointer;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.tender-page .admin-check:hover input {
+  border-color: rgba(129, 140, 248, 0.6);
+}
+
+.tender-page .admin-check input:checked {
+  border-color: rgba(129, 140, 248, 0.8);
+  background-color: rgba(129, 140, 248, 0.32);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23c7d2fe' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+}
+
+.tender-page .admin-check input:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.6);
+  outline-offset: 2px;
+}
+
+/* Десктоп: поиск и галка в масштабе кнопок панели; на телефоне — 44px и 16px против зума Safari */
+@media (min-width: 768px) {
+  .tender-page .admin-search .ui-clearable-input {
+    height: 34px;
+    padding-left: 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+
+  .tender-page .admin-search .ui-clearable-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tender-page .admin-search .ui-clearable-input {
+    padding-right: 32px;
+  }
+
+  .tender-page .admin-check {
+    min-height: 34px;
+  }
 }
 
 .tender-page .admin-empty {
