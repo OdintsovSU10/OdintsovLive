@@ -1,28 +1,19 @@
-/* Карточка «Оценка сотрудника» */
+/* Кольцо оценки и содержимое подсказки «Как складывается оценка» */
 
-.emp-score.score-excellent { --tone: var(--chart-positive); }
-.emp-score.score-good { --tone: var(--primary); }
-.emp-score.score-average { --tone: var(--chart-warning); }
-.emp-score.score-attention { --tone: var(--chart-negative); }
-.emp-score.score-none { --tone: var(--text-muted); }
+.score-excellent { --tone: var(--chart-positive); }
+.score-good { --tone: var(--primary); }
+.score-average { --tone: var(--chart-warning); }
+.score-attention { --tone: var(--chart-negative); }
+.score-none { --tone: var(--text-muted); }
 
-.emp-score {
-  padding: 10px 12px;
-}
-
-/* Шапка: кольцо, справа заголовок и одна строка «оценка · место · динамика · сигналы», ⓘ в углу */
-
-.emp-score-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+/* Кольцо: размер задаёт родитель (в подсказке 56 px, в чипе 28 px) */
 
 .emp-score-ring {
   position: relative;
+  display: block;
   flex: 0 0 auto;
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
 }
 
 .emp-score-ring svg {
@@ -52,48 +43,40 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.emp-score-ring strong.muted {
-  color: var(--text-muted);
+/* Подсказка */
+
+.emp-score-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.emp-score-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .emp-score-side {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-}
-
-.emp-score .emp-score-title {
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.emp-score-top > .emp-score-title {
-  flex: 1 1 auto;
-}
-
-
-.emp-score-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 10px;
 }
 
 .emp-score-grade {
   color: var(--tone);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .emp-score-grade.muted {
@@ -114,40 +97,6 @@
 .emp-score-delta.down { color: var(--chart-negative); }
 .emp-score-delta.flat { color: var(--text-muted); }
 
-/* Кнопка ⓘ: 32 px визуально, область нажатия 44 px за счёт псевдоэлемента */
-.emp-score-info-btn {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  width: 32px;
-  height: 32px;
-  margin: -4px -4px 0 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text-secondary);
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.emp-score-info-btn::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-}
-
-.emp-score-info-btn:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
-.emp-score-info-btn:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
-}
-
 .emp-score-signals {
   display: flex;
   flex-wrap: wrap;
@@ -156,6 +105,9 @@
 }
 
 .emp-score-signals li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 1px 8px;
   border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent);
   border-radius: 999px;
@@ -171,13 +123,12 @@
 .emp-score-signals .signal-overpaid { --signal: var(--chart-warning); }
 .emp-score-signals .signal-breaks { --signal: var(--chart-warning); }
 
-/* Компоненты оценки: телефон — в один столбец, от 480 px — в два */
+/* Компоненты оценки */
 
 .emp-score-rows {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px 16px;
-  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   list-style: none;
 }
 
@@ -186,13 +137,13 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 3px 8px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 13px;
+  line-height: 18px;
 }
 
 .emp-score-rows .label {
   overflow: hidden;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -204,7 +155,7 @@
 
 .emp-score-rows .bar {
   grid-column: 1 / -1;
-  height: 3px;
+  height: 4px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--bg-tertiary);
@@ -217,72 +168,52 @@
   background: var(--tone);
 }
 
-.emp-score-note {
-  margin-top: 6px;
+.emp-score-rows .note {
+  grid-column: 1 / -1;
   color: var(--text-muted);
   font-size: 12px;
+  line-height: 16px;
 }
 
-.emp-score-info {
-  margin-top: 12px;
+/* Пояснение формулы: сразу видно, мелким текстом */
+
+.emp-score-formula {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-.emp-score-info p + p {
+.emp-score-formula p + p {
   margin-top: 6px;
 }
 
-.emp-score-info b {
+.emp-score-formula b {
   color: var(--text-primary);
+  font-weight: 600;
 }
 
-/* Скелетон загрузки */
-
-.emp-score-skeleton {
-  display: block;
-  border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
-  animation: emp-pulse 1.4s ease-in-out infinite;
+.emp-score-monthly {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
+  margin: -6px 0;
+  padding: 0 4px;
+  background: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.emp-score-skeleton.ring {
-  flex: 0 0 auto;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+.emp-score-monthly:hover {
+  text-decoration: underline;
 }
 
-.emp-score-skeleton.line {
-  width: 140px;
-  height: 16px;
-}
-
-.emp-score-skeleton.line.short {
-  width: 90px;
-}
-
-.emp-score-skeleton.row {
-  height: 22px;
-}
-
-
-@media (min-width: 480px) {
-  .emp-score-rows {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 768px) {
-  .emp-score {
-    padding: 12px 16px;
-  }
-
-  .emp-score-info-btn {
-    margin-right: -8px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .emp-score-skeleton {
-    animation: none;
-  }
+.emp-score-monthly:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }

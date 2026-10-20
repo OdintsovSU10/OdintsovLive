@@ -5,7 +5,7 @@ import { TIMESHEET_STATUS_META, TIMESHEET_STATUS_ORDER } from '../../utils/times
 import { formatRub, monthIndex, MONTH_SHORT } from '../../utils/employeeFormat'
 import type { WindowScore } from '../../utils/employeeScore'
 
-type DynamicsMode = 'income' | 'score'
+export type DynamicsMode = 'income' | 'score'
 
 interface Props {
   year: number
@@ -25,6 +25,9 @@ interface Props {
   scoreMonthly: Array<WindowScore | null> | null
   scoreLoading: boolean
   scoreError: string | null
+  // Режим графика хранится выше: подсказка оценки переключает его на «Оценка»
+  mode: DynamicsMode
+  onModeChange: (mode: DynamicsMode) => void
   onSelectMonth: (month: number) => void
   onShiftYear: (direction: -1 | 1) => void
   onRetry: () => void
@@ -47,12 +50,13 @@ export function YearDynamics({
   scoreMonthly,
   scoreLoading,
   scoreError,
+  mode,
+  onModeChange,
   onSelectMonth,
   onShiftYear,
   onRetry,
   onRetryScore
 }: Props) {
-  const [mode, setMode] = useState<DynamicsMode>('income')
   const [averageInfoOpen, setAverageInfoOpen] = useState(false)
   const [compositionOpen, setCompositionOpen] = useState(false)
 
@@ -86,8 +90,8 @@ export function YearDynamics({
       </div>
 
       <div className="emp-segment" role="group" aria-label="Что показывать на графике">
-        <button type="button" aria-pressed={!isScore} onClick={() => setMode('income')}>Начисления</button>
-        <button type="button" aria-pressed={isScore} onClick={() => setMode('score')}>Оценка</button>
+        <button type="button" aria-pressed={!isScore} onClick={() => onModeChange('income')}>Начисления</button>
+        <button type="button" aria-pressed={isScore} onClick={() => onModeChange('score')}>Оценка</button>
       </div>
 
       {!isScore && (

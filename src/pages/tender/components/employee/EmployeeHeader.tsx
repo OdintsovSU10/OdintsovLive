@@ -14,6 +14,8 @@ interface Props {
   ageYears: number | null
   tenureMonths: number
   noRaiseMonths: number
+  // Чип оценки: первым в группе чипов справа
+  scoreChip: ReactNode
   // Переключатель месяца: в строке шапки по центру (телефон — нижней строкой)
   monthSwitcher: ReactNode
   onBack: () => void
@@ -29,6 +31,7 @@ export function EmployeeHeader({
   ageYears,
   tenureMonths,
   noRaiseMonths,
+  scoreChip,
   monthSwitcher,
   onBack,
   onOpenInfo
@@ -56,6 +59,7 @@ export function EmployeeHeader({
 
       <div className="emp-head-right">
         <div className="emp-head-stats">
+          {scoreChip}
           <div className="emp-stat">
             <strong>{ageYears !== null ? formatAgeYears(ageYears) : '—'}</strong>
             <span>возраст</span>

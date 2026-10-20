@@ -145,7 +145,7 @@
   color: var(--danger);
 }
 
-/* Раскладка: телефон — один столбец (начисление, оценка, посещение, динамика, оклад) */
+/* Раскладка: телефон — один столбец (начисление, посещение, динамика, оклад); оценка — чипом в шапке */
 
 .emp-main {
   display: flex;
@@ -162,7 +162,6 @@
 }
 
 .emp-area-payroll,
-.emp-area-score,
 .emp-area-attendance,
 .emp-area-dynamics,
 .emp-area-salary {
@@ -170,7 +169,6 @@
 }
 
 .emp-area-payroll { grid-area: payroll; }
-.emp-area-score { grid-area: score; }
 .emp-area-attendance { grid-area: calendar; }
 .emp-area-dynamics { grid-area: dynamics; }
 .emp-area-salary { grid-area: salary; }
@@ -178,7 +176,6 @@
 .emp-layout {
   grid-template-areas:
     'payroll'
-    'score'
     'calendar'
     'dynamics'
     'salary';
@@ -349,27 +346,25 @@
   }
 }
 
-/* Оценка и посещение в два столбца */
+/* Два столбца: посещение и динамика рядом, оклад — на всю ширину под ними */
 @container emp (min-width: 620px) {
   .emp-layout {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
       'payroll payroll'
-      'score calendar'
-      'dynamics dynamics'
+      'calendar dynamics'
       'salary salary';
     align-items: start;
   }
 }
 
-/* Три столбца: оклад справа на два ряда, динамика под оценкой и календарём */
+/* Три столбца: посещение, динамика, оклад справа */
 @container emp (min-width: 940px) {
   .emp-layout {
-    grid-template-columns: minmax(0, 1fr) auto minmax(300px, 360px);
+    grid-template-columns: auto minmax(0, 1fr) minmax(300px, 360px);
     grid-template-areas:
       'payroll payroll payroll'
-      'score calendar salary'
-      'dynamics dynamics salary';
+      'calendar dynamics salary';
   }
 }
 

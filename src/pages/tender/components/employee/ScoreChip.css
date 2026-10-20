@@ -1,0 +1,173 @@
+/* Чип оценки в шапке и выпадающая подсказка */
+
+.emp-score-chip-wrap {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+/* Тот же вид, что у чипов «возраст» и «стаж», но кольцо слева, текст справа */
+.emp-stat.emp-score-chip {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--text-primary);
+  text-align: left;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease-out, background 0.15s ease-out;
+}
+
+button.emp-score-chip:hover,
+button.emp-score-chip[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--tone) 55%, var(--border));
+  background: var(--surface-hover);
+}
+
+button.emp-score-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.emp-score-chip .emp-score-ring {
+  width: 28px;
+  height: 28px;
+}
+
+.emp-score-chip .emp-score-ring circle {
+  stroke-width: 12;
+}
+
+.emp-score-chip .emp-score-ring strong {
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.emp-score-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.emp-stat.emp-score-chip .emp-score-chip-text strong {
+  color: var(--tone);
+}
+
+.emp-score-chip.score-none .emp-score-chip-text strong {
+  color: var(--text-muted);
+}
+
+.emp-stat .emp-score-chip-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.emp-score-chip-signal {
+  display: inline-flex;
+  align-items: center;
+}
+
+.emp-score-chip-signal.signal-promotion { color: var(--chart-positive); }
+.emp-score-chip-signal.signal-attention { color: var(--chart-negative); }
+.emp-score-chip-signal.signal-overpaid { color: var(--chart-warning); }
+.emp-score-chip-signal.signal-breaks { color: var(--chart-warning); }
+
+/* Скелетон того же размера, что и чип с оценкой */
+.emp-score-chip.is-loading {
+  min-width: 118px;
+}
+
+.emp-score-chip-skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  animation: emp-pulse 1.4s ease-in-out infinite;
+}
+
+.emp-score-chip-skeleton.ring {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.emp-score-chip-skeleton.text {
+  flex: 1 1 auto;
+  height: 28px;
+}
+
+/* Выпадающая панель: абсолютно под чипом, правый край по правому краю чипа */
+
+.emp-score-pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  z-index: 30;
+  max-width: calc(100vw - 16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  animation: emp-score-pop-in 0.15s ease-out;
+}
+
+/* Мост над щелью между чипом и панелью, чтобы курсор не терял наведение */
+.emp-score-pop::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  right: 0;
+  left: 0;
+  height: 12px;
+}
+
+/* Стрелка-уголок к чипу */
+.emp-score-pop::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: var(--arrow-right, 24px);
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+
+.emp-score-pop-scroll {
+  position: relative;
+  max-height: 70dvh;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+@keyframes emp-score-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emp-score-pop,
+  .emp-score-chip-skeleton {
+    animation: none;
+  }
+
+  .emp-stat.emp-score-chip {
+    transition: none;
+  }
+}

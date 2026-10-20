@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BottomSheet } from '../../../components/ui/BottomSheet'
+import { useReducedMotion } from '../../../hooks/useReducedMotion'
 import { useLivePayroll } from '../hooks/useLivePayroll'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useEmployeeYearTimesheet } from '../hooks/useEmployeeYearTimesheet'
@@ -28,16 +29,17 @@ import { EmployeeHeader } from './employee/EmployeeHeader'
 import { EmployeeInfoSheet } from './employee/EmployeeInfoSheet'
 import { MonthToolbar } from './employee/MonthToolbar'
 import { PayrollCard } from './employee/PayrollCard'
-import { ScoreCard } from './employee/ScoreCard'
+import { ScoreChip } from './employee/ScoreChip'
 import { AttendanceCalendar } from './employee/AttendanceCalendar'
 import { DayPassesPanel } from './employee/DayPassesPanel'
-import { YearDynamics } from './employee/YearDynamics'
+import { YearDynamics, type DynamicsMode } from './employee/YearDynamics'
 import { SalaryTimeline } from './employee/SalaryTimeline'
 import './employee/EmployeeDetail.css'
 import './employee/EmployeeHeader.css'
 import './employee/EmployeeAttendance.css'
 import './employee/EmployeeDynamics.css'
 import './employee/EmployeeScore.css'
+import './employee/ScoreChip.css'
 
 const WIDE_QUERY = '(min-width: 1100px)'
 const NO_PEERS: EmployeeWithStats[] = []
@@ -74,8 +76,11 @@ export function EmployeeDetail({
   const [chartMonth, setChartMonth] = useState(month)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [infoOpen, setInfoOpen] = useState(false)
+  const [dynamicsMode, setDynamicsMode] = useState<DynamicsMode>('income')
   const [today] = useState(() => new Date())
   const isWide = useMediaQuery(WIDE_QUERY)
+  const reducedMotion = useReducedMotion()
+  const dynamicsRef = useRef<HTMLDivElement>(null)
 
   const yearTimesheet = useEmployeeYearTimesheet(employee.id, chartYear)
   const skud = useEmployeeSkudMonth(employee.fot_employee_id, chartYear, chartMonth)
@@ -97,6 +102,7 @@ export function EmployeeDetail({
     setChartMonth(month)
     setSelectedDate(null)
     setInfoOpen(false)
+    setDynamicsMode('income')
   }, [employee.id, month, year])
 
   // Системная кнопка «назад» закрывает карточку, а не уходит со страницы
@@ -193,6 +199,15 @@ export function EmployeeDetail({
 
   const selectDay = (day: number) => setSelectedDate(toIsoDate(chartYear, chartMonth, day))
 
+  // Из подсказки оценки: «Динамика за год» в режиме «Оценка» и прокрутка к ней
+  const showScoreMonthly = useCallback(() => {
+    setDynamicsMode('score')
+    // Даём подсказке или шторке закрыться, чтобы прокрутка не блокировалась
+    window.setTimeout(() => {
+      dynamicsRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+    }, 60)
+  }, [reducedMotion])
+
   const swipeEnabled = !isWide && !sheetOpen
   const noRaiseMonths = useMemo(() => getMonthsSinceLastRaise(employee), [employee])
   const tenureMonths = useMemo(() => getEmployeeTenureMonths(employee), [employee])
@@ -214,6 +229,16 @@ export function EmployeeDetail({
           ageYears={ageYears}
           tenureMonths={tenureMonths}
           noRaiseMonths={noRaiseMonths}
+          scoreChip={(
+            <ScoreChip
+              view={score.view}
+              loading={score.loading}
+              error={score.error}
+              noRaiseMonths={noRaiseMonths}
+              onRetry={score.reload}
+              onShowMonthly={showScoreMonthly}
+            />
+          )}
           monthSwitcher={(
             <MonthToolbar
               year={chartYear}
@@ -242,16 +267,6 @@ export function EmployeeDetail({
             />
           </div>
 
-          <div className="emp-area-score">
-            <ScoreCard
-              view={score.view}
-              loading={score.loading}
-              error={score.error}
-              noRaiseMonths={noRaiseMonths}
-              onRetry={score.reload}
-            />
-          </div>
-
           <div className="emp-area-attendance">
             <AttendanceCalendar
               year={chartYear}
@@ -268,7 +283,7 @@ export function EmployeeDetail({
             />
           </div>
 
-          <div className="emp-area-dynamics">
+          <div ref={dynamicsRef} className="emp-area-dynamics">
             <YearDynamics
               year={chartYear}
               month={chartMonth}
@@ -285,6 +300,8 @@ export function EmployeeDetail({
               scoreMonthly={score.view?.monthly ?? null}
               scoreLoading={score.loading}
               scoreError={score.error}
+              mode={dynamicsMode}
+              onModeChange={setDynamicsMode}
               onSelectMonth={monthValue => changeMonth(chartYear, monthValue)}
               onShiftYear={shiftYear}
               onRetry={yearTimesheet.reload}

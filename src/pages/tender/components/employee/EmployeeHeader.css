@@ -263,6 +263,7 @@
   .emp-head {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     grid-template-areas: 'left month right';
+    gap: 0 8px;
     padding: 8px 12px;
   }
 
@@ -276,13 +277,22 @@
     font-size: 17px;
   }
 
+  /* Чипы чуть теснее, чтобы справа всё помещалось в одну строку при ~980 px страницы */
+  .emp-head-stats {
+    gap: 6px;
+  }
+
+  .emp-stat {
+    padding: 4px 8px;
+  }
+
   .emp-head-month {
     margin-top: 0;
     /* Запас по бокам под «Сегодня», чтобы группа оставалась строго по центру */
-    padding: 0 52px;
+    padding: 0 44px;
   }
 
   .emp-today-btn {
-    right: -48px;
+    right: -44px;
   }
 }
