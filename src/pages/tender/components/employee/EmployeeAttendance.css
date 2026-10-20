@@ -467,6 +467,39 @@
   white-space: nowrap;
 }
 
+.emp-passes-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.emp-passes-toggle input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+/* Внутренние точки: показываем, но в расчёте они не участвуют */
+.emp-pass.internal {
+  opacity: 0.55;
+}
+
+.emp-pass.internal .emp-pass-mark,
+.emp-pass.internal .emp-pass-dir,
+.emp-pass.internal time {
+  color: var(--text-muted);
+}
+
+.emp-pass.internal .emp-pass-dir {
+  font-size: 11px;
+}
+
 .emp-flags {
   display: flex;
   flex-direction: column;

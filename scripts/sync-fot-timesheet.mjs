@@ -940,8 +940,9 @@ function skudTimeToSeconds(value) {
   return hours * 3600 + minutes * 60 + seconds
 }
 
-// Приводит ответ FOT к виду { id, date, time, accessPoint, direction }.
+// Приводит ответ FOT к виду { id, date, time, accessPoint, direction, isInternal }.
 // Как normalizeEvent на фронте (fotEmployeeEvents.ts), плюс время приводится к HH:MM:SS.
+// Нет поля is_internal (старый FOT API) = внешняя точка.
 function normalizeSkudEvent(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
 
@@ -958,13 +959,17 @@ function normalizeSkudEvent(value) {
     date,
     time,
     accessPoint,
-    direction: direction === 'entry' || direction === 'exit' ? direction : null
+    direction: direction === 'entry' || direction === 'exit' ? direction : null,
+    isInternal: value.is_internal === true || String(value.is_internal ?? '').trim().toLowerCase() === 'true'
   }
 }
 
 /**
  * Дневная статистика СКУД. Повторяет calculateFotSkudDay
  * (src/pages/tender/utils/skudTimeCalculation.ts):
+ * - события внутренних точек (isInternal) отбрасываются до сборки пар и в
+ *   статистику не входят; events_count = число только внешних событий дня
+ *   (чтобы не путать с проходами «Коридора»);
  * - события сортируются по времени, затем по id;
  * - учитываются только закрытые пары вход → выход;
  * - повторный вход на той же точке заменяет незакрытый вход,
@@ -976,7 +981,7 @@ function normalizeSkudEvent(value) {
  *   она игнорируется, но has_open_pair всё равно true.
  */
 export function calculateSkudDayStats(sourceEvents, nowSeconds = null) {
-  const events = [...sourceEvents].sort((left, right) => (
+  const events = sourceEvents.filter(event => !event.isInternal).sort((left, right) => (
     left.time.localeCompare(right.time) || left.id.localeCompare(right.id)
   ))
   let presenceSeconds = 0

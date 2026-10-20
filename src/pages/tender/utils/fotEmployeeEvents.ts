@@ -10,6 +10,8 @@ export interface FotEmployeeEvent {
   event_time: string
   access_point: string | null
   direction: 'entry' | 'exit' | null
+  // Внутренняя точка СКУД (коридор, дверь внутри офиса): в расчёте присутствия не участвует
+  is_internal: boolean
 }
 
 interface FotEmployeeEventsPage {
@@ -38,6 +40,11 @@ function normalizeDirection(value: unknown): 'entry' | 'exit' | null {
   return null
 }
 
+// Нет поля (старый FOT API) = внешняя точка, как в FOT
+function normalizeInternal(value: unknown): boolean {
+  return value === true || stringValue(value).toLowerCase() === 'true'
+}
+
 function normalizeEvent(value: unknown): FotEmployeeEvent | null {
   if (!isRecord(value)) return null
 
@@ -52,7 +59,8 @@ function normalizeEvent(value: unknown): FotEmployeeEvent | null {
     event_date: eventDate,
     event_time: eventTime,
     access_point: stringValue(value.access_point) || null,
-    direction: normalizeDirection(value.direction)
+    direction: normalizeDirection(value.direction),
+    is_internal: normalizeInternal(value.is_internal)
   }
 }
 

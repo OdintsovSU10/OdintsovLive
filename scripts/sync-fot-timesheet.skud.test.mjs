@@ -6,10 +6,12 @@ process.env.FOT_SYNC_NO_MAIN = '1'
 const { calculateSkudDayStats } = await import('./sync-fot-timesheet.mjs')
 
 let counter = 0
-// Событие: [время, направление, точка]
-const day = (...items) => items.map(([time, direction, accessPoint = 'A']) => {
+// Событие: [время, направление, точка, внутренняя?]
+const day = (...items) => items.map(([time, direction, accessPoint = 'A', isInternal]) => {
   counter += 1
-  return { id: `e${counter}`, time, accessPoint, direction }
+  return isInternal === undefined
+    ? { id: `e${counter}`, time, accessPoint, direction }
+    : { id: `e${counter}`, time, accessPoint, direction, isInternal }
 })
 
 const cases = [
@@ -63,6 +65,49 @@ const cases = [
     expected: {
       events_count: 3, exits_count: 1, outside_minutes: 60, presence_minutes: 360,
       first_entry: '08:00:00', last_exit: '12:00:00', has_open_pair: true
+    }
+  },
+  {
+    name: 'внутренние точки (коридор) игнорируются: нет выходов и «вне офиса»',
+    events: day(
+      ['08:05:00', 'entry', 'Офис', false],
+      ['08:08:00', 'entry', 'Коридор', true], ['08:12:00', 'exit', 'Коридор', true],
+      ['09:32:00', 'entry', 'Коридор', true],
+      ['11:34:00', 'entry', 'Коридор', true], ['11:40:00', 'exit', 'Коридор', true],
+      ['12:38:00', 'entry', 'Коридор', true], ['12:43:00', 'exit', 'Коридор', true],
+      ['15:50:00', 'entry', 'Коридор', true], ['15:57:00', 'exit', 'Коридор', true],
+      ['16:13:00', 'exit', 'Офис', false]
+    ),
+    expected: {
+      events_count: 2, exits_count: 0, outside_minutes: 0, presence_minutes: 488,
+      first_entry: '08:05:00', last_exit: '16:13:00', has_open_pair: false
+    }
+  },
+  {
+    name: 'только внутренние события: день пустой',
+    events: day(['08:00:00', 'entry', 'Коридор', true], ['09:00:00', 'exit', 'Коридор', true]),
+    expected: {
+      events_count: 0, exits_count: 0, outside_minutes: 0, presence_minutes: 0,
+      first_entry: null, last_exit: null, has_open_pair: false
+    }
+  },
+  {
+    name: 'внутренний вход не открывает пару и не заменяет внешний вход',
+    events: day(
+      ['08:00:00', 'entry', 'Офис', false], ['08:30:00', 'entry', 'Офис', true],
+      ['12:00:00', 'exit', 'Офис', false]
+    ),
+    expected: {
+      events_count: 2, exits_count: 0, outside_minutes: 0, presence_minutes: 240,
+      first_entry: '08:00:00', last_exit: '12:00:00', has_open_pair: false
+    }
+  },
+  {
+    name: 'is_internal: false явно — как событие без поля',
+    events: day(['08:00:00', 'entry', 'A', false], ['17:00:00', 'exit', 'A', false]),
+    expected: {
+      events_count: 2, exits_count: 0, outside_minutes: 0, presence_minutes: 540,
+      first_entry: '08:00:00', last_exit: '17:00:00', has_open_pair: false
     }
   },
   {

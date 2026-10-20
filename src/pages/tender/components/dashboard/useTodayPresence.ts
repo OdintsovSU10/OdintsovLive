@@ -23,8 +23,9 @@ const TIMESHEET_PRESENCE: Partial<Record<TimesheetStatus, PresenceStatus>> = {
 const EMPTY_MAP: PresenceMap = new Map<number, PresenceStatus>()
 
 function getLastDirection(events: FotEmployeeEvent[]): 'entry' | 'exit' | null {
+  // Внутренние точки (коридоры) не показывают, на объекте человек или нет
   const directed = events
-    .filter(event => event.direction !== null)
+    .filter(event => event.direction !== null && !event.is_internal)
     .sort((left, right) => left.event_time.localeCompare(right.event_time))
   return directed.length > 0 ? directed[directed.length - 1].direction : null
 }

@@ -35,6 +35,25 @@ function formatPlural(count: number, one: string, few: string, many: string): st
 // Перерыв дольше этого считаем заметным
 const LONG_BREAK_SECONDS = 30 * 60
 
+const SHOW_INTERNAL_KEY = 'tender.passes.showInternal'
+
+// По умолчанию внутренние проходы показываются
+function readShowInternal(): boolean {
+  try {
+    return window.localStorage.getItem(SHOW_INTERNAL_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+function saveShowInternal(value: boolean): void {
+  try {
+    window.localStorage.setItem(SHOW_INTERNAL_KEY, value ? '1' : '0')
+  } catch {
+    // хранилище недоступно — настройка живёт до перезагрузки
+  }
+}
+
 function getDirectionLabel(direction: FotEmployeeEvent['direction']): string {
   if (direction === 'entry') return 'Вход'
   if (direction === 'exit') return 'Выход'
@@ -86,6 +105,7 @@ interface Props {
 export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
   const { eventsByDate, loading, error, reload } = skud
   const [now, setNow] = useState(() => Date.now())
+  const [showInternal, setShowInternal] = useState(readShowInternal)
 
   useEffect(() => {
     const today = new Date()
@@ -110,6 +130,20 @@ export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
   const breakByEntryId = useMemo(() => new Map(
     calculation?.breaks.map(item => [item.beforeEntry.id, item]) || []
   ), [calculation])
+
+  // Внешние и внутренние события вместе, по времени; внутренние можно скрыть
+  const listedEvents = useMemo(() => {
+    if (!calculation) return []
+    if (!showInternal || calculation.internalEvents.length === 0) return calculation.events
+    return [...calculation.events, ...calculation.internalEvents].sort((left, right) => (
+      left.event_time.localeCompare(right.event_time) || left.id.localeCompare(right.id)
+    ))
+  }, [calculation, showInternal])
+
+  const handleShowInternal = (value: boolean) => {
+    setShowInternal(value)
+    saveShowInternal(value)
+  }
 
   if (!date) {
     return <div className="emp-day-body"><div className="emp-state muted">Выберите день</div></div>
@@ -198,8 +232,34 @@ export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
         <>
           <DayWorkTimeline calculation={calculation} />
 
+          {calculation.internalEvents.length > 0 && (
+            <label className="emp-passes-toggle">
+              <input
+                type="checkbox"
+                checked={showInternal}
+                onChange={event => handleShowInternal(event.target.checked)}
+              />
+              <span>Показывать внутренние проходы</span>
+            </label>
+          )}
+
           <ul className="emp-passes">
-            {calculation.events.map(event => {
+            {listedEvents.map(event => {
+              if (event.is_internal) {
+                return (
+                  <li
+                    key={event.id}
+                    className="emp-pass internal"
+                    title={`${getDirectionLabel(event.direction)} · внутренняя точка, не учитывается`}
+                  >
+                    <span className="emp-pass-mark" aria-hidden="true">•</span>
+                    <time>{formatEventTime(event.event_time)}</time>
+                    <span className="emp-pass-dir">внутр.</span>
+                    <span className="emp-pass-point">{event.access_point || 'Точка не указана'}</span>
+                    <span />
+                  </li>
+                )
+              }
               const breakBefore = breakByEntryId.get(event.id)
               const pair = pairByExitId.get(event.id)
               return (
@@ -242,6 +302,7 @@ export function DayPassesPanel({ fotEmployeeId, date, info, skud }: Props) {
               {' − '}{formatSkudDuration(calculation.lunchDeductionSeconds)} довычтено на обед.
               Обеденная квота: {formatSkudDuration(FOT_DEFAULT_LUNCH_SECONDS)}.
             </p>
+            <p>Внутренние точки (коридоры, двери внутри офиса) не учитываются — как в FOT.</p>
             <p>Источник: СКУД, данные FOT.</p>
           </details>
         </>

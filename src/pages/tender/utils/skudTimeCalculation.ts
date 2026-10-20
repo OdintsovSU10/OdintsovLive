@@ -18,7 +18,10 @@ export interface SkudOutsideBreak {
 }
 
 export interface SkudDayCalculation {
+  // Внешние события дня — по ним строятся пары и присутствие
   events: FotEmployeeEvent[]
+  // Внутренние события (коридоры и т.п.) — только для показа, в расчёт не входят
+  internalEvents: FotEmployeeEvent[]
   pairs: SkudWorkPair[]
   breaks: SkudOutsideBreak[]
   firstEntry: FotEmployeeEvent | null
@@ -51,6 +54,7 @@ function nowSeconds(date: Date): number {
 
 /**
  * Повторяет расчёт рабочего времени из FOT:
+ * - события внутренних точек (is_internal) отбрасываются до сборки пар;
  * - учитываются только закрытые пары вход → выход;
  * - повторный вход на той же точке заменяет незакрытый вход;
  * - вход на другой точке не сбрасывает уже открытую пару;
@@ -64,9 +68,11 @@ export function calculateFotSkudDay(
   now = new Date(),
   lunchQuotaSeconds = FOT_DEFAULT_LUNCH_SECONDS
 ): SkudDayCalculation {
-  const events = [...sourceEvents].sort((left, right) => (
+  const compareEvents = (left: FotEmployeeEvent, right: FotEmployeeEvent) => (
     left.event_time.localeCompare(right.event_time) || left.id.localeCompare(right.id)
-  ))
+  )
+  const events = sourceEvents.filter(event => !event.is_internal).sort(compareEvents)
+  const internalEvents = sourceEvents.filter(event => event.is_internal).sort(compareEvents)
   const pairs: SkudWorkPair[] = []
   const breaks: SkudOutsideBreak[] = []
   const usedEventIds = new Set<string>()
@@ -152,6 +158,7 @@ export function calculateFotSkudDay(
 
   return {
     events,
+    internalEvents,
     pairs,
     breaks,
     firstEntry,
