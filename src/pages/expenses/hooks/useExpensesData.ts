@@ -116,7 +116,7 @@ function daysBetween(a: string, b: string): number {
 
 // Запись из Telegram-бота и банковская операция — одна трата, если совпали сумма (±1 ₽) и дата (±2 дня).
 // Найденную запись забираем из пула, чтобы она не склеилась второй раз.
-function takeBotMatch(pool: BotTransaction[], row: PreparedExpenseTransaction): BotTransaction | null {
+function takeBotMatch(pool: BotTransaction[], row: Omit<PreparedExpenseTransaction, 'message'>): BotTransaction | null {
   if (row.flow_direction !== 'out' || isFailed(row)) return null
 
   let best: BotTransaction | null = null
@@ -560,10 +560,12 @@ export function useExpensesData() {
           }
         }
 
-        const rowsToInsert: Array<PreparedExpenseTransaction & { user_id: string; import_batch_id: string | null }> = []
+        const rowsToInsert: Array<Omit<PreparedExpenseTransaction, 'message'> & { user_id: string; import_batch_id: string | null; note: string | null }> = []
         const rowsToUpdate: Array<{ id: string; payload: Partial<ExpenseTransaction>; sourceRow: number; merged?: boolean }> = []
 
-        for (const row of chunk) {
+        for (const preparedRow of chunk) {
+          // message — не колонка БД: в запросы уходит только note (и только при вставке)
+          const { message, ...row } = preparedRow
           const existing = existingMap.get(row.dedupe_key)
 
           if (!existing) {
@@ -584,8 +586,10 @@ export function useExpensesData() {
               continue
             }
 
+            const note = message?.trim()
             rowsToInsert.push({
               ...row,
+              note: note || null,
               user_id: userId,
               import_batch_id: batchId
             })

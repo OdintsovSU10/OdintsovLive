@@ -129,6 +129,8 @@ export interface PreparedExpenseTransaction {
   flow_direction: FlowDirection
   include_in_analytics: boolean
   mapped_category_id: string | null
+  // комментарий к переводу из выписки: в БД уходит только как note при вставке
+  message: string | null
 }
 
 export interface ParsedStatementResult {

@@ -19,6 +19,7 @@ type ColumnKey =
   | 'operationWithRounding'
   | 'userCategory'
   | 'includeInAnalytics'
+  | 'message'
 
 interface ColumnConfig {
   key: ColumnKey
@@ -50,6 +51,12 @@ interface ParsedDraftRow {
   mapped_category_id: string | null
 }
 
+// message — комментарий к переводу; в row_hash не входит (хэш считается только из draft)
+interface ParsedRowWithMessage {
+  draft: ParsedDraftRow
+  message: string | null
+}
+
 const COLUMN_CONFIG: ColumnConfig[] = [
   { key: 'operationDate', title: 'Дата операции', required: true, aliases: ['Дата операции'] },
   { key: 'paymentDate', title: 'Дата платежа', aliases: ['Дата платежа'] },
@@ -67,7 +74,8 @@ const COLUMN_CONFIG: ColumnConfig[] = [
   { key: 'bonuses', title: 'Бонусы (включая кэшбэк)', aliases: ['Бонусы (включая кэшбэк)', 'Бонусы'] },
   { key: 'roundUp', title: 'Округление на инвесткопилку', aliases: ['Округление на инвесткопилку', 'Округление'] },
   { key: 'operationWithRounding', title: 'Сумма операции с округлением', aliases: ['Сумма операции с округлением'] },
-  { key: 'includeInAnalytics', title: 'Учёт в аналитике', aliases: ['Учёт в аналитике', 'Учет в аналитике'] }
+  { key: 'includeInAnalytics', title: 'Учёт в аналитике', aliases: ['Учёт в аналитике', 'Учет в аналитике'] },
+  { key: 'message', title: 'Сообщение', aliases: ['Сообщение'] }
 ]
 
 const ALIAS_TO_KEY = new Map<string, ColumnKey>()
@@ -312,7 +320,7 @@ export async function parseStatementFile(
 
   const { rowIndex: headerRowIndex, columns } = headerMeta
   const errors: ExpenseImportError[] = []
-  const draftRows: ParsedDraftRow[] = []
+  const draftRows: ParsedRowWithMessage[] = []
   let totalRows = 0
 
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
@@ -362,7 +370,7 @@ export async function parseStatementFile(
     const flowDirection: 'in' | 'out' | 'zero' =
       paymentAmount > 0 ? 'in' : paymentAmount < 0 ? 'out' : 'zero'
 
-    draftRows.push({
+    const draft: ParsedDraftRow = {
       source_row_number: sourceRowNumber,
       operation_at: formatTimestamp(operationAt),
       operation_date: formatDate(operationAt),
@@ -383,11 +391,12 @@ export async function parseStatementFile(
       flow_direction: flowDirection,
       include_in_analytics: toCellText(getCell(row, columns.includeInAnalytics)).toLowerCase() !== 'нет',
       mapped_category_id: mappedCategoryId
-    })
+    }
+    draftRows.push({ draft, message: toCellText(getCell(row, columns.message)) || null })
   }
 
   const parsedRows: PreparedExpenseTransaction[] = await Promise.all(
-    draftRows.map(async draft => {
+    draftRows.map(async ({ draft, message }) => {
       const dedupeSeed = [
         userId,
         draft.operation_at,
@@ -403,6 +412,7 @@ export async function parseStatementFile(
 
       return {
         ...draft,
+        message,
         dedupe_key: dedupeKey,
         row_hash: rowHash
       }

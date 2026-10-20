@@ -27,7 +27,8 @@ const COLUMNS = {
   bonuses: ['Бонусы (включая кэшбэк)', 'Бонусы'],
   roundUp: ['Округление на инвесткопилку', 'Округление'],
   operationWithRounding: ['Сумма операции с округлением'],
-  includeInAnalytics: ['Учёт в аналитике', 'Учет в аналитике']
+  includeInAnalytics: ['Учёт в аналитике', 'Учет в аналитике'],
+  message: ['Сообщение']
 }
 const REQUIRED = ['operationDate', 'paymentAmount']
 
@@ -122,7 +123,8 @@ const findHeader = rows => {
 
 const isFailed = row => Boolean(row.status) && row.status !== 'Ок' && row.status !== 'OK'
 
-// Порядок полей черновика важен: от него зависит row_hash, как в браузерном парсере
+// Порядок полей черновика важен: от него зависит row_hash, как в браузерном парсере.
+// message (комментарий к переводу) лежит рядом с черновиком и в хэш не входит
 export const parseStatement = (buffer, userId, mappingByBankCategory) => {
   const text = decodeText(buffer)
   const rows = parseCsv(text, detectDelimiter(text))
@@ -155,7 +157,7 @@ export const parseStatement = (buffer, userId, mappingByBankCategory) => {
     const paymentDate = parseDateTime(get(row, 'paymentDate'))
     const bankCategory = cellText(get(row, 'userCategory')) || cellText(get(row, 'category')) || null
 
-    drafts.push({
+    const draft = {
       source_row_number: rowNumber,
       operation_at: operationAt.timestamp,
       operation_date: operationAt.date,
@@ -176,11 +178,13 @@ export const parseStatement = (buffer, userId, mappingByBankCategory) => {
       flow_direction: paymentAmount > 0 ? 'in' : paymentAmount < 0 ? 'out' : 'zero',
       include_in_analytics: cellText(get(row, 'includeInAnalytics')).toLowerCase() !== 'нет',
       mapped_category_id: bankCategory ? mappingByBankCategory.get(normalizeCategoryKey(bankCategory)) || null : null
-    })
+    }
+    drafts.push({ draft, message: cellText(get(row, 'message')) || null })
   }
 
-  const parsedRows = drafts.map(draft => ({
+  const parsedRows = drafts.map(({ draft, message }) => ({
     ...draft,
+    message,
     dedupe_key: sha256([
       userId, draft.operation_at, draft.card_mask || '', draft.payment_amount,
       draft.payment_currency || '', draft.mcc || '', draft.description || ''
@@ -255,12 +259,13 @@ export const importStatement = async (rest, userId, buffer, fileName) => {
   const toInsert = []
   const toUpdate = []
 
-  for (const row of parsed.parsedRows) {
+  // message — не колонка БД: уходит только как note при вставке (у всех строк пачки, иначе PostgREST отклонит разные ключи); при обновлении и склейке note не трогаем
+  for (const { message, ...row } of parsed.parsedRows) {
     const found = existing.get(row.dedupe_key)
     if (!found) {
       const botMatch = takeBotMatch(botPool, row)
       if (botMatch) toUpdate.push({ id: botMatch.id, rowNumber: row.source_row_number, merged: true, payload: { ...row, source: 'bank' } })
-      else toInsert.push({ ...row, user_id: userId, import_batch_id: batchId })
+      else toInsert.push({ ...row, note: message, user_id: userId, import_batch_id: batchId })
     } else if (found.row_hash === row.row_hash) unchanged += 1
     else toUpdate.push({ id: found.id, rowNumber: row.source_row_number, merged: false, payload: row })
     // повтор в самом файле не должен вставиться дважды
