@@ -26,7 +26,9 @@
 
 .reminder-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* правое поле — время: с AM/PM ему нужно больше места, чем числу дня */
+  grid-template-columns: 2fr 3fr;
+  align-items: end;
   gap: 12px;
 }
 
