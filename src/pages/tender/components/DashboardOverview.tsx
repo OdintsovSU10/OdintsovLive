@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Toast } from '../../../components/ui/Toast'
 import type { EmployeeWithStats } from '../types'
 import { useLivePayroll } from '../hooks/useLivePayroll'
@@ -18,7 +18,7 @@ import type { IAdminRowActions } from './dashboard/PersonRow'
 import { PunctualityCard } from './dashboard/PunctualityCard'
 import { StatCards, type StatsMode } from './dashboard/StatCards'
 import { buildAttentionItems, buildSeverityMap, summarizeScope } from './dashboard/dashboardMetrics'
-import { MONTHS_WINDOW, type AdminPanelSheet } from './dashboard/dashboardTypes'
+import type { AdminPanelSheet } from './dashboard/dashboardTypes'
 import { buildMonthStats, buildTodaySummary } from './dashboard/todayMetrics'
 import { useDashboardAnalytics } from './dashboard/useDashboardAnalytics'
 import { useEmployeeAdmin } from './dashboard/useEmployeeAdmin'
@@ -48,6 +48,8 @@ interface Props {
   // Перечитать сотрудников оболочки после правки, добавления или архивации
   onEmployeesChanged: () => Promise<void> | void
   onSelectEmployee: (employee: EmployeeWithStats) => void
+  // Аналитика подгружается — оболочка показывает полоску загрузки
+  onLoadingChange: (loading: boolean) => void
 }
 
 // Доля месяца округляется до ~5 минут, чтобы список сотрудников не перерисовывался каждую секунду
@@ -63,7 +65,8 @@ export function DashboardOverview({
   onSheetClose,
   refreshKey,
   onEmployeesChanged,
-  onSelectEmployee
+  onSelectEmployee,
+  onLoadingChange
 }: Props) {
   const [selectedSubdivision, setSelectedSubdivision] = useState<string | null>(null)
   const [statsMode, setStatsMode] = useState<StatsMode>('today')
@@ -77,6 +80,11 @@ export function DashboardOverview({
 
   const { monthSlots, trends, loading, error } = useDashboardAnalytics(employees, year, month)
   const { scores, loading: scoresLoading } = useEmployeeScores(employees)
+
+  useEffect(() => {
+    onLoadingChange(loading)
+  }, [loading, onLoadingChange])
+  useEffect(() => () => onLoadingChange(false), [onLoadingChange])
 
   const admin = useEmployeeAdmin({ enabled: isAdmin, refreshKey, onEmployeesChanged, onSheetClose })
   const money = useHiddenMoney()
@@ -212,10 +220,7 @@ export function DashboardOverview({
   return (
     <>
       <div className="dashboard-overview">
-        <div className="dashboard-surface">
-          {loading && (
-            <div className="dash-loading">Обновляем аналитику за последние {MONTHS_WINDOW + 1} месяцев…</div>
-          )}
+        <div className="dashboard-surface" aria-busy={loading}>
           {error && (
             <div className="dash-error">Часть данных недоступна: {error}</div>
           )}

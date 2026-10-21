@@ -44,6 +44,10 @@
   --edge: var(--tone-ok);
 }
 
+.dash-feed-row.is-exit {
+  --edge: var(--tone-bad);
+}
+
 .dash-feed-row:hover {
   background: var(--surface-hover);
 }
@@ -67,6 +71,10 @@
 
 .dash-feed-row.is-entry .dash-feed-arrow {
   color: var(--tone-ok);
+}
+
+.dash-feed-row.is-exit .dash-feed-arrow {
+  color: var(--tone-bad);
 }
 
 .dash-feed-info {

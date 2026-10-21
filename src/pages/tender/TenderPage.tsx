@@ -68,7 +68,7 @@ function MonthSelector({
 }
 
 export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
-  const { employees, loading, error, selectedYear, selectedMonth, setMonth, loadEmployees, clearAllEmployees } = useTenderData()
+  const { employees, loading, refreshing, error, selectedYear, selectedMonth, setMonth, loadEmployees, clearAllEmployees } = useTenderData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
   const [sheet, setSheet] = useState<SheetKind | null>(null)
@@ -136,6 +136,10 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
       setSelectedEmployee(null)
     }
   }, [employees, selectedEmployee])
+
+  // Смена месяца: сначала грузятся сотрудники, затем аналитика дашборда — одна полоска на обе загрузки
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const busy = refreshing || (activeTab === 'dashboard' && !selectedEmployee && dashboardLoading)
 
   // Загрузку запускает useTenderData по смене месяца — второй вызов здесь удваивал запросы
   const handleMonthChange = (year: number, month: number) => {
@@ -272,7 +276,9 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
           </div>
         </header>
 
-        <main className="tender-shell-main">
+        <main className="tender-shell-main" aria-busy={busy}>
+          {/* Всегда в DOM: короткая пауза между загрузками не обрывает анимацию */}
+          <div className={`tender-progress${busy ? ' is-active' : ''}`} aria-hidden="true" />
           {selectedEmployee ? (
             <EmployeeDetail
               employee={selectedEmployee}
@@ -295,6 +301,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                   refreshKey={adminRefreshKey}
                   onEmployeesChanged={reloadEmployees}
                   onSelectEmployee={openEmployee}
+                  onLoadingChange={setDashboardLoading}
                 />
               )}
 

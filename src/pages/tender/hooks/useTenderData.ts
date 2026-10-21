@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import type { Employee, SalaryHistory, TimesheetEntry, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
@@ -30,13 +30,17 @@ const mapTimesheetToUiStatus = (status: string | null): 'active' | 'vacation' | 
 export function useTenderData() {
   const [employees, setEmployees] = useState<EmployeeWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  // Повторная загрузка (смена месяца): данные остаются на экране, без заглушки
+  const [refreshing, setRefreshing] = useState(false)
+  const loadedRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
 
   const loadEmployees = useCallback(async (year?: number, month?: number, showArchived = false, silent = false) => {
     if (!silent) {
-      setLoading(true)
+      if (loadedRef.current) setRefreshing(true)
+      else setLoading(true)
       setError(null)
     }
 
@@ -179,6 +183,7 @@ export function useTenderData() {
       // Опрос раз в 30 с чаще всего приносит те же данные: прежний массив не трогаем,
       // чтобы дашборд не перекачивал табель и не пересчитывался зря
       setEmployees(prev => (JSON.stringify(prev) === JSON.stringify(enriched) ? prev : enriched))
+      loadedRef.current = true
     } catch (err) {
       console.error('Error loading employees:', err)
       if (!silent) {
@@ -187,6 +192,7 @@ export function useTenderData() {
     } finally {
       if (!silent) {
         setLoading(false)
+        setRefreshing(false)
       }
     }
   }, [selectedYear, selectedMonth])
@@ -265,6 +271,7 @@ export function useTenderData() {
   return {
     employees,
     loading,
+    refreshing,
     error,
     selectedYear,
     selectedMonth,
