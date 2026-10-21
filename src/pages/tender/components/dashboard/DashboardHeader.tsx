@@ -33,7 +33,7 @@ interface IDashboardHeaderProps {
   // Переключатель «Сегодня / Месяц» — только в текущем месяце (когда есть today)
   mode: StatsMode
   onModeChange: (mode: StatsMode) => void
-  // Счётчики прошлого месяца открывают мини-окно со списком сотрудников
+  // Счётчики открывают мини-окно со списком сотрудников
   onOpenMetric: (kind: MetricKind) => void
 }
 
@@ -131,12 +131,19 @@ const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
                 label="На месте"
                 value={pending ?? `${today.present}/${today.accounted}`}
                 tone={presenceLoading ? null : 'ok'}
+                onClick={presenceLoading ? undefined : () => onOpenMetric('today:present')}
               />
-              <StatChip label="Опоздали" value={pending ?? String(today.late)} tone={today.late > 0 ? 'warn' : null} />
+              <StatChip
+                label="Опоздали"
+                value={pending ?? String(today.late)}
+                tone={today.late > 0 ? 'warn' : null}
+                onClick={presenceLoading ? undefined : () => onOpenMetric('today:late')}
+              />
               <StatChip
                 label="Нет отметки"
                 value={pending ?? String(today.noMark)}
                 tone={today.noMark > 0 ? 'bad' : null}
+                onClick={presenceLoading ? undefined : () => onOpenMetric('today:nomark')}
               />
               <StatChip label="Входов" value={pending ?? String(today.entries)} />
               <StatChip label="Выходов" value={pending ?? String(today.exits)} />

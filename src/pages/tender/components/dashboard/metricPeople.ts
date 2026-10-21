@@ -2,11 +2,12 @@ import type { EmployeeWithStats } from '../../types'
 import { countMissingTimesheetDays } from './dashboardMetrics'
 import { formatHours, formatNumber, formatPercent } from './dashboardFormat'
 import type { IEmployeeTrend, StatusCounts } from './dashboardTypes'
+import { isTodayKind, TODAY_METRIC_TITLES, type TodayMetricKind } from './todayPeople'
 
 // Ключи строк блока «Посещаемость за месяц»
 export type AttendanceStatusKey = 'work' | 'remote' | 'vacation' | 'sick' | 'absent' | 'unpaid'
 
-export type MetricKind = 'attendance' | 'missed' | 'overtime' | 'unfilled' | `status:${AttendanceStatusKey}`
+export type MetricKind = 'attendance' | 'missed' | 'overtime' | 'unfilled' | `status:${AttendanceStatusKey}` | TodayMetricKind
 
 export interface IMetricPerson {
   employee: EmployeeWithStats
@@ -41,6 +42,7 @@ const METRIC_TITLES: Record<'attendance' | 'missed' | 'overtime' | 'unfilled', s
 }
 
 export const getMetricTitle = (kind: MetricKind): string => {
+  if (isTodayKind(kind)) return TODAY_METRIC_TITLES[kind]
   if (kind.startsWith('status:')) {
     const key = kind.slice('status:'.length)
     return ATTENDANCE_STATUS_ROWS.find(row => row.key === key)?.label ?? key
@@ -58,6 +60,8 @@ export function buildMetricPeople(
   month: number
 ): IMetricPerson[] {
   const result: IMetricPerson[] = []
+  // «Сегодня» собирает todayPeople: ему нужны проходы, а не табель
+  if (isTodayKind(kind)) return result
 
   for (const trend of trends) {
     const { employee, subdivision, latest } = trend
@@ -89,7 +93,7 @@ export function buildMetricPeople(
       const missing = countMissingTimesheetDays(employee, year, month)
       if (missing <= 0) continue
       result.push({ ...base, value: formatDays(missing), sort: -missing })
-    } else {
+    } else if (kind.startsWith('status:')) {
       const days = getStatusDays(latest.statusCounts, kind.slice('status:'.length) as AttendanceStatusKey)
       if (days <= 0) continue
       result.push({ ...base, value: formatDays(days), sort: -days })

@@ -19,6 +19,7 @@ import { PunctualityCard } from './dashboard/PunctualityCard'
 import { StatCards, type StatsMode } from './dashboard/StatCards'
 import { buildAttentionItems, buildSeverityMap, summarizeScope } from './dashboard/dashboardMetrics'
 import type { AdminPanelSheet } from './dashboard/dashboardTypes'
+import type { ITodayPeopleInput } from './dashboard/todayPeople'
 import { buildMonthStats, buildTodaySummary } from './dashboard/todayMetrics'
 import { useDashboardAnalytics } from './dashboard/useDashboardAnalytics'
 import { useEmployeeAdmin } from './dashboard/useEmployeeAdmin'
@@ -153,6 +154,12 @@ export function DashboardOverview({
       })
       : null
   ), [isCurrentMonth, presence.firstEntries, presence.passes, presence.statuses, scopedTrends])
+  // Данные для списков «сегодня» (плитки и чипы); только в текущем месяце
+  const todayData = useMemo<ITodayPeopleInput | null>(() => (
+    isCurrentMonth
+      ? { statuses: presence.statuses, passes: presence.passes, firstEntries: presence.firstEntries }
+      : null
+  ), [isCurrentMonth, presence.firstEntries, presence.passes, presence.statuses])
   const monthStats = useMemo(() => buildMonthStats(
     summary,
     isCurrentMonth,
@@ -279,20 +286,24 @@ export function DashboardOverview({
             </div>
 
             <div className="dash-stats">
-              <div className="dash-slot slot-cards">
-                <StatCards
-                  mode={mode}
-                  today={today}
-                  monthStats={monthStats}
-                  presenceLoading={presence.loading}
-                />
-              </div>
-
-              {today && mode === 'today' && (
-                <div className="dash-slot slot-punct">
-                  <PunctualityCard punctuality={today.punctuality} loading={presence.loading} />
+              {/* Плитки и пунктуальность: на десктопе рядом (пунктуальность слева), на телефоне — отдельные блоки */}
+              <div className={`dash-top${today && mode === 'today' ? ' has-punct' : ''}`}>
+                <div className="dash-slot slot-cards">
+                  <StatCards
+                    mode={mode}
+                    today={today}
+                    monthStats={monthStats}
+                    presenceLoading={presence.loading}
+                    onOpenMetric={setMetric}
+                  />
                 </div>
-              )}
+
+                {today && mode === 'today' && (
+                  <div className="dash-slot slot-punct">
+                    <PunctualityCard punctuality={today.punctuality} loading={presence.loading} />
+                  </div>
+                )}
+              </div>
 
               <div className="dash-slot slot-fot">
                 <MoneyPanel
@@ -317,6 +328,7 @@ export function DashboardOverview({
           trends={scopedTrends}
           year={year}
           month={month}
+          todayData={todayData}
           onClose={() => setMetric(null)}
           onSelectEmployee={handleSelectEmployee}
         />

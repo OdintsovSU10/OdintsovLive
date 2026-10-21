@@ -5,12 +5,15 @@ import { MONTH_NAMES } from '../../utils/employeeFormat'
 import { pluralize } from './dashboardFormat'
 import type { IEmployeeTrend } from './dashboardTypes'
 import { buildMetricPeople, getMetricTitle, type MetricKind } from './metricPeople'
+import { buildTodayPeople, isTodayKind, type ITodayPeopleInput } from './todayPeople'
 
 interface IMetricPeopleSheetProps {
   kind: MetricKind
   trends: IEmployeeTrend[]
   year: number
   month: number
+  // Проходы и статусы за сегодня; null — не текущий месяц
+  todayData: ITodayPeopleInput | null
   onClose: () => void
   onSelectEmployee: (employee: EmployeeWithStats) => void
 }
@@ -21,16 +24,21 @@ export const MetricPeopleSheet: FC<IMetricPeopleSheetProps> = ({
   trends,
   year,
   month,
+  todayData,
   onClose,
   onSelectEmployee
 }) => {
-  const people = useMemo(() => buildMetricPeople(kind, trends, year, month), [kind, month, trends, year])
+  const today = isTodayKind(kind)
+  const people = useMemo(() => {
+    if (!isTodayKind(kind)) return buildMetricPeople(kind, trends, year, month)
+    return todayData ? buildTodayPeople(kind, trends, todayData) : []
+  }, [kind, month, todayData, trends, year])
 
   return (
     <BottomSheet
       variant="modal"
       size="small"
-      title={`${getMetricTitle(kind)} · ${MONTH_NAMES[month - 1]} ${year}`}
+      title={`${getMetricTitle(kind)} · ${today ? 'сегодня' : `${MONTH_NAMES[month - 1]} ${year}`}`}
       onClose={onClose}
     >
       {people.length === 0 ? (

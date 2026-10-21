@@ -315,7 +315,8 @@ select.dash-field {
     overflow-y: auto;
   }
 
-  .tender-shell--fit .dash-stats > .dash-slot {
+  .tender-shell--fit .dash-stats > .dash-slot,
+  .tender-shell--fit .dash-stats > .dash-top {
     flex: 0 0 auto;
   }
 

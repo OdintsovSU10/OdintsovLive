@@ -33,11 +33,17 @@ export function useTenderData() {
   // Повторная загрузка (смена месяца): данные остаются на экране, без заглушки
   const [refreshing, setRefreshing] = useState(false)
   const loadedRef = useRef(false)
+  // Номер последнего запроса: ответ опоздавшего (например, опрос текущего месяца
+  // после перехода на прошлый) не должен затирать данные выбранного месяца
+  const requestIdRef = useRef(0)
   const [error, setError] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
 
   const loadEmployees = useCallback(async (year?: number, month?: number, showArchived = false, silent = false) => {
+    const requestId = ++requestIdRef.current
+    const isStale = () => requestId !== requestIdRef.current
+
     if (!silent) {
       if (loadedRef.current) setRefreshing(true)
       else setLoading(true)
@@ -55,6 +61,7 @@ export function useTenderData() {
         .order('full_name')
 
       if (empError) throw empError
+      if (isStale()) return
       if (!employeesData) {
         setEmployees([])
         return
@@ -80,6 +87,8 @@ export function useTenderData() {
           .gte('work_date', startOfMonth)
           .lte('work_date', endOfMonth)
       ])
+
+      if (isStale()) return
 
       const roundedTimesheetData = (timesheetData || []).map(entry => ({
         ...entry,
@@ -186,11 +195,12 @@ export function useTenderData() {
       loadedRef.current = true
     } catch (err) {
       console.error('Error loading employees:', err)
-      if (!silent) {
+      if (!silent && !isStale()) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
       }
     } finally {
-      if (!silent) {
+      // Флаги снимает последний запрос, даже тихий: иначе вытесненная им загрузка оставит «обновление» навсегда
+      if (!isStale()) {
         setLoading(false)
         setRefreshing(false)
       }

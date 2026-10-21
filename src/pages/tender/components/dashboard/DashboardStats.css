@@ -49,15 +49,43 @@
   width: 100%;
 }
 
+/* Плитка — кнопка: открывает мини-окно со списком сотрудников */
 .dash-mini {
+  display: block;
+  width: 100%;
   min-width: 0;
   padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
+.dash-mini.is-clickable {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.dash-mini.is-clickable:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--text-muted);
+}
+
+.dash-mini.is-clickable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.dash-mini.is-clickable:disabled {
+  cursor: default;
+}
+
 .dash-mini-label {
+  display: block;
   margin-bottom: 2px;
   font-size: 0.68rem;
   line-height: 1.2;
@@ -283,10 +311,76 @@
   }
 }
 
-/* Рядом с боковым меню колонка статистики узкая: карточки снова 2x2 */
+/* Плитки и пунктуальность: на телефоне и планшете блоки раскладываются по порядку слотов (контейнер прозрачен) */
+.dash-top {
+  display: contents;
+}
+
+/* Рядом с боковым меню колонка статистики узкая: карточки 2x2; без пунктуальности — одной строкой из четырёх */
 @media (min-width: 1024px) and (max-width: 1599px) {
   .dash-minis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-top:not(.has-punct) .dash-minis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Десктоп: слева пунктуальность, справа плитки 2x2 той же высоты */
+@media (min-width: 1024px) {
+  .dash-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .dash-top.has-punct {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  .dash-top.has-punct .slot-punct {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .dash-top.has-punct .slot-cards {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .dash-top.has-punct .slot-punct > .dash-card,
+  .dash-top.has-punct .dash-stat-cards {
+    height: 100%;
+  }
+
+  .dash-top.has-punct .dash-minis {
+    flex: 1 1 auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+  }
+
+  .dash-top.has-punct .dash-stat-cards {
+    align-items: stretch;
+  }
+
+  /* Узкая половина: кольцо над легендой; когда карточка шире 230px — рядом (container query) */
+  .dash-top.has-punct .slot-punct {
+    container-type: inline-size;
+  }
+
+  .dash-top.has-punct .dash-punct {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dash-top.has-punct .dash-legend {
+    align-self: stretch;
+  }
+
+  .dash-top.has-punct .slot-punct .dash-card-title {
+    overflow-wrap: normal;
   }
 }
 
@@ -298,6 +392,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dash-toggle-btn,
+  .dash-mini.is-clickable,
   .dash-hbar-row.is-clickable,
   .dash-hbar-fill {
     transition: none;
@@ -319,6 +414,25 @@
     padding: 4px 5px;
   }
 
+  /* Плитки рядом с пунктуальностью тянутся на высоту карточки */
+  .tender-shell--fit .dash-top.has-punct .dash-minis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: 100%;
+  }
+
+  .tender-shell--fit .dash-top.has-punct .dash-mini {
+    height: auto;
+    padding: 4px 5px;
+  }
+
+  .tender-shell--fit .dash-top.has-punct .dash-mini-label {
+    font-size: 0.62rem;
+  }
+
+  .tender-shell--fit .dash-top:not(.has-punct) .dash-minis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .tender-shell--fit .dash-mini-label {
     margin-bottom: 1px;
     overflow: hidden;
@@ -334,6 +448,10 @@
 
   .tender-shell--fit .dash-punct {
     gap: 12px;
+  }
+
+  .tender-shell--fit .dash-top.has-punct .dash-punct {
+    gap: 2px;
   }
 
   .tender-shell--fit .dash-ring {
@@ -363,5 +481,13 @@
   .tender-shell--fit .dash-legend-percent {
     margin-left: 4px;
     font-size: 0.65rem;
+  }
+}
+
+@container (min-width: 230px) {
+  .dash-top.has-punct .dash-punct,
+  .tender-shell--fit .dash-top.has-punct .dash-punct {
+    flex-direction: row;
+    gap: 12px;
   }
 }
