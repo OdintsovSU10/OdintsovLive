@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Wallet, Home, LogOut, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Activity, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks, type LucideIcon } from 'lucide-react'
+import { Wallet, Home, LogOut, ChevronLeft, ChevronRight, Activity, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { syncThemeColor } from '../lib/themeColor'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
@@ -15,19 +15,9 @@ interface SidebarProps {
   isAdmin?: boolean
 }
 
-interface WorkLink {
-  path: string
-  icon: LucideIcon
-  label: string
-  adminOnly?: boolean
-}
-
-const workLinks: WorkLink[] = [
+const navLinks = [
   { path: '/tender', icon: Users, label: 'Тендерное управление' },
   { path: '/salary', icon: Wallet, label: 'Зарплата' },
-]
-
-const otherLinks = [
   { path: '/body', icon: Activity, label: 'Тело' },
   { path: '/todo', icon: ListChecks, label: 'Дела' },
   { path: '/expenses', icon: ReceiptText, label: 'Траты' },
@@ -38,9 +28,6 @@ const otherLinks = [
 export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isAdmin }: SidebarProps) {
   const location = useLocation()
   const moscowDateTime = useMoscowDateTime()
-  const visibleWorkLinks = workLinks.filter(link => !link.adminOnly || isAdmin)
-  const isWorkActive = visibleWorkLinks.some(l => location.pathname.startsWith(l.path))
-  const [workExpanded, setWorkExpanded] = useState(isWorkActive)
   const [mobileHidden, setMobileHidden] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const swipeStartX = useRef(0)
@@ -149,33 +136,8 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
         </div>
 
       <nav className="sidebar-nav">
-        <div className={`nav-group ${workExpanded ? 'expanded' : ''}`}>
-          <button
-            className={`nav-link nav-group-toggle ${isWorkActive ? 'active' : ''}`}
-            onClick={() => setWorkExpanded(!workExpanded)}
-          >
-            <Briefcase size={20} strokeWidth={1.5} />
-            {(!collapsed || mobileMenuOpen) && (
-              <>
-                <span>Работа</span>
-                <ChevronDown size={16} className="nav-group-arrow" />
-              </>
-            )}
-          </button>
-          {(workExpanded || (collapsed && !mobileMenuOpen)) && (
-            <div className="nav-group-items">
-              {visibleWorkLinks.map(l => (
-                <NavLink key={l.path} to={l.path} className="nav-link nav-sublink" end={l.path === '/tender'}>
-                  <l.icon size={18} strokeWidth={1.5} />
-                  {(!collapsed || mobileMenuOpen) && <span>{l.label}</span>}
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {otherLinks.map(l => (
-          <NavLink key={l.path} to={l.path} className="nav-link">
+        {navLinks.map(l => (
+          <NavLink key={l.path} to={l.path} className="nav-link" end={l.path === '/tender'}>
             <l.icon size={20} strokeWidth={1.5} />
             {(!collapsed || mobileMenuOpen) && <span>{l.label}</span>}
           </NavLink>
