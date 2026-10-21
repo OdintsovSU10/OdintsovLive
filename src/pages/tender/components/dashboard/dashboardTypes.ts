@@ -32,6 +32,8 @@ export interface IEmployeeTrendPoint {
   // План месяца: оклад + бонус + проезд месяца
   plan: number
   statusCounts: StatusCounts
+  // Даты прогулов месяца (ISO), по возрастанию
+  absentDates: string[]
 }
 
 export interface IEmployeeTrend {

@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, type FC } from 'react'
-import { Building2, Eye, EyeOff, Plus } from 'lucide-react'
+import { Building2, Plus } from 'lucide-react'
 import { ClearableInput } from '../../../../components/ui/ClearableInput'
 import type { EmployeeWithStats } from '../../types'
 import type { IListScore } from '../../hooks/useEmployeeScores'
@@ -30,7 +30,7 @@ interface IPeopleColumnProps {
   scoresLoading: boolean
   severity: ReadonlyMap<number, Tone>
   admin: IAdminRowActions | null
-  onToggleHideSalaries: () => void
+  hideMoney: boolean
   onSelectEmployee: (employee: EmployeeWithStats) => void
   // Открыть лист администратора; null — не админ. Кнопки видны только на телефоне, выше — они в строке вкладок
   onOpenSheet: ((sheet: AdminPanelSheet) => void) | null
@@ -57,7 +57,7 @@ const PeopleColumnBase: FC<IPeopleColumnProps> = ({
   scoresLoading,
   severity,
   admin,
-  onToggleHideSalaries,
+  hideMoney,
   onSelectEmployee,
   onOpenSheet
 }) => {
@@ -155,18 +155,6 @@ const PeopleColumnBase: FC<IPeopleColumnProps> = ({
         >
           {sortKeys.map(key => <option key={key} value={key}>{SORT_LABELS[key]}</option>)}
         </select>
-        {admin && (
-          <button
-            type="button"
-            className={`dash-icon-btn${admin.hideSalaries ? ' active' : ''}`}
-            onClick={onToggleHideSalaries}
-            aria-pressed={admin.hideSalaries}
-            aria-label={admin.hideSalaries ? 'Показать оклады' : 'Скрыть оклады'}
-            title={admin.hideSalaries ? 'Показать оклады' : 'Скрыть оклады'}
-          >
-            {admin.hideSalaries ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
-          </button>
-        )}
       </div>
 
       {visible.length === 0 ? (
@@ -180,6 +168,7 @@ const PeopleColumnBase: FC<IPeopleColumnProps> = ({
               score={scores.get(row.trend.employee.id)}
               scoresLoading={scoresLoading}
               admin={admin}
+              hideMoney={hideMoney}
               onSelect={onSelectEmployee}
             />
           ))}

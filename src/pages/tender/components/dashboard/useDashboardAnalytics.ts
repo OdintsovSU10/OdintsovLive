@@ -110,6 +110,7 @@ function buildPoint({ employee, slot, timesheet, transport }: IBuildPointInput):
     : calculateEmployeeMonthlyPayrollPlan(employee, slot.year, slot.month, transport, slotExtraBonuses)
 
   const statusCounts = createEmptyTimesheetStatusCounts()
+  const absentDates: string[] = []
   let hours = 0
   let workedWeekdays = 0
   let overtime = 0
@@ -117,6 +118,7 @@ function buildPoint({ employee, slot, timesheet, transport }: IBuildPointInput):
 
   for (const entry of timesheet) {
     statusCounts[entry.status] += 1
+    if (entry.status === 'absent') absentDates.push(entry.work_date)
 
     const entryDate = new Date(`${entry.work_date}T12:00:00`)
     const weekendOrHoliday = isWeekendOrHoliday(entryDate)
@@ -175,7 +177,8 @@ function buildPoint({ employee, slot, timesheet, transport }: IBuildPointInput):
     weekendDays,
     earned,
     plan,
-    statusCounts
+    statusCounts,
+    absentDates: absentDates.sort()
   }
 }
 

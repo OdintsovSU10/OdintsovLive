@@ -2,6 +2,7 @@ import { memo, useMemo, useState, type FC } from 'react'
 import { AlertTriangle, OctagonAlert, TrendingUp, type LucideIcon } from 'lucide-react'
 import type { EmployeeWithStats } from '../../types'
 import type { IAttentionItem, Tone } from './dashboardMetrics'
+import { AbsentDaysSheet } from './AbsentDaysSheet'
 
 interface IAttentionListProps {
   items: IAttentionItem[]
@@ -19,6 +20,8 @@ const TONE_ICONS: Record<Tone, LucideIcon> = {
 
 const AttentionListBase: FC<IAttentionListProps> = ({ items, onSelectEmployee }) => {
   const [expanded, setExpanded] = useState(false)
+  // Прогулы открывают мини-окно с датами, остальные пункты — карточку сотрудника
+  const [absentItem, setAbsentItem] = useState<IAttentionItem | null>(null)
   const visible = expanded ? items : items.slice(0, VISIBLE_LIMIT)
   const hiddenCount = items.length - VISIBLE_LIMIT
 
@@ -55,7 +58,7 @@ const AttentionListBase: FC<IAttentionListProps> = ({ items, onSelectEmployee })
                   <button
                     type="button"
                     className={`dash-attention-row is-${item.tone}`}
-                    onClick={() => onSelectEmployee(item.employee)}
+                    onClick={() => (item.dates?.length ? setAbsentItem(item) : onSelectEmployee(item.employee))}
                   >
                     <span className="dash-attention-icon" aria-hidden="true">
                       <Icon size={ICON_SIZE} strokeWidth={1.75} />
@@ -80,6 +83,18 @@ const AttentionListBase: FC<IAttentionListProps> = ({ items, onSelectEmployee })
             </button>
           )}
         </>
+      )}
+
+      {absentItem?.dates && (
+        <AbsentDaysSheet
+          employee={absentItem.employee}
+          dates={absentItem.dates}
+          onClose={() => setAbsentItem(null)}
+          onOpenEmployee={employee => {
+            setAbsentItem(null)
+            onSelectEmployee(employee)
+          }}
+        />
       )}
     </section>
   )

@@ -10,17 +10,6 @@ import { fetchSubdivisions } from '../../utils/tenderSubdivisions'
 const QUICK_ARCHIVE_REASON = 'Уволился'
 const UNDO_TOAST_DURATION_MS = 6000
 
-// Скрытие окладов запоминаем в браузере — чтобы не светить суммы при показе экрана
-const HIDE_SALARIES_KEY = 'tender-admin-hide-salaries'
-
-const readHideSalaries = (): boolean => {
-  try {
-    return localStorage.getItem(HIDE_SALARIES_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
 interface IUseEmployeeAdminParams {
   enabled: boolean
   // Растёт, когда листы «Архив»/«Настройки» что-то поменяли — подразделения перечитываются
@@ -36,17 +25,6 @@ export function useEmployeeAdmin({ enabled, refreshKey, onEmployeesChanged, onSh
   const [editingEmployee, setEditingEmployee] = useState<EditableEmployee | null>(null)
   const [archivingIds, setArchivingIds] = useState<Set<number>>(() => new Set())
   const [subdivisions, setSubdivisions] = useState<TenderSubdivision[]>([])
-  const [hideSalaries, setHideSalaries] = useState(readHideSalaries)
-
-  const toggleHideSalaries = () => {
-    const next = !hideSalaries
-    setHideSalaries(next)
-    try {
-      localStorage.setItem(HIDE_SALARIES_KEY, next ? '1' : '0')
-    } catch {
-      // Хранилище недоступно (приватный режим) — переключатель работает до перезагрузки
-    }
-  }
 
   const subdivisionNames = useMemo(
     () => subdivisions
@@ -232,8 +210,6 @@ export function useEmployeeAdmin({ enabled, refreshKey, onEmployeesChanged, onSh
     subdivisions,
     subdivisionNames,
     loadSubdivisions,
-    hideSalaries,
-    toggleHideSalaries,
     startEdit,
     closeEdit,
     saveEmployee,

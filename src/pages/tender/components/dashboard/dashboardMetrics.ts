@@ -194,6 +194,8 @@ export interface IAttentionItem {
   title: string
   value: string
   count: number
+  // Даты (ISO), к которым относится пункт: для прогулов
+  dates?: string[]
 }
 
 const ATTENTION_ORDER: AttentionKind[] = ['noMark', 'absent', 'unfilled', 'overtime', 'attention', 'overpaid', 'promotion']
@@ -215,7 +217,7 @@ export function buildAttentionItems({ trends, year, month, statuses, scores }: I
 
   for (const trend of trends) {
     const { employee, latest, subdivision } = trend
-    const push = (kind: AttentionKind, title: string, value: string, count: number) => items.push({
+    const push = (kind: AttentionKind, title: string, value: string, count: number, dates?: string[]) => items.push({
       key: `${kind}-${employee.id}`,
       employee,
       subdivision,
@@ -223,13 +225,14 @@ export function buildAttentionItems({ trends, year, month, statuses, scores }: I
       tone: getAttentionTone(kind),
       title,
       value,
-      count
+      count,
+      dates
     })
 
     if (statuses?.get(employee.id) === 'noMark') push('noMark', 'Нет отметки сегодня', '', 1)
 
     if (latest.statusCounts.absent >= 1) {
-      push('absent', 'Прогулы', formatDays(latest.statusCounts.absent), latest.statusCounts.absent)
+      push('absent', 'Прогулы', formatDays(latest.statusCounts.absent), latest.statusCounts.absent, latest.absentDates)
     }
 
     const missing = countMissingTimesheetDays(employee, year, month)

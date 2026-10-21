@@ -184,6 +184,10 @@
     animation-name: ui-sheet-pop-in;
   }
 
+  .ui-sheet-root.modal.small .ui-sheet {
+    width: 400px;
+  }
+
   .ui-sheet-root.modal.closing .ui-sheet {
     animation-name: ui-sheet-pop-out;
   }

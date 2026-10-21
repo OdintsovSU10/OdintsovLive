@@ -20,6 +20,7 @@ import { MONTHS_WINDOW, type AdminPanelSheet } from './dashboard/dashboardTypes'
 import { buildMonthStats, buildTodaySummary } from './dashboard/todayMetrics'
 import { useDashboardAnalytics } from './dashboard/useDashboardAnalytics'
 import { useEmployeeAdmin } from './dashboard/useEmployeeAdmin'
+import { useHiddenMoney } from './dashboard/useHiddenMoney'
 import { useTodayPresence } from './dashboard/useTodayPresence'
 import './dashboard/Dashboard.css'
 import './dashboard/DashboardHeader.css'
@@ -73,19 +74,20 @@ export function DashboardOverview({
   const { scores, loading: scoresLoading } = useEmployeeScores(employees)
 
   const admin = useEmployeeAdmin({ enabled: isAdmin, refreshKey, onEmployeesChanged, onSheetClose })
+  const money = useHiddenMoney()
+
   const adminRef = useRef(admin)
   adminRef.current = admin
   const handleEdit = useCallback((employee: EmployeeWithStats) => adminRef.current.startEdit(employee), [])
   const handleArchive = useCallback((employee: EmployeeWithStats) => {
     void adminRef.current.quickArchive(employee)
   }, [])
-  const handleToggleHideSalaries = useCallback(() => adminRef.current.toggleHideSalaries(), [])
 
   const adminActions = useMemo<IAdminRowActions | null>(() => (
     isAdmin
-      ? { hideSalaries: admin.hideSalaries, archivingIds: admin.archivingIds, onEdit: handleEdit, onArchive: handleArchive }
+      ? { archivingIds: admin.archivingIds, onEdit: handleEdit, onArchive: handleArchive }
       : null
-  ), [admin.archivingIds, admin.hideSalaries, handleArchive, handleEdit, isAdmin])
+  ), [admin.archivingIds, handleArchive, handleEdit, isAdmin])
 
   const activeSubdivision = useMemo(() => (
     selectedSubdivision && trends.some(trend => trend.subdivision === selectedSubdivision)
@@ -225,6 +227,8 @@ export function DashboardOverview({
             totalCount={trends.length}
             selected={activeSubdivision}
             onSelectSubdivision={setSelectedSubdivision}
+            hideMoney={money.hidden}
+            onToggleHideMoney={money.toggle}
           />
 
           <div className="dash-grid">
@@ -239,7 +243,7 @@ export function DashboardOverview({
                 scoresLoading={scoresLoading}
                 severity={severity}
                 admin={adminActions}
-                onToggleHideSalaries={handleToggleHideSalaries}
+                hideMoney={money.hidden}
                 onSelectEmployee={handleSelectEmployee}
                 onOpenSheet={isAdmin ? onOpenSheet : null}
               />
@@ -282,6 +286,7 @@ export function DashboardOverview({
                   trends={scopedTrends}
                   summary={summary}
                   live={live}
+                  hideMoney={money.hidden}
                 />
               </div>
 

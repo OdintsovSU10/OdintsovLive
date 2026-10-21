@@ -10,7 +10,6 @@ import { RowMenu } from './RowMenu'
 import { isLateArrival, toClock } from './todayMetrics'
 
 export interface IAdminRowActions {
-  hideSalaries: boolean
   archivingIds: ReadonlySet<number>
   onEdit: (employee: EmployeeWithStats) => void
   onArchive: (employee: EmployeeWithStats) => void
@@ -21,6 +20,8 @@ interface IPersonRowProps {
   score: IListScore | undefined
   scoresLoading: boolean
   admin: IAdminRowActions | null
+  // Скрыть суммы (начисление и оклад)
+  hideMoney: boolean
   onSelect: (employee: EmployeeWithStats) => void
 }
 
@@ -42,7 +43,7 @@ const STATUS_TEXT_CLASSES: Partial<Record<PresenceStatus, string>> = {
   noMark: 'is-bad'
 }
 
-const PersonRowBase: FC<IPersonRowProps> = ({ row, score, scoresLoading, admin, onSelect }) => {
+const PersonRowBase: FC<IPersonRowProps> = ({ row, score, scoresLoading, admin, hideMoney, onSelect }) => {
   const { trend, accrued, severity, salary, status, firstEntry } = row
   const { employee, latest } = trend
   const overtimeHigh = latest.overtime > OVERTIME_ATTENTION_HOURS
@@ -84,7 +85,7 @@ const PersonRowBase: FC<IPersonRowProps> = ({ row, score, scoresLoading, admin, 
 
       <span className="dash-person-line">
         <ScoreBadge score={score} loading={scoresLoading} />
-        <span className="dash-person-accrued">{formatRub(accrued)}</span>
+        <span className="dash-person-accrued">{hideMoney ? '••• ₽' : formatRub(accrued)}</span>
         <span className="dash-person-hours">
           {formatNumber(latest.hours)}/{formatNumber(latest.normHoursWeekdays)} ч
           {latest.overtime > 0 && (
@@ -96,7 +97,7 @@ const PersonRowBase: FC<IPersonRowProps> = ({ row, score, scoresLoading, admin, 
       </span>
 
       {admin && (
-        <span className="dash-person-salary">{admin.hideSalaries ? '••• ₽' : formatRub(salary)}</span>
+        <span className="dash-person-salary">{hideMoney ? '••• ₽' : formatRub(salary)}</span>
       )}
     </li>
   )

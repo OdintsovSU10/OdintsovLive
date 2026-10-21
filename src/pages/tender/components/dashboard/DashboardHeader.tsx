@@ -1,5 +1,5 @@
 import { memo, type FC } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { MONTH_NAMES } from '../../utils/employeeFormat'
 import type { Tone } from './dashboardMetrics'
 import { formatHours, formatNumber, formatPercent } from './dashboardFormat'
@@ -25,6 +25,9 @@ interface IDashboardHeaderProps {
   // null — все подразделения
   selected: string | null
   onSelectSubdivision: (name: string | null) => void
+  // Суммы на дашборде скрыты
+  hideMoney: boolean
+  onToggleHideMoney: () => void
 }
 
 interface IStatChipProps {
@@ -65,7 +68,9 @@ const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
   subdivisions,
   totalCount,
   selected,
-  onSelectSubdivision
+  onSelectSubdivision,
+  hideMoney,
+  onToggleHideMoney
 }) => {
   const pending = presenceLoading ? '…' : null
 
@@ -138,6 +143,19 @@ const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
               </span>
             </button>
           )}
+
+          <button
+            type="button"
+            className={`dash-refresh-btn${hideMoney ? ' active' : ''}`}
+            onClick={onToggleHideMoney}
+            aria-pressed={hideMoney}
+            aria-label={hideMoney ? 'Показать суммы' : 'Скрыть суммы'}
+            title={hideMoney ? 'Показать суммы' : 'Скрыть суммы'}
+          >
+            <span className="dash-refresh-face">
+              {hideMoney ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+            </span>
+          </button>
         </div>
       </div>
 

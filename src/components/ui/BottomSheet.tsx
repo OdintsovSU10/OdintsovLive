@@ -16,10 +16,12 @@ interface Props {
   footer?: ReactNode
   // panel — от 768px панель справа, modal — окно по центру
   variant?: 'panel' | 'modal'
+  // small — узкое окно по центру (только для modal)
+  size?: 'small'
 }
 
 // Телефон — лист снизу, от 768px — панель справа или окно по центру. Esc, подложка и × закрывают.
-export function BottomSheet({ title, onClose, children, footer, variant = 'panel' }: Props) {
+export function BottomSheet({ title, onClose, children, footer, variant = 'panel', size }: Props) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
@@ -78,7 +80,7 @@ export function BottomSheet({ title, onClose, children, footer, variant = 'panel
   }
 
   return createPortal(
-    <div className={`ui-sheet-root ${variant === 'modal' ? 'modal' : ''} ${closing ? 'closing' : ''}`} onKeyDown={handleKeyDown}>
+    <div className={`ui-sheet-root ${variant === 'modal' ? 'modal' : ''} ${size ?? ''} ${closing ? 'closing' : ''}`} onKeyDown={handleKeyDown}>
       <div className="ui-sheet-backdrop" onClick={requestClose} />
       <div
         ref={panelRef}

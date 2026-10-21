@@ -13,11 +13,16 @@ import {
 } from './dashboardFormat'
 import { getGrowthPercent, getPayrollTone, isPayrollOverrun, type IScopeSummary } from './dashboardMetrics'
 
+const MASK = '•••'
+const MASK_RUB = '••• ₽'
+
 interface IMoneyPanelProps {
   monthSlots: IMonthSlot[]
   trends: IEmployeeTrend[]
   summary: IScopeSummary
   live: LivePayrollSnapshot
+  // Скрыть суммы, проценты и высоты столбиков остаются
+  hideMoney: boolean
 }
 
 interface IMonthMoney {
@@ -27,7 +32,7 @@ interface IMonthMoney {
 }
 
 // ФОТ: начислено к плану, план/факт по месяцам окна и сравнение с прошлым месяцем
-export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, live }) => {
+export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, live, hideMoney }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const baseSeries = useMemo<IMonthMoney[]>(() => monthSlots.map((slot, index) => ({
@@ -62,9 +67,9 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
       </h3>
 
       <div className={`dash-fot-head${tone ? ` is-${tone}` : ''}`}>
-        <span className="dash-fot-main">{formatShortMoney(fact)} ₽</span>
+        <span className="dash-fot-main">{hideMoney ? MASK_RUB : `${formatShortMoney(fact)} ₽`}</span>
         <span className="dash-fot-sub">
-          {plan > 0 ? `из ${formatShortMoney(plan)} · ${formatPercent(getPercentOf(fact, plan))}` : 'плана нет'}
+          {plan > 0 ? `из ${hideMoney ? MASK : formatShortMoney(plan)} · ${formatPercent(getPercentOf(fact, plan))}` : 'плана нет'}
         </span>
       </div>
       <span className="dash-fot-bar" aria-hidden="true">
@@ -81,12 +86,12 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
             type="button"
             className={`dash-bar-col${index === shownIndex ? ' active' : ''}`}
             aria-pressed={index === shownIndex}
-            aria-label={`${item.slot.label}: план ${formatRub(item.plan)}, факт ${formatRub(item.fact)}`}
+            aria-label={hideMoney ? item.slot.label : `${item.slot.label}: план ${formatRub(item.plan)}, факт ${formatRub(item.fact)}`}
             onClick={() => setActiveIndex(index)}
             onMouseEnter={() => setActiveIndex(index)}
             onFocus={() => setActiveIndex(index)}
           >
-            <span className="dash-bar-value">{formatCompactMoney(item.fact)}</span>
+            <span className="dash-bar-value">{hideMoney ? MASK : formatCompactMoney(item.fact)}</span>
             <span className="dash-bar-area">
               <span className="dash-bar plan" style={{ '--h': item.plan / max } as CSSProperties} />
               <span
@@ -103,7 +108,9 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
         <span className="dash-legend-item plan">План</span>
         <span className="dash-legend-item fact">Факт</span>
         <span className="dash-chart-detail">
-          {shown.slot.label}: {formatRub(shown.fact)} из {formatRub(shown.plan)}
+          {hideMoney
+            ? `${shown.slot.label}: ${MASK_RUB} из ${MASK_RUB}`
+            : `${shown.slot.label}: ${formatRub(shown.fact)} из ${formatRub(shown.plan)}`}
         </span>
       </div>
 
@@ -115,7 +122,7 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
           </dt>
           <dd className={hasBaseline ? (delta > 0 ? 'dash-up' : delta < 0 ? 'dash-down' : '') : ''}>
             {hasBaseline
-              ? `${formatSignedRub(delta)} (${formatSignedPercent(getGrowthPercent(delta, summary.baseline))})`
+              ? `${hideMoney ? MASK_RUB : formatSignedRub(delta)} (${formatSignedPercent(getGrowthPercent(delta, summary.baseline))})`
               : '—'}
           </dd>
         </div>
