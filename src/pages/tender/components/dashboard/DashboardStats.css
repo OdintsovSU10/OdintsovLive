@@ -193,12 +193,41 @@
   gap: 10px;
 }
 
+.dash-hbars-note {
+  margin: -4px 0 10px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .dash-hbar-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 56px;
+  grid-template-columns: 96px minmax(0, 1fr) 96px;
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
+}
+
+/* Строка со значением — кнопка, открывает список сотрудников */
+.dash-hbar-row.is-clickable {
+  width: 100%;
+  min-height: 44px;
+  margin: -6px 0;
+  padding: 0 6px;
+  text-align: left;
+  color: inherit;
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.dash-hbar-row.is-clickable:hover {
+  background: var(--surface-hover);
+}
+
+.dash-hbar-row.is-clickable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }
 
 .dash-hbar-label {
@@ -228,6 +257,11 @@
   white-space: nowrap;
 }
 
+.dash-hbar-people {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
 .tone-work { --tone: var(--chart-positive); }
 .tone-remote { --tone: var(--chart-2); }
 .tone-vacation { --tone: var(--chart-warning); }
@@ -241,7 +275,7 @@
   }
 
   .dash-hbar-row {
-    grid-template-columns: 120px minmax(0, 1fr) 64px;
+    grid-template-columns: 120px minmax(0, 1fr) 112px;
   }
 }
 
@@ -260,6 +294,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dash-toggle-btn,
+  .dash-hbar-row.is-clickable,
   .dash-hbar-fill {
     transition: none;
   }

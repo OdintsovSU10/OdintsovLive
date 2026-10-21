@@ -1,9 +1,11 @@
 import { memo, type FC } from 'react'
-import { Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { ChevronRight, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { MONTH_NAMES } from '../../utils/employeeFormat'
 import type { Tone } from './dashboardMetrics'
 import { formatHours, formatNumber, formatPercent } from './dashboardFormat'
 import { LiveClock } from './LiveClock'
+import type { MetricKind } from './metricPeople'
+import type { StatsMode } from './StatCards'
 import type { IMonthStats, ITodaySummary } from './todayMetrics'
 
 export interface ISubdivisionOption {
@@ -28,13 +30,24 @@ interface IDashboardHeaderProps {
   // Суммы на дашборде скрыты
   hideMoney: boolean
   onToggleHideMoney: () => void
+  // Переключатель «Сегодня / Месяц» — только в текущем месяце (когда есть today)
+  mode: StatsMode
+  onModeChange: (mode: StatsMode) => void
+  // Счётчики прошлого месяца открывают мини-окно со списком сотрудников
+  onOpenMetric: (kind: MetricKind) => void
 }
 
 interface IStatChipProps {
   label: string
   value: string
   tone?: Tone | null
+  onClick?: () => void
 }
+
+const MODES: Array<{ key: StatsMode; label: string }> = [
+  { key: 'today', label: 'Сегодня' },
+  { key: 'month', label: 'Месяц' }
+]
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
   timeZone: 'Europe/Moscow',
@@ -49,12 +62,29 @@ const formatToday = (): string => {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-const StatChip: FC<IStatChipProps> = ({ label, value, tone }) => (
-  <span className={`dash-stat-chip${tone ? ` is-${tone}` : ''}`}>
-    <span className="dash-stat-chip-label">{label}</span>
-    <span className="dash-stat-chip-value">{value}</span>
-  </span>
-)
+const StatChip: FC<IStatChipProps> = ({ label, value, tone, onClick }) => {
+  const className = `dash-stat-chip${tone ? ` is-${tone}` : ''}`
+  const content = (
+    <>
+      <span className="dash-stat-chip-label">{label}</span>
+      <span className="dash-stat-chip-value">{value}</span>
+    </>
+  )
+
+  if (!onClick) return <span className={className}>{content}</span>
+
+  return (
+    <button
+      type="button"
+      className={`${className} is-clickable`}
+      onClick={onClick}
+      aria-label={`${label}: ${value} — показать сотрудников`}
+    >
+      {content}
+      <ChevronRight size={12} strokeWidth={1.75} className="dash-stat-chip-arrow" aria-hidden="true" />
+    </button>
+  )
+}
 
 // Компактная шапка: дата, часы, «Прямой эфир», счётчики и выбор подразделения
 const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
@@ -70,7 +100,10 @@ const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
   selected,
   onSelectSubdivision,
   hideMoney,
-  onToggleHideMoney
+  onToggleHideMoney,
+  mode,
+  onModeChange,
+  onOpenMetric
 }) => {
   const pending = presenceLoading ? '…' : null
 
@@ -114,17 +147,25 @@ const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
                 label="Явка"
                 value={monthStats.attendancePercent === null ? '—' : formatPercent(monthStats.attendancePercent)}
                 tone={monthStats.attendanceTone}
+                onClick={() => onOpenMetric('attendance')}
               />
               <StatChip
                 label="Пропуски"
                 value={`${formatNumber(monthStats.missedDays)} дн`}
                 tone={monthStats.missedDays > 0 ? 'warn' : null}
+                onClick={() => onOpenMetric('missed')}
               />
-              <StatChip label="Переработки" value={`${formatHours(monthStats.overtime)} ч`} tone={monthStats.overtimeTone} />
+              <StatChip
+                label="Переработки"
+                value={`${formatHours(monthStats.overtime)} ч`}
+                tone={monthStats.overtimeTone}
+                onClick={() => onOpenMetric('overtime')}
+              />
               <StatChip
                 label="Не заполнен табель"
                 value={`${formatNumber(monthStats.unfilledEmployees)} сотр.`}
                 tone={monthStats.unfilledEmployees > 0 ? 'warn' : null}
+                onClick={() => onOpenMetric('unfilled')}
               />
             </>
           )}
@@ -156,6 +197,22 @@ const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
               {hideMoney ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
             </span>
           </button>
+
+          {today && (
+            <div className="dash-toggle" role="group" aria-label="Период">
+              {MODES.map(item => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className="dash-toggle-btn"
+                  aria-pressed={mode === item.key}
+                  onClick={() => onModeChange(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

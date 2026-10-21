@@ -1,0 +1,73 @@
+/* Мини-окно показателя: список сотрудников */
+
+.dash-metric-lead,
+.dash-metric-empty {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.dash-metric-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+}
+
+.dash-metric-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.dash-metric-item:hover {
+  background: var(--surface-hover);
+}
+
+.dash-metric-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.dash-metric-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dash-metric-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dash-metric-sub {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.dash-metric-value {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-metric-item {
+    transition: none;
+  }
+}

@@ -10,7 +10,9 @@ import { AttendancePanel } from './dashboard/AttendancePanel'
 import { AttentionList } from './dashboard/AttentionList'
 import { DashboardHeader, type ISubdivisionOption } from './dashboard/DashboardHeader'
 import { EventsFeed } from './dashboard/EventsFeed'
+import { MetricPeopleSheet } from './dashboard/MetricPeopleSheet'
 import { MoneyPanel } from './dashboard/MoneyPanel'
+import type { MetricKind } from './dashboard/metricPeople'
 import { PeopleColumn } from './dashboard/PeopleColumn'
 import type { IAdminRowActions } from './dashboard/PersonRow'
 import { PunctualityCard } from './dashboard/PunctualityCard'
@@ -29,6 +31,7 @@ import './dashboard/DashboardFeed.css'
 import './dashboard/DashboardStats.css'
 import './dashboard/DashboardMoney.css'
 import './dashboard/DashboardAttention.css'
+import './dashboard/DashboardMetricSheet.css'
 
 interface Props {
   employees: EmployeeWithStats[]
@@ -64,6 +67,8 @@ export function DashboardOverview({
 }: Props) {
   const [selectedSubdivision, setSelectedSubdivision] = useState<string | null>(null)
   const [statsMode, setStatsMode] = useState<StatsMode>('today')
+  // Показатель, открытый в мини-окне со списком сотрудников
+  const [metric, setMetric] = useState<MetricKind | null>(null)
 
   // Стабильный обработчик для мемоизированных блоков
   const selectRef = useRef(onSelectEmployee)
@@ -229,6 +234,9 @@ export function DashboardOverview({
             onSelectSubdivision={setSelectedSubdivision}
             hideMoney={money.hidden}
             onToggleHideMoney={money.toggle}
+            mode={mode}
+            onModeChange={setStatsMode}
+            onOpenMetric={setMetric}
           />
 
           <div className="dash-grid">
@@ -258,16 +266,18 @@ export function DashboardOverview({
                   onSelectEmployee={handleSelectEmployee}
                 />
               ) : (
-                <AttendancePanel statusCounts={summary.statusCounts} />
+                <AttendancePanel
+                  statusCounts={summary.statusCounts}
+                  trends={scopedTrends}
+                  onOpenMetric={setMetric}
+                />
               )}
             </div>
 
             <div className="dash-stats">
               <div className="dash-slot slot-cards">
                 <StatCards
-                  canToggle={isCurrentMonth}
                   mode={mode}
-                  onModeChange={setStatsMode}
                   today={today}
                   monthStats={monthStats}
                   presenceLoading={presence.loading}
@@ -297,6 +307,16 @@ export function DashboardOverview({
           </div>
         </div>
       </div>
+      {metric !== null && (
+        <MetricPeopleSheet
+          kind={metric}
+          trends={scopedTrends}
+          year={year}
+          month={month}
+          onClose={() => setMetric(null)}
+          onSelectEmployee={handleSelectEmployee}
+        />
+      )}
       {adminLayer}
     </>
   )

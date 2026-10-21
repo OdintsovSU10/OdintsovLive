@@ -97,6 +97,46 @@
   color: var(--tone);
 }
 
+/* Счётчик-кнопка: открывает мини-окно со списком сотрудников */
+.dash-stat-chip.is-clickable {
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.dash-stat-chip.is-clickable:hover {
+  background: var(--surface-hover);
+}
+
+.dash-stat-chip.is-clickable:is(.is-ok, .is-warn, .is-bad):hover {
+  background: color-mix(in srgb, var(--tone) 16%, var(--tone-fill));
+}
+
+.dash-stat-chip.is-clickable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.dash-stat-chip-arrow {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dash-stat-chip.is-clickable {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-stat-chip.is-clickable {
+    transition: none;
+  }
+}
+
 /* Тап-зона 44x44, видимая рамка 28x28 */
 .dash-refresh-btn {
   display: inline-flex;

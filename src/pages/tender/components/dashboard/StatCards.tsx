@@ -6,10 +6,7 @@ import type { IMonthStats, ITodaySummary } from './todayMetrics'
 export type StatsMode = 'today' | 'month'
 
 interface IStatCardsProps {
-  // Переключатель «Сегодня / Месяц» только в текущем месяце
-  canToggle: boolean
   mode: StatsMode
-  onModeChange: (mode: StatsMode) => void
   today: ITodaySummary | null
   monthStats: IMonthStats
   presenceLoading: boolean
@@ -32,33 +29,12 @@ const MiniCard: FC<IMiniCardProps> = ({ label, value, sub, tone }) => (
   </div>
 )
 
-const MODES: Array<{ key: StatsMode; label: string }> = [
-  { key: 'today', label: 'Сегодня' },
-  { key: 'month', label: 'Месяц' }
-]
-
-// Переключатель периода и четыре мини-карточки
-const StatCardsBase: FC<IStatCardsProps> = ({ canToggle, mode, onModeChange, today, monthStats, presenceLoading }) => {
+// Четыре мини-карточки за выбранный период
+const StatCardsBase: FC<IStatCardsProps> = ({ mode, today, monthStats, presenceLoading }) => {
   const pending = presenceLoading ? '…' : null
 
   return (
     <div className="dash-stat-cards">
-      {canToggle && (
-        <div className="dash-toggle" role="group" aria-label="Период">
-          {MODES.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              className="dash-toggle-btn"
-              aria-pressed={mode === item.key}
-              onClick={() => onModeChange(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="dash-minis">
         {today && mode === 'today' ? (
           <>
