@@ -267,7 +267,6 @@ export function DashboardOverview({
                 />
               ) : (
                 <AttendancePanel
-                  statusCounts={summary.statusCounts}
                   trends={scopedTrends}
                   onOpenMetric={setMetric}
                 />
