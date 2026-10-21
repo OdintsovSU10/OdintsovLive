@@ -1,42 +1,40 @@
 .timesheet-grid {
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px solid rgba(100, 116, 139, 0.12);
+  /* Оттенки статусов (единственное место с hex в табеле) */
+  --ts-vacation: #F6AD55;
+  --ts-sick: #7EA0D6;
+  --ts-unpaid: #FDBA74;
+  --ts-edu: #C4B5FD;
+  --ts-sick-worked: #5EEAD4;
+  /* Нейтральная подсветка выходных колонок */
+  --ts-weekend-tint: color-mix(in srgb, var(--text-muted) 10%, transparent);
+
+  background: var(--surface);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   padding: 20px;
   backdrop-filter: blur(12px);
-  color: #e2e8f0;
+  color: var(--text-primary);
+}
+
+.ts-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .ts-toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 14px;
-}
-
-.ts-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.ts-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.ts-month-badge {
-  padding: 4px 11px;
-  border-radius: 7px;
-  border: 1px solid rgba(110, 231, 183, 0.28);
-  background: rgba(110, 231, 183, 0.1);
-  color: #6ee7b7;
-  font-size: 0.72rem;
-  font-weight: 600;
 }
 
 .ts-toolbar-controls {
@@ -48,8 +46,8 @@
 
 .ts-view-toggle {
   display: flex;
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -57,17 +55,63 @@
 .ts-view-btn {
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.74rem;
   font-weight: 600;
-  padding: 7px 14px;
+  padding: 0 14px;
+  min-height: 32px;
   cursor: pointer;
   transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .ts-view-btn.active {
-  color: #a5b4fc;
-  background: rgba(129, 140, 248, 0.15);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* Кнопки панели: «По подразделениям», «Обозначения» — в стиле сегмента .ts-view-toggle */
+.ts-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ts-toolbar-btn[aria-pressed='true'],
+.ts-toolbar-btn[aria-expanded='true'] {
+  color: var(--text-primary);
+}
+
+.ts-check-box {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 4px;
+  color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ts-toolbar-btn[aria-pressed='true'] .ts-check-box {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--bg-secondary);
 }
 
 .ts-week-switch {
@@ -77,9 +121,9 @@
 }
 
 .ts-week-btn {
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  background: rgba(15, 23, 42, 0.5);
-  color: #64748b;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
   border-radius: 6px;
   font-size: 0.68rem;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
@@ -90,14 +134,14 @@
 }
 
 .ts-week-btn.active {
-  color: #a5b4fc;
-  border-color: rgba(129, 140, 248, 0.42);
-  background: rgba(129, 140, 248, 0.16);
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-light);
 }
 
 .ts-week-range-hint {
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
 }
 
@@ -108,12 +152,12 @@
   gap: 10px 16px;
   margin-bottom: 14px;
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .ts-legend-title {
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   margin-right: 2px;
 }
 
@@ -127,7 +171,6 @@
   width: 14px;
   height: 14px;
   border-radius: 4px;
-  border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -136,6 +179,7 @@
 .ts-legend-chip.ts-legend-code {
   width: auto;
   min-width: 22px;
+  height: 18px;
   padding: 0 4px;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
   font-size: 0.6rem;
@@ -143,11 +187,16 @@
   line-height: 1;
 }
 
+.ts-legend-chip.ts-legend-weekend {
+  background: var(--ts-weekend-tint);
+  border: 1px solid var(--border-light);
+}
+
 .timesheet-table-wrapper {
   overflow: auto;
   border-radius: 12px;
-  border: 1px solid rgba(100, 116, 139, 0.12);
-  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid var(--border-light);
+  background: var(--surface);
 }
 
 .timesheet-table {
@@ -159,14 +208,14 @@
 
 .timesheet-table th,
 .timesheet-table td {
-  border-bottom: 1px solid rgba(100, 116, 139, 0.08);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .timesheet-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: #0d1424;
+  background: var(--bg-secondary);
 }
 
 .ts-name-col {
@@ -177,10 +226,10 @@
   padding: 10px 14px;
   text-align: left;
   font-size: 0.68rem;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-right: 1px solid rgba(100, 116, 139, 0.1);
+  border-right: 1px solid var(--border-light);
 }
 
 .ts-day-col {
@@ -188,15 +237,16 @@
   width: 34px;
   padding: 8px 2px;
   text-align: center;
-  border-right: 1px solid rgba(100, 116, 139, 0.06);
+  border-right: 1px solid var(--border-light);
 }
 
+/* Шапка липкая и должна быть непрозрачной: подсветка накладывается на фон градиентом */
 .ts-day-col.ts-weekend-header {
-  background: rgba(244, 114, 182, 0.1);
+  background: linear-gradient(var(--ts-weekend-tint), var(--ts-weekend-tint)), var(--bg-secondary);
 }
 
 .ts-day-col.ts-day-end {
-  border-right: 2px solid rgba(100, 116, 139, 0.12);
+  border-right: 2px solid var(--border-light);
 }
 
 .ts-day-header {
@@ -208,22 +258,19 @@
 .ts-day-num {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
-}
-
-.ts-weekend-header .ts-day-num {
-  color: #f472b6;
 }
 
 .ts-day-name {
   font-size: 0.58rem;
   font-weight: 500;
-  color: #475569;
+  color: var(--text-muted);
 }
 
+.ts-weekend-header .ts-day-num,
 .ts-weekend-header .ts-day-name {
-  color: #ec4899;
+  color: var(--text-secondary);
 }
 
 .ts-summary-col {
@@ -234,10 +281,10 @@
   padding: 8px 8px;
   text-align: center;
   font-size: 0.65rem;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-left: 2px solid rgba(100, 116, 139, 0.12);
+  border-left: 2px solid var(--border-light);
 }
 
 .ts-group-header-row {
@@ -246,8 +293,8 @@
 
 .ts-group-cell {
   padding: 11px 12px;
-  background: rgba(15, 23, 42, 0.92);
-  border-top: 2px solid rgba(100, 116, 139, 0.08);
+  background: var(--bg-tertiary);
+  border-top: 2px solid var(--border-light);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -257,12 +304,12 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  border: 1px solid rgba(100, 116, 139, 0.22);
+  border: 1px solid var(--border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.58rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   transition: transform 0.2s ease;
 }
 
@@ -279,12 +326,12 @@
 .ts-group-title {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .ts-group-count {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .ts-employee-row {
@@ -292,7 +339,7 @@
 }
 
 .ts-employee-row.is-highlighted {
-  background: rgba(129, 140, 248, 0.05);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
 }
 
 .ts-name-cell {
@@ -300,12 +347,12 @@
   left: 0;
   z-index: 4;
   padding: 8px 10px;
-  background: #0f172a;
-  border-right: 1px solid rgba(100, 116, 139, 0.1);
+  background: var(--surface);
+  border-right: 1px solid var(--border-light);
 }
 
 .ts-employee-row.is-highlighted .ts-name-cell {
-  background: #131c32;
+  background: var(--surface-hover);
 }
 
 .ts-emp-info {
@@ -319,7 +366,7 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--border-light);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -335,7 +382,7 @@
 }
 
 .ts-emp-name {
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
@@ -345,7 +392,7 @@
 
 .ts-emp-role {
   margin-top: 1px;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.64rem;
   white-space: nowrap;
   overflow: hidden;
@@ -355,20 +402,20 @@
 .ts-cell {
   padding: 4px 2px;
   text-align: center;
-  border-right: 1px solid rgba(100, 116, 139, 0.05);
+  border-right: 1px solid var(--border-light);
   cursor: pointer;
 }
 
 .ts-cell.ts-day-end {
-  border-right: 2px solid rgba(100, 116, 139, 0.12);
+  border-right: 2px solid var(--border-light);
 }
 
 .ts-weekend {
-  background: rgba(244, 114, 182, 0.06);
+  background: var(--ts-weekend-tint);
 }
 
 .ts-cell-empty {
-  color: #334155;
+  color: var(--text-muted);
   font-size: 0.62rem;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
 }
@@ -377,7 +424,7 @@
   min-width: 26px;
   height: 24px;
   border-radius: 6px;
-  border: 1px solid transparent;
+  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -394,46 +441,34 @@
   font-weight: 700;
 }
 
+/* Спокойная норма: без заливки, цвет — только у текста */
 .ts-tone-workday {
-  background: rgba(129, 140, 248, 0.16);
-  border-color: rgba(129, 140, 248, 0.4);
-  color: #c7d2fe;
+  color: var(--text-primary);
 }
 
 .ts-tone-weekend {
-  background: rgba(244, 114, 182, 0.16);
-  border-color: rgba(244, 114, 182, 0.4);
-  color: #fbcfe8;
+  color: var(--primary);
 }
 
-.ts-tone-remote {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #bae6fd;
+.ts-tone-remote,
+.ts-status-remote {
+  color: var(--chart-2);
 }
 
-.ts-state-normal {
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
-}
-
+/* Отклонения от нормы (должны идти после .ts-tone-*) */
 .ts-state-low {
-  border-color: rgba(251, 191, 36, 0.5);
-  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.24);
-  color: #fde68a;
+  background: var(--tone-warn-bg);
+  color: var(--tone-warn);
 }
 
 .ts-state-critical {
-  background: rgba(248, 113, 113, 0.22);
-  border-color: rgba(248, 113, 113, 0.6);
-  color: #fecaca;
-  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.34);
+  background: var(--tone-bad-bg);
+  color: var(--tone-bad);
 }
 
 .ts-state-high {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.58);
-  color: #bbf7d0;
-  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.3);
+  color: var(--tone-ok);
+  font-weight: 700;
 }
 
 .ts-underwork-tag {
@@ -443,9 +478,9 @@
   transform: translateX(-50%);
   padding: 0 4px;
   border-radius: 999px;
-  border: 1px solid rgba(251, 191, 36, 0.55);
-  background: rgba(251, 191, 36, 0.2);
-  color: #fcd34d;
+  border: 1px solid color-mix(in srgb, var(--tone-warn) 45%, transparent);
+  background: var(--surface);
+  color: var(--tone-warn);
   font-size: 0.48rem;
   font-weight: 700;
   line-height: 1.2;
@@ -454,57 +489,42 @@
 }
 
 .ts-state-critical .ts-underwork-tag {
-  border-color: rgba(248, 113, 113, 0.58);
-  background: rgba(248, 113, 113, 0.2);
-  color: #fecaca;
-}
-
-.ts-status-remote {
-  background: rgba(56, 189, 248, 0.14);
-  border-color: rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
+  border-color: color-mix(in srgb, var(--tone-bad) 45%, transparent);
+  color: var(--tone-bad);
 }
 
 .ts-status-vacation {
-  background: rgba(251, 191, 36, 0.14);
-  border-color: rgba(251, 191, 36, 0.35);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--ts-vacation) 12%, transparent);
+  color: var(--ts-vacation);
 }
 
 .ts-status-sick {
-  background: rgba(96, 165, 250, 0.14);
-  border-color: rgba(96, 165, 250, 0.35);
-  color: #93c5fd;
+  background: color-mix(in srgb, var(--ts-sick) 12%, transparent);
+  color: var(--ts-sick);
 }
 
 .ts-status-dayoff {
-  background: rgba(148, 163, 184, 0.11);
-  border-color: rgba(148, 163, 184, 0.26);
-  color: #cbd5e1;
+  color: var(--text-muted);
 }
 
 .ts-status-absent {
-  background: rgba(248, 113, 113, 0.14);
-  border-color: rgba(248, 113, 113, 0.35);
-  color: #f87171;
+  background: var(--tone-bad-bg);
+  color: var(--tone-bad);
 }
 
 .ts-status-unpaid {
-  background: rgba(251, 146, 60, 0.14);
-  border-color: rgba(251, 146, 60, 0.35);
-  color: #fdba74;
+  background: color-mix(in srgb, var(--ts-unpaid) 12%, transparent);
+  color: var(--ts-unpaid);
 }
 
 .ts-status-educational {
-  background: rgba(167, 139, 250, 0.14);
-  border-color: rgba(167, 139, 250, 0.35);
-  color: #c4b5fd;
+  background: color-mix(in srgb, var(--ts-edu) 12%, transparent);
+  color: var(--ts-edu);
 }
 
 .ts-status-sick-worked {
-  background: rgba(45, 212, 191, 0.14);
-  border-color: rgba(45, 212, 191, 0.35);
-  color: #5eead4;
+  background: color-mix(in srgb, var(--ts-sick-worked) 12%, transparent);
+  color: var(--ts-sick-worked);
 }
 
 .ts-correction-dot {
@@ -514,21 +534,21 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #fbbf24;
+  background: var(--tone-warn);
 }
 
 .ts-summary-cell {
   position: sticky;
   right: 0;
   z-index: 4;
-  background: #0f172a;
-  border-left: 2px solid rgba(100, 116, 139, 0.12);
+  background: var(--surface);
+  border-left: 2px solid var(--border-light);
   padding: 7px 8px;
   text-align: center;
 }
 
 .ts-employee-row.is-highlighted .ts-summary-cell {
-  background: #131c32;
+  background: var(--surface-hover);
 }
 
 .ts-summary-main {
@@ -539,7 +559,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 .ts-summary-hours {
@@ -551,41 +571,36 @@
   font-size: 0.84rem;
   font-weight: 700;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 .ts-summary-fact {
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .ts-summary-fact.over {
-  color: #f87171;
+  color: var(--tone-bad);
 }
 
 .ts-summary-divider,
 .ts-summary-norm {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .ts-summary-unit {
   margin-left: 1px;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .ts-summary-overtime {
   margin-top: 1px;
   font-size: 0.58rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
 }
 
 .ts-summary-overtime.over {
-  color: #f87171;
-}
-
-.ts-weekend-dot {
-  background: rgba(244, 114, 182, 0.12);
-  border-color: rgba(244, 114, 182, 0.35);
+  color: var(--tone-bad);
 }
 
 .ts-mobile-groups {
@@ -595,23 +610,26 @@
 }
 
 .ts-mobile-group {
-  border: 1px solid rgba(100, 116, 139, 0.14);
-  background: rgba(15, 23, 42, 0.44);
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   border-radius: 12px;
   overflow: hidden;
 }
 
 .ts-mobile-group-header {
   width: 100%;
+  min-height: 44px;
   border: none;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.08);
+  border-bottom: 1px solid var(--border-light);
   padding: 10px 12px;
-  background: rgba(15, 23, 42, 0.88);
+  background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   gap: 8px;
   text-align: left;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .ts-mobile-cards {
@@ -622,28 +640,49 @@
 }
 
 .ts-mobile-card {
-  border: 1px solid rgba(100, 116, 139, 0.14);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.72);
+  background: var(--surface);
   padding: 10px;
 }
 
+/* Шапка карточки в одну строку: имя слева (с многоточием), часы справа */
 .ts-mobile-card-head {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.ts-mobile-card-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-mobile-card-hours {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-family: 'DM Mono', 'JetBrains Mono', monospace;
+  white-space: nowrap;
 }
 
 .ts-mobile-kpis {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .ts-mobile-kpi {
-  border: 1px solid rgba(100, 116, 139, 0.18);
-  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 7px 8px;
   display: flex;
@@ -652,39 +691,39 @@
 }
 
 .ts-mobile-kpi span {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 0.62rem;
 }
 
 .ts-mobile-kpi strong {
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 0.88rem;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
 }
 
 .ts-mobile-fact {
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .ts-mobile-fact.over {
-  color: #f87171;
+  color: var(--tone-bad);
 }
 
 .ts-mobile-divider,
 .ts-mobile-norm {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .ts-mobile-kpi.overtime strong {
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 .ts-mobile-kpi.overtime.over strong {
-  color: #f87171;
+  color: var(--tone-bad);
 }
 
 .ts-mobile-kpi.weekend strong {
-  color: #f472b6;
+  color: var(--primary);
 }
 
 .ts-mobile-week-strip {
@@ -695,54 +734,51 @@
 }
 
 .ts-mobile-day-cell {
-  border: 1px solid rgba(100, 116, 139, 0.14);
-  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   border-radius: 9px;
-  min-height: 68px;
-  padding: 6px 4px;
+  min-height: 44px;
+  padding: 4px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 2px;
   cursor: pointer;
-  color: #e2e8f0;
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .ts-mobile-day-cell.is-weekend {
-  border-color: rgba(244, 114, 182, 0.3);
-  background: rgba(244, 114, 182, 0.08);
+  background: linear-gradient(var(--ts-weekend-tint), var(--ts-weekend-tint)), var(--bg-secondary);
 }
 
 .ts-mobile-day-label {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
-  color: #94a3b8;
-  font-size: 0.62rem;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 0.6rem;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .ts-mobile-day-cell .ts-cell-empty {
   font-size: 0.84rem;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 .ts-mobile-day-cell .ts-pill {
-  min-width: 30px;
-  height: 26px;
-  font-size: 0.74rem;
+  min-width: 28px;
+  height: 24px;
+  font-size: 0.7rem;
   border-radius: 7px;
 }
 
 @media (max-width: 900px) {
   .timesheet-grid {
     padding: 14px;
-  }
-
-  .ts-title {
-    font-size: 0.95rem;
   }
 
   .ts-name-col {
@@ -768,9 +804,12 @@
 
   .ts-toolbar-controls {
     width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
     gap: 8px;
+  }
+
+  .ts-toolbar-btn {
+    min-height: 44px;
+    padding: 0 14px;
   }
 
   .ts-week-switch {
@@ -796,14 +835,14 @@
     font-size: 0.74rem;
   }
 
-  .ts-legend-title {
-    width: 100%;
-    margin-right: 0;
-  }
-
   .ts-legend-chip {
     width: 16px;
     height: 16px;
+  }
+
+  .ts-legend-chip.ts-legend-code {
+    width: auto;
+    height: 18px;
   }
 
   .ts-mobile-kpis {
@@ -823,18 +862,12 @@
   }
 
   .ts-mobile-day-cell {
-    min-height: 64px;
-    padding: 6px 2px;
+    min-height: 44px;
+    padding: 4px 2px;
   }
 
   .ts-mobile-day-label {
-    font-size: 0.58rem;
-  }
-
-  .ts-mobile-day-cell .ts-pill {
-    min-width: 28px;
-    height: 24px;
-    font-size: 0.7rem;
+    font-size: 0.56rem;
   }
 
   .ts-name-col {

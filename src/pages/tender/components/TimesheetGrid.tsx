@@ -2,6 +2,13 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
 import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
 import { TIMESHEET_STATUS_META } from '../utils/timesheetStatus'
+import { TimesheetMobileList } from './TimesheetMobileList'
+import type {
+  ITimesheetCellVisual,
+  ITimesheetEmployeeStats,
+  ITimesheetMobileDay,
+  ITimesheetSection
+} from './TimesheetMobileList'
 import './TimesheetGrid.css'
 
 interface Props {
@@ -13,18 +20,64 @@ interface Props {
 
 type ViewMode = 'month' | 'week'
 
-interface EmployeeStats {
-  workDays: number
-  remoteDays: number
-  vacationDays: number
-  weekendDays: number
-  totalHours: number
-  overtimeHours: number
-}
-
 const DOW_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
-const DEPT_PALETTE = ['#a78bfa', '#38bdf8', '#6ee7b7', '#fbbf24', '#f472b6', '#fb923c', '#34d399', '#818cf8']
+// Цвета подразделений — только токены (--ts-* заданы на .timesheet-grid)
+const DEPT_PALETTE = [
+  'var(--primary)',
+  'var(--chart-2)',
+  'var(--chart-positive)',
+  'var(--chart-warning)',
+  'var(--chart-negative)',
+  'var(--ts-edu)',
+  'var(--ts-sick-worked)',
+  'var(--text-secondary)'
+]
+const DEFAULT_DEPT_COLOR = 'var(--text-secondary)'
+
+const GROUP_STORAGE_KEY = 'tender.timesheet.groupByDept'
+
+const EMPTY_STATS: ITimesheetEmployeeStats = {
+  workDays: 0,
+  remoteDays: 0,
+  vacationDays: 0,
+  weekendDays: 0,
+  totalHours: 0,
+  overtimeHours: 0
+}
+
+const LEGEND_ITEMS: { chip: string; sample: string; label: string }[] = [
+  { chip: 'ts-legend-weekend', sample: '', label: 'Выходные дни' },
+  { chip: 'ts-tone-workday', sample: '9', label: 'Рабочие дни (будни)' },
+  { chip: 'ts-tone-weekend', sample: '5', label: 'Работа в выходной' },
+  { chip: 'ts-state-low', sample: '7', label: 'Недоработка (ярлык <9/<8/<5)' },
+  { chip: 'ts-state-critical', sample: '2', label: 'Критично (<3ч)' },
+  { chip: 'ts-state-high', sample: '11', label: 'Повышенная нагрузка (>10ч)' },
+  { chip: 'ts-status-vacation', sample: 'От', label: 'Отпуск' },
+  { chip: 'ts-status-sick', sample: 'Б', label: 'Больничный' },
+  { chip: 'ts-status-absent', sample: 'Н', label: 'Неявка' },
+  { chip: 'ts-status-dayoff', sample: 'В', label: 'Выходной' },
+  { chip: 'ts-status-remote', sample: 'УУ', label: 'Удалёнка' },
+  { chip: 'ts-status-unpaid', sample: 'С', label: 'За свой счёт' },
+  { chip: 'ts-status-educational', sample: 'У', label: 'Учебный отпуск' },
+  { chip: 'ts-status-sick-worked', sample: 'РБ', label: 'Работа на больничном' }
+]
+
+const readGroupByDept = (): boolean => {
+  try {
+    return localStorage.getItem(GROUP_STORAGE_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+const writeGroupByDept = (value: boolean): void => {
+  try {
+    localStorage.setItem(GROUP_STORAGE_KEY, value ? '1' : '0')
+  } catch {
+    // хранилище недоступно — настройка живёт только в сессии
+  }
+}
 
 const getPositionPriority = (position: string | undefined): number => {
   const p = position?.toLowerCase() || ''
@@ -123,7 +176,7 @@ const buildTimesheetMap = (timesheet: TimesheetEntry[] | undefined, year: number
   return map
 }
 
-const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: number, month: number, days: number[]): EmployeeStats => {
+const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: number, month: number, days: number[]): ITimesheetEmployeeStats => {
   let workDays = 0
   let remoteDays = 0
   let vacationDays = 0
@@ -175,7 +228,7 @@ const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: numbe
 const getCellVisual = (
   entry: TimesheetEntry | undefined,
   date: Date
-): { label: string; className: string; title: string; underworkTag?: string } | null => {
+): ITimesheetCellVisual | null => {
   if (!entry) return null
 
   if (entry.status === 'work' || entry.status === 'remote') {
@@ -237,6 +290,8 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
   const [selectedWeek, setSelectedWeek] = useState(0)
   const [collapsedDepartments, setCollapsedDepartments] = useState<Record<string, boolean>>({})
   const [highlightedEmployeeId, setHighlightedEmployeeId] = useState<number | null>(null)
+  const [groupByDept, setGroupByDept] = useState<boolean>(readGroupByDept)
+  const [legendOpen, setLegendOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false
   ))
@@ -308,7 +363,7 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
   }, [employees, year, month])
 
   const employeeStats = useMemo(() => {
-    const stats = new Map<number, EmployeeStats>()
+    const stats = new Map<number, ITimesheetEmployeeStats>()
     for (const employee of employees) {
       const timesheetMap = timesheetByEmployee.get(employee.id) || new Map<number, TimesheetEntry>()
       stats.set(employee.id, getEmployeeStats(timesheetMap, year, month, allDays))
@@ -316,16 +371,42 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
     return stats
   }, [allDays, employees, month, timesheetByEmployee, year])
 
-  const departmentColors = useMemo(() => {
-    const colors = new Map<string, string>()
-    groupedEmployees.forEach(([department], index) => {
-      colors.set(department, DEPT_PALETTE[index % DEPT_PALETTE.length])
+  // Цвет сотрудника — цвет его группы (не зависит от режима «По подразделениям»)
+  const employeeColors = useMemo(() => {
+    const colors = new Map<number, string>()
+    groupedEmployees.forEach(([, groupEmps], index) => {
+      const color = DEPT_PALETTE[index % DEPT_PALETTE.length]
+      groupEmps.forEach(emp => colors.set(emp.id, color))
     })
     return colors
   }, [groupedEmployees])
 
+  const sections = useMemo<ITimesheetSection[]>(() => {
+    if (groupByDept) {
+      return groupedEmployees.map(([key, groupEmps]) => ({ key, title: key, employees: groupEmps }))
+    }
+    const flat = [...employees].sort((a, b) => a.full_name.localeCompare(b.full_name, 'ru'))
+    return [{ key: '__all', title: null, employees: flat }]
+  }, [employees, groupByDept, groupedEmployees])
+
+  const mobileDays = useMemo<ITimesheetMobileDay[]>(() => (
+    daysToShow.map(day => ({
+      day,
+      date: new Date(year, month - 1, day),
+      iso: toIsoDate(year, month, day),
+      dowName: DOW_NAMES[getDayDowMonday(year, month, day)],
+      weekend: isWeekendDay(year, month, day)
+    }))
+  ), [daysToShow, month, year])
+
   const toggleDepartment = (department: string) => {
     setCollapsedDepartments(previous => ({ ...previous, [department]: !previous[department] }))
+  }
+
+  const toggleGroupByDept = () => {
+    const next = !groupByDept
+    setGroupByDept(next)
+    writeGroupByDept(next)
   }
 
   useEffect(() => {
@@ -361,12 +442,36 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
 
   return (
     <div className="timesheet-grid">
-      <div className="ts-toolbar">
-        <div className="ts-title-wrap">
-          <h2 className="ts-title">Табель учёта рабочего времени</h2>
-        </div>
+      <h2 className="ts-sr-only">Табель учёта рабочего времени</h2>
 
+      <div className="ts-toolbar">
         <div className="ts-toolbar-controls">
+          <button
+            type="button"
+            className="ts-toolbar-btn"
+            aria-pressed={groupByDept}
+            onClick={toggleGroupByDept}
+          >
+            <span className="ts-check-box" aria-hidden="true">
+              <svg viewBox="0 0 12 12" width="10" height="10" focusable="false">
+                <path d="M2.2 6.3 4.8 8.8 9.8 3.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            По подразделениям
+          </button>
+
+          {isMobile && (
+            <button
+              type="button"
+              className="ts-toolbar-btn"
+              aria-expanded={legendOpen}
+              aria-controls="ts-legend"
+              onClick={() => setLegendOpen(previous => !previous)}
+            >
+              Обозначения
+            </button>
+          )}
+
           {!isMobile && (
             <div className="ts-view-toggle">
               <button
@@ -409,22 +514,16 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
         </div>
       </div>
 
-      <div className="timesheet-legend">
-        <span className="ts-legend-title">Легенда</span>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-weekend" /> Выходные дни</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-tone-workday" /> Рабочие дни (будни)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-low" /> Недоработка (ярлык &lt;9/&lt;8/&lt;5)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-critical" /> Критично (&lt;3ч)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-state-high" /> Повышенная нагрузка (&gt;10ч)</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-vacation">От</span> Отпуск</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-sick">Б</span> Больничный</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-absent">Н</span> Неявка</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-dayoff">В</span> Выходной</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-remote">УУ</span> Удалёнка</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-unpaid">С</span> За свой счёт</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-educational">У</span> Учебный отпуск</div>
-        <div className="ts-legend-item"><span className="ts-legend-chip ts-legend-code ts-status-sick-worked">РБ</span> Работа на больничном</div>
-      </div>
+      {(!isMobile || legendOpen) && (
+        <div className="timesheet-legend" id="ts-legend">
+          {!isMobile && <span className="ts-legend-title">Легенда</span>}
+          {LEGEND_ITEMS.map(item => (
+            <div key={item.chip} className="ts-legend-item">
+              <span className={`ts-legend-chip ts-legend-code ${item.chip}`}>{item.sample}</span> {item.label}
+            </div>
+          ))}
+        </div>
+      )}
 
       {!isMobile && (
         <div className="timesheet-table-wrapper">
@@ -447,29 +546,25 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
               </tr>
             </thead>
             <tbody>
-              {groupedEmployees.map(([subdivision, groupEmps]) => (
-                <Fragment key={subdivision}>
-                  <tr className="ts-group-header-row" onClick={() => toggleDepartment(subdivision)}>
-                    <td colSpan={daysToShow.length + 2} className="ts-group-cell">
-                      <span className={`ts-group-toggle ${collapsedDepartments[subdivision] ? 'is-collapsed' : ''}`}>▼</span>
-                      <span
-                        className="ts-group-mark"
-                        style={{ background: departmentColors.get(subdivision) || '#94a3b8' }}
-                      />
-                      <span className="ts-group-title">{subdivision}</span>
-                      <span className="ts-group-count">({groupEmps.length})</span>
-                    </td>
-                  </tr>
-                  {!collapsedDepartments[subdivision] && groupEmps.map(emp => {
+              {sections.map(section => (
+                <Fragment key={section.key}>
+                  {section.title !== null && (
+                    <tr className="ts-group-header-row" onClick={() => toggleDepartment(section.key)}>
+                      <td colSpan={daysToShow.length + 2} className="ts-group-cell">
+                        <span className={`ts-group-toggle ${collapsedDepartments[section.key] ? 'is-collapsed' : ''}`}>▼</span>
+                        <span
+                          className="ts-group-mark"
+                          style={{ background: employeeColors.get(section.employees[0]?.id) || DEFAULT_DEPT_COLOR }}
+                        />
+                        <span className="ts-group-title">{section.title}</span>
+                        <span className="ts-group-count">({section.employees.length})</span>
+                      </td>
+                    </tr>
+                  )}
+                  {(section.title === null || !collapsedDepartments[section.key]) && section.employees.map(emp => {
                     const timesheetMap = timesheetByEmployee.get(emp.id) || new Map<number, TimesheetEntry>()
-                    const stats = employeeStats.get(emp.id) || {
-                      workDays: 0,
-                      remoteDays: 0,
-                      vacationDays: 0,
-                      weekendDays: 0,
-                      totalHours: 0,
-                      overtimeHours: 0
-                    }
+                    const stats = employeeStats.get(emp.id) || EMPTY_STATS
+                    const deptColor = employeeColors.get(emp.id) || DEFAULT_DEPT_COLOR
 
                     const isHighlighted = highlightedEmployeeId === emp.id
                     const totalWorkedDays = stats.workDays + stats.weekendDays
@@ -488,9 +583,9 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                             <span
                               className="ts-avatar"
                               style={{
-                                color: departmentColors.get(subdivision) || '#94a3b8',
-                                borderColor: `${departmentColors.get(subdivision) || '#94a3b8'}40`,
-                                background: `${departmentColors.get(subdivision) || '#94a3b8'}1a`
+                                color: deptColor,
+                                borderColor: `color-mix(in srgb, ${deptColor} 25%, transparent)`,
+                                background: `color-mix(in srgb, ${deptColor} 10%, transparent)`
                               }}
                             >
                               {emp.avatar}
@@ -558,126 +653,19 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
       )}
 
       {isMobile && (
-        <div className="ts-mobile-groups">
-          {groupedEmployees.map(([subdivision, groupEmps]) => (
-            <section key={subdivision} className="ts-mobile-group">
-              <button
-                type="button"
-                className="ts-mobile-group-header"
-                onClick={() => toggleDepartment(subdivision)}
-              >
-                <span className={`ts-group-toggle ${collapsedDepartments[subdivision] ? 'is-collapsed' : ''}`}>▼</span>
-                <span
-                  className="ts-group-mark"
-                  style={{ background: departmentColors.get(subdivision) || '#94a3b8' }}
-                />
-                <span className="ts-group-title">{subdivision}</span>
-                <span className="ts-group-count">({groupEmps.length})</span>
-              </button>
-
-              {!collapsedDepartments[subdivision] && (
-                <div className="ts-mobile-cards">
-                  {groupEmps.map(emp => {
-                    const timesheetMap = timesheetByEmployee.get(emp.id) || new Map<number, TimesheetEntry>()
-                    const stats = employeeStats.get(emp.id) || {
-                      workDays: 0,
-                      remoteDays: 0,
-                      vacationDays: 0,
-                      weekendDays: 0,
-                      totalHours: 0,
-                      overtimeHours: 0
-                    }
-                    const totalWorkedDays = stats.workDays + stats.weekendDays
-                    const isDaysOverNorm = totalWorkedDays > monthNormDays
-                    const isHoursOverNorm = stats.totalHours > monthNormHours
-
-                    return (
-                      <article key={emp.id} className="ts-mobile-card">
-                        <div className="ts-mobile-card-head">
-                          <span
-                            className="ts-avatar"
-                            style={{
-                              color: departmentColors.get(subdivision) || '#94a3b8',
-                              borderColor: `${departmentColors.get(subdivision) || '#94a3b8'}40`,
-                              background: `${departmentColors.get(subdivision) || '#94a3b8'}1a`
-                            }}
-                          >
-                            {emp.avatar}
-                          </span>
-                          <span className="ts-emp-text">
-                            <span className="ts-emp-name">{emp.full_name}</span>
-                            <span className="ts-emp-role">{emp.position || 'Без должности'}</span>
-                          </span>
-                        </div>
-
-                        <div className="ts-mobile-kpis">
-                          <div className="ts-mobile-kpi">
-                            <span>Дни (всего/норма)</span>
-                            <strong>
-                              <span className={`ts-mobile-fact ${isDaysOverNorm ? 'over' : ''}`}>{totalWorkedDays}</span>
-                              <span className="ts-mobile-divider">/</span>
-                              <span className="ts-mobile-norm">{monthNormDays}</span>
-                            </strong>
-                          </div>
-                          <div className="ts-mobile-kpi weekend">
-                            <span>Вых. дни</span>
-                            <strong>{stats.weekendDays}</strong>
-                          </div>
-                          <div className="ts-mobile-kpi">
-                            <span>Часы (ф/н)</span>
-                            <strong>
-                              <span className={`ts-mobile-fact ${isHoursOverNorm ? 'over' : ''}`}>{stats.totalHours}</span>
-                              <span className="ts-mobile-divider">/</span>
-                              <span className="ts-mobile-norm">{monthNormHours}</span>
-                            </strong>
-                          </div>
-                          <div className={`ts-mobile-kpi overtime ${stats.overtimeHours > 0 ? 'over' : ''}`}>
-                            <span>Перераб.</span>
-                            <strong>{stats.overtimeHours > 0 ? `+${stats.overtimeHours.toLocaleString('ru-RU')}` : '0'}</strong>
-                          </div>
-                        </div>
-
-                        <div className="ts-mobile-week-strip">
-                          {daysToShow.map(day => {
-                            const date = new Date(year, month - 1, day)
-                            const entry = timesheetMap.get(day)
-                            const visual = getCellVisual(entry, date)
-                            const weekend = isWeekendDay(year, month, day)
-                            const dateStr = toIsoDate(year, month, day)
-
-                            return (
-                              <button
-                                key={`${emp.id}-${day}`}
-                                type="button"
-                                className={`ts-mobile-day-cell ${weekend ? 'is-weekend' : ''}`}
-                                onClick={() => onCellClick?.(emp.id, dateStr)}
-                                title={visual?.title || ''}
-                              >
-                                <span className="ts-mobile-day-label">
-                                  <span>{DOW_NAMES[getDayDowMonday(year, month, day)]}</span>
-                                  <span>{day}</span>
-                                </span>
-                                {visual ? (
-                                  <span className={visual.className} title={visual.title} aria-label={visual.title}>
-                                    {visual.underworkTag && <span className="ts-underwork-tag">{visual.underworkTag}</span>}
-                                    {visual.label}
-                                    {entry?.is_correction && <span className="ts-correction-dot" />}
-                                  </span>
-                                ) : (
-                                  <span className="ts-cell-empty">—</span>
-                                )}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </article>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-          ))}
-        </div>
+        <TimesheetMobileList
+          sections={sections}
+          days={mobileDays}
+          collapsed={collapsedDepartments}
+          employeeColors={employeeColors}
+          timesheetByEmployee={timesheetByEmployee}
+          employeeStats={employeeStats}
+          monthNormDays={monthNormDays}
+          monthNormHours={monthNormHours}
+          getCellVisual={getCellVisual}
+          onToggleSection={toggleDepartment}
+          onCellClick={onCellClick}
+        />
       )}
     </div>
   )

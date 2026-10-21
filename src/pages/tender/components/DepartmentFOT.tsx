@@ -4,11 +4,10 @@ import { calculateSalary, formatMoney, getSalaryForMonth } from '../utils/salary
 import { getWorkDaysNorm } from '../../../lib/workNorms'
 import { getEmployeeInitials, getEmployeeShortName, getPositionPriority } from '../utils/tenderPresentation'
 import { useLivePayroll } from '../hooks/useLivePayroll'
+import { FotSummaryBar, type FotGrowthTone } from './FotSummaryBar'
 import {
   calculateMonthlyPayrollPlan,
-  formatLiveMoney,
   getLivePayrollAccrualColor,
-  getLivePayrollPauseLabel,
   getExtraBonusKey,
   getSavedTransport,
   loadTransportSetting,
@@ -56,53 +55,24 @@ interface DepartmentPayrollGroup {
   }
 }
 
-const DEPT_COLORS = ['#a78bfa', '#38bdf8', '#6ee7b7', '#fbbf24', '#f472b6', '#fb923c', '#818cf8', '#34d399']
-const WORK_PAY_COLOR = '#818cf8'
-const WEEKEND_PAY_COLOR = '#f472b6'
-const TRANSPORT_PAY_COLOR = '#38bdf8'
+// Палитра рядов — только через токены темы
+const DEPT_COLORS = [
+  'var(--primary)',
+  'var(--chart-2)',
+  'var(--tone-ok)',
+  'var(--tone-warn)',
+  'var(--tone-bad)',
+  'var(--primary-hover)',
+  'color-mix(in srgb, var(--primary) 55%, var(--tone-ok))',
+  'color-mix(in srgb, var(--chart-2) 55%, var(--tone-warn))'
+]
+const WORK_PAY_COLOR = 'var(--primary)'
+const WEEKEND_PAY_COLOR = 'var(--tone-warn)'
+const TRANSPORT_PAY_COLOR = 'var(--chart-2)'
 
 function pct(part: number, total: number): number {
   if (total <= 0) return 0
   return Math.round((part / total) * 100)
-}
-
-function MiniRing({
-  segments,
-  total
-}: {
-  segments: Array<{ label: string; value: number; color: string }>
-  total: number
-}) {
-  const radius = 44
-  const circumference = 2 * Math.PI * radius
-  let offset = 0
-
-  return (
-    <svg width="126" height="126" viewBox="0 0 126 126">
-      {segments.map(segment => {
-        const dash = total > 0 ? (segment.value / total) * circumference : 0
-        const circle = (
-          <circle
-            key={segment.label}
-            cx="63"
-            cy="63"
-            r={radius}
-            fill="none"
-            stroke={segment.color}
-            strokeWidth="12"
-            strokeDasharray={`${dash} ${circumference - dash}`}
-            strokeDashoffset={-offset}
-          />
-        )
-        offset += dash
-        return circle
-      })}
-      <text x="63" y="56" textAnchor="middle" fill="#64748b" fontSize="11" fontWeight="600">ФОТ</text>
-      <text x="63" y="74" textAnchor="middle" fill="#e2e8f0" fontSize="15" fontWeight="700" fontFamily="'JetBrains Mono', monospace">
-        {(total / 1e6).toFixed(2)}М
-      </text>
-    </svg>
-  )
 }
 
 export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Props) {
@@ -278,21 +248,13 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
       })
     })
 
-    const totalWorkWithBonus = totals.calculatedWorkPay + totals.bonus
-    const ringSegments = [
-      { label: 'Рабочие дни', value: totalWorkWithBonus, color: WORK_PAY_COLOR },
-      { label: 'Выходные', value: totals.weekendPay, color: WEEKEND_PAY_COLOR },
-      { label: 'Проезд', value: totals.transportPay, color: TRANSPORT_PAY_COLOR }
-    ].filter(segment => segment.value > 0)
-
     return {
       groups,
       totals,
       baseFot,
       growthAbsolute,
       growthPercent,
-      maxDeptTotal,
-      ringSegments
+      maxDeptTotal
     }
   }, [baseTransport, employees, extraBonuses, month, year])
 
@@ -330,7 +292,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
   const topEmployees = [...payrollData.groups.flatMap(group => group.employees)]
     .sort((a, b) => b.calculation.final_salary - a.calculation.final_salary)
     .slice(0, 8)
-  const growthTone = payrollData.growthAbsolute > 0
+  const growthTone: FotGrowthTone = payrollData.growthAbsolute > 0
     ? 'over'
     : payrollData.growthAbsolute < 0
       ? 'under'
@@ -338,86 +300,24 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
 
   return (
     <div className="fot-view">
-      <section className="fot-summary-strip">
-        <div className="fot-summary-left">
-          <MiniRing segments={payrollData.ringSegments} total={payrollData.totals.final} />
-          <div className="fot-ring-legend">
-            {payrollData.ringSegments.map(segment => (
-              <div key={segment.label} className="fot-ring-item">
-                <span className="dot" style={{ background: segment.color }} />
-                <span className="label">{segment.label}</span>
-                <span className="value" style={{ color: segment.color }}>{formatMoney(segment.value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="fot-summary-center">
-          <div className="fot-center-kpi">
-            <strong>{payrollData.totals.employees}</strong>
-            <small>Сотрудников</small>
-          </div>
-          <div className="fot-center-kpi">
-            <strong>{workDaysNorm}</strong>
-            <small>Рабочих дней</small>
-          </div>
-          <div className="fot-center-kpi">
-            <strong>{weekendsNorm}</strong>
-            <small>Выходных</small>
-          </div>
-          <label className="fot-transport-control">
-            <span>Проезд / день</span>
-            <div>
-              <input
-                type="number"
-                value={baseTransport}
-                onChange={event => handleTransportChange(Number(event.target.value))}
-              />
-              <b>₽</b>
-            </div>
-          </label>
-        </div>
-
-        <div className="fot-summary-right">
-          <span>{livePayroll.isLive ? 'Начислено сейчас' : 'Итого ФОТ'}</span>
-          <strong
-            className={`fot-total ${livePayroll.isLive ? 'live' : growthTone}`}
-            style={livePayroll.isLive ? {
-              color: livePayrollColor,
-              textShadow: `0 0 24px color-mix(in srgb, ${livePayrollColor} 22%, transparent)`
-            } : undefined}
-          >
-            {livePayroll.isLive ? formatLiveMoney(livePayroll.accrued) : formatMoney(payrollData.totals.final)}
-          </strong>
-          <small>
-            {livePayroll.isLive
-              ? `План месяца: ${formatMoney(livePayroll.planned)}`
-              : `Базовый ФОТ: ${formatMoney(payrollData.baseFot)}`}
-          </small>
-          {livePayroll.isLive && (
-            <div
-              className={`fot-live-rate${livePayroll.isAccruing ? '' : ' paused'}`}
-              style={livePayroll.isAccruing ? { color: livePayrollColor } : undefined}
-            >
-              {livePayroll.isAccruing
-                ? `● +${formatLiveMoney(livePayroll.ratePerSecond)} / сек`
-                : `● ${getLivePayrollPauseLabel(livePayroll.accrualState)}`}
-            </div>
-          )}
-          <div className={`fot-growth ${growthTone}`}>
-            {payrollData.growthAbsolute > 0 ? '▲' : payrollData.growthAbsolute < 0 ? '▼' : '•'} {Math.abs(payrollData.growthPercent).toFixed(1)}%
-            <span>
-              {livePayroll.isLive
-                ? `По табелю: ${formatMoney(payrollData.totals.final)}`
-                : formatMoney(payrollData.growthAbsolute)}
-            </span>
-          </div>
-        </div>
-      </section>
+      <FotSummaryBar
+        totalFinal={payrollData.totals.final}
+        baseFot={payrollData.baseFot}
+        growthAbsolute={payrollData.growthAbsolute}
+        growthPercent={payrollData.growthPercent}
+        growthTone={growthTone}
+        livePayroll={livePayroll}
+        livePayrollColor={livePayrollColor}
+        employeesCount={payrollData.totals.employees}
+        workDaysNorm={workDaysNorm}
+        weekendsNorm={weekendsNorm}
+        baseTransport={baseTransport}
+        onTransportChange={handleTransportChange}
+      />
 
       <div className="fot-grid">
         <section className="fot-card">
-          <h3 className="fot-card-title-strong">ФОТ по поздразделениям</h3>
+          <h3 className="fot-card-title-strong">ФОТ по подразделениям</h3>
           <div className="fot-dept-bars">
             {payrollData.groups.map(group => {
               const width = Math.max(8, (group.totals.final / payrollData.maxDeptTotal) * 100)
@@ -456,7 +356,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
           <div className="fot-top-list">
             {topEmployees.map((row, index) => {
               const group = payrollData.groups.find(item => item.name === row.department)
-              const color = group?.color || '#94a3b8'
+              const color = group?.color || 'var(--text-secondary)'
               return (
                 <button
                   key={row.employee.id}
