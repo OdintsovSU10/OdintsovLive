@@ -197,9 +197,12 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     )
   }
 
+  // Дашборд на десктопе вписывается в окно: страница не прокручивается, списки листаются внутри блоков
+  const fitViewport = activeTab === 'dashboard' && !selectedEmployee
+
   return (
     <>
-      <div key="shell" className="tender-shell">
+      <div key="shell" className={`tender-shell${fitViewport ? ' tender-shell--fit' : ''}`}>
         <header className="tender-shell-header">
           <div className="tender-shell-top">
             <div className="tender-brand">

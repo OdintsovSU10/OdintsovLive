@@ -138,3 +138,61 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Вписывание в окно (десктоп): компактные строки, список листается внутри блока */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .slot-attention .dash-card-head {
+    flex: 0 0 auto;
+    margin-bottom: 6px;
+  }
+
+  .tender-shell--fit .slot-attention .dash-attention-counts {
+    font-size: 0.7rem;
+  }
+
+  .tender-shell--fit .dash-attention {
+    flex: 1 1 auto;
+    gap: 3px;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .tender-shell--fit .dash-attention-row {
+    padding: 4px 8px;
+    gap: 0 8px;
+  }
+
+  .tender-shell--fit .dash-attention-name {
+    overflow: hidden;
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tender-shell--fit .dash-attention-title {
+    overflow: hidden;
+    font-size: 0.68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tender-shell--fit .dash-attention-value {
+    font-size: 0.78rem;
+  }
+
+  .tender-shell--fit .dash-more-btn {
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+}
+
+/* Мышь: тап-цели 44px не нужны */
+@media (min-width: 1024px) and (min-height: 640px) and (hover: hover) and (pointer: fine) {
+  .tender-shell--fit .dash-attention-row {
+    min-height: 40px;
+  }
+
+  .tender-shell--fit .dash-more-btn {
+    min-height: 28px;
+  }
+}

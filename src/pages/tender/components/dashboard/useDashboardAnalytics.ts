@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import type { EmployeeWithStats, TimesheetEntry } from '../../types'
+import { getFullDayThresholdHours, resolveTimesheetWorkedHours } from '../../utils/attendanceDay'
 import {
   calculateSalary,
   getDailyHoursNorm,
@@ -42,21 +43,13 @@ function monthLabel(year: number, month: number): { full: string; short: string 
   return { full: `${capShort} ${year}`, short: capShort }
 }
 
-function getWeekdayNormHours(date: Date): number {
-  if (isWeekendOrHoliday(date)) return 0
-
-  const day = date.getDay()
-  if (day >= 1 && day <= 4) return 9
-  if (day === 5) return 8
-  return 0
-}
-
 function getMonthWeekdayNormHours(year: number, month: number): number {
   const daysInMonth = new Date(year, month, 0).getDate()
   let total = 0
 
   for (let day = 1; day <= daysInMonth; day++) {
-    total += getWeekdayNormHours(new Date(year, month - 1, day))
+    // Нетто-норма (без обеда), как в табеле
+    total += getFullDayThresholdHours(new Date(year, month - 1, day)) ?? 0
   }
 
   return total
@@ -129,19 +122,8 @@ function buildPoint({ employee, slot, timesheet, transport }: IBuildPointInput):
 
     if (entry.status !== 'work' && entry.status !== 'remote') continue
 
-    const expectedHours = getDailyHoursNorm(entryDate)
-    let workedHours = roundTimesheetHours(entry.hours_worked, expectedHours)
-
-    // Импорт "У" проставляет 8 часов. Для удалёнки в будни считаем это полной нормой дня (9/8),
-    // иначе факт по часам занижается даже при полностью отработанном месяце.
-    if (
-      entry.status === 'remote'
-      && !weekendOrHoliday
-      && entry.hours_worked === 8
-      && !entry.is_correction
-    ) {
-      workedHours = expectedHours
-    }
+    const expectedHours = getFullDayThresholdHours(entryDate) ?? getDailyHoursNorm(entryDate)
+    const workedHours = resolveTimesheetWorkedHours(entry, entryDate)
 
     hours += workedHours
     overtime += Math.max(0, workedHours - expectedHours)

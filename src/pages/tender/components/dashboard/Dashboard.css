@@ -263,3 +263,99 @@ select.dash-field {
     height: 36px;
   }
 }
+
+/* Вписывание в окно (десктоп, класс --fit ставит оболочка): сетка занимает остаток высоты,
+   колонки не растут от содержимого и прокручивают списки внутри себя */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .dashboard-overview {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .tender-shell--fit .dashboard-surface {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .tender-shell--fit .dash-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .tender-shell--fit .dash-card {
+    padding: 10px;
+  }
+
+  .tender-shell--fit .dash-card-title {
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+  }
+
+  .tender-shell--fit .slot-people,
+  .tender-shell--fit .slot-feed,
+  .tender-shell--fit .dash-stats {
+    min-height: 0;
+    overflow: hidden;
+    contain: none;
+  }
+
+  .tender-shell--fit .slot-people > *,
+  .tender-shell--fit .slot-feed > * {
+    height: 100%;
+  }
+
+  /* Статистика: запасной вариант, если блоки не уместились — колонка листается целиком */
+  .tender-shell--fit .dash-stats {
+    gap: 8px;
+    overflow-y: auto;
+  }
+
+  .tender-shell--fit .dash-stats > .dash-slot {
+    flex: 0 0 auto;
+  }
+
+  .tender-shell--fit .dash-stats > .slot-attention {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 120px;
+  }
+
+  .tender-shell--fit .slot-attention > .dash-card {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+/* 1024–1279: Люди | (статистика над лентой); обе правые области прокручиваются внутри */
+@media (min-width: 1024px) and (max-width: 1279px) and (min-height: 640px) {
+  .tender-shell--fit .dash-grid {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-areas:
+      'people stats'
+      'people feed';
+  }
+}
+
+/* От 1280: Люди | Проходы | Статистика в одну строку на всю высоту */
+@media (min-width: 1280px) and (min-height: 640px) {
+  .tender-shell--fit .dash-grid {
+    grid-template-columns: minmax(320px, 380px) minmax(240px, 280px) minmax(360px, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'people feed stats';
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 640px) {
+  .tender-shell--fit .dash-grid {
+    grid-template-columns: minmax(340px, 420px) minmax(300px, 360px) minmax(380px, 1fr);
+  }
+}

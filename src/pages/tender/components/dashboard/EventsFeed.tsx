@@ -49,6 +49,7 @@ const EventsFeedBase: FC<IEventsFeedProps> = ({ trends, passes, loading, onSelec
               <button
                 type="button"
                 className={`dash-feed-row ${item.direction === 'entry' ? 'is-entry' : 'is-exit'}`}
+                title={item.accessPoint ? `${item.employee.full_name} · ${item.accessPoint}` : item.employee.full_name}
                 onClick={() => onSelectEmployee(item.employee)}
               >
                 <span className="dash-feed-time">{toClock(item.time)}</span>

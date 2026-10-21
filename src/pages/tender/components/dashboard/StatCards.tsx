@@ -20,7 +20,7 @@ interface IMiniCardProps {
 }
 
 const MiniCard: FC<IMiniCardProps> = ({ label, value, sub, tone }) => (
-  <div className={`dash-mini${tone ? ` is-${tone}` : ''}`}>
+  <div className={`dash-mini${tone ? ` is-${tone}` : ''}`} title={label}>
     <div className="dash-mini-label">{label}</div>
     <div className="dash-mini-value">
       {value}

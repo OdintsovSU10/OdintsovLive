@@ -181,3 +181,58 @@
     transition: none;
   }
 }
+
+/* Вписывание в окно (десктоп): низкий график, одна строка «К прошлому месяцу» */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .dash-fot-head {
+    margin-bottom: 4px;
+  }
+
+  .tender-shell--fit .dash-fot-main {
+    font-size: 0.95rem;
+  }
+
+  .tender-shell--fit .dash-fot-sub {
+    font-size: 0.68rem;
+  }
+
+  .tender-shell--fit .dash-fot-bar {
+    margin-bottom: 6px;
+  }
+
+  .tender-shell--fit .dash-bar-col {
+    gap: 2px;
+    min-height: 0;
+    padding: 2px 0;
+  }
+
+  .tender-shell--fit .dash-bar-value {
+    font-size: 0.58rem;
+  }
+
+  .tender-shell--fit .dash-bar-area {
+    height: 48px;
+  }
+
+  .tender-shell--fit .dash-bar-month {
+    font-size: 0.64rem;
+  }
+
+  .tender-shell--fit .dash-chart-legend {
+    gap: 2px 10px;
+    margin: 4px 0 6px;
+    font-size: 0.68rem;
+  }
+
+  .tender-shell--fit .dash-money-row {
+    padding: 5px 0 0;
+    font-size: 0.75rem;
+  }
+
+  /* Пояснение «на ту же долю месяца» уходит в одну строку с подписью */
+  .tender-shell--fit .dash-money-hint {
+    display: inline;
+    margin-left: 4px;
+    font-size: 0.62rem;
+  }
+}

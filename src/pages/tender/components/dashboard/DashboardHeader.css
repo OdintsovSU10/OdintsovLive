@@ -221,3 +221,22 @@
     transition: none;
   }
 }
+
+/* Вписывание в окно (десктоп): шапка-счётчики ниже */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .dash-header {
+    gap: 6px;
+  }
+
+  /* Дата и часы в одну строку */
+  .tender-shell--fit .dash-header-time {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 10px;
+  }
+
+  .tender-shell--fit .dash-clock {
+    margin-top: 0;
+  }
+}

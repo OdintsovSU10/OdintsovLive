@@ -18,7 +18,6 @@
   max-height: 360px;
   list-style: none;
   overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .dash-feed-row {
@@ -116,5 +115,77 @@
 @media (prefers-reduced-motion: reduce) {
   .dash-feed-row {
     transition: none;
+  }
+}
+
+/* Вписывание в окно (десктоп): строка ~34px — время, стрелка, имя в одну строку; точка прохода в подсказке */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .dash-feed {
+    height: 100%;
+  }
+
+  .tender-shell--fit .dash-feed-total {
+    margin: -2px 0 4px;
+    font-size: 0.7rem;
+  }
+
+  .tender-shell--fit .dash-feed-list {
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .tender-shell--fit .dash-feed-row {
+    grid-template-columns: 40px 14px minmax(0, 1fr);
+    align-items: center;
+    gap: 0 6px;
+    min-height: 34px;
+    padding: 4px 0 4px 8px;
+  }
+
+  .tender-shell--fit .dash-feed-time,
+  .tender-shell--fit .dash-feed-arrow {
+    padding-top: 0;
+  }
+
+  .tender-shell--fit .dash-feed-time {
+    white-space: nowrap;
+  }
+
+  .tender-shell--fit .dash-feed-info {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .tender-shell--fit .dash-feed-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Название точки прохода — только на широком экране, иначе в подсказке */
+  .tender-shell--fit .dash-feed-point {
+    display: none;
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 640px) {
+  .tender-shell--fit .dash-feed-point {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1024px) and (min-height: 640px) and (hover: hover) and (pointer: fine) {
+  .tender-shell--fit .dash-feed-row {
+    min-height: 34px;
   }
 }

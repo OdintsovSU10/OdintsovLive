@@ -122,9 +122,9 @@
 }
 
 @media (min-width: 1024px) {
+  /* Без contain: докрутив список до конца, колесо продолжает листать страницу */
   .dash-people-list {
     overflow-y: auto;
-    overscroll-behavior: contain;
   }
 }
 
@@ -420,5 +420,28 @@
   .dash-person,
   .dash-menu-face {
     transition: none;
+  }
+}
+
+/* Вписывание в окно (десктоп): карточка без внешних отступов, строки чуть плотнее */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .dash-people {
+    padding: 0;
+  }
+
+  .tender-shell--fit .dash-people-head {
+    padding: 10px 10px 0;
+  }
+
+  .tender-shell--fit .dash-tabs {
+    margin: 2px 10px 0;
+  }
+
+  .tender-shell--fit .dash-people-tools {
+    padding: 8px 10px;
+  }
+
+  .tender-shell--fit .dash-person {
+    padding: 6px 10px 6px 9px;
   }
 }

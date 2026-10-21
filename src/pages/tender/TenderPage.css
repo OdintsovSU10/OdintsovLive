@@ -151,7 +151,8 @@
   flex-wrap: nowrap;
   gap: 2px;
   overflow-x: auto;
-  overscroll-behavior: contain;
+  /* Только по горизонтали: иначе колесо над вкладками не листает страницу */
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
 
@@ -303,6 +304,50 @@
   .tender-progress::before {
     width: 100%;
     animation: none;
+  }
+}
+
+/* Дашборд на десктопе вписан в окно: оболочка — колонка высотой с экран,
+   шапка и вкладки естественной высоты, main забирает остаток; прокручиваются только списки внутри блоков.
+   Цепочка .app > .main-content > .tender-shell: у родителей лишь min-height, поэтому высота задаётся здесь */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .tender-shell--fit .tender-shell-header {
+    flex: 0 0 auto;
+    padding: 10px 20px 0;
+  }
+
+  .tender-shell--fit .tender-shell-top {
+    margin-bottom: 6px;
+  }
+
+  .tender-shell--fit .tender-shell-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding: 10px 20px 12px;
+  }
+}
+
+@media (min-width: 1024px) and (min-height: 640px) and (hover: hover) and (pointer: fine) {
+  .tender-shell--fit .tender-shell-tab {
+    min-height: 36px;
+    padding-block: 6px;
+  }
+
+  .tender-shell--fit .tender-shell-icon-btn,
+  .tender-shell--fit .tender-month-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 

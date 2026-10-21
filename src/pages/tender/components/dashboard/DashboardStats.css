@@ -303,3 +303,65 @@
     transition: none;
   }
 }
+
+/* Вписывание в окно (десктоп): плотные плитки и пунктуальность */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .tender-shell--fit .dash-minis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .tender-shell--fit .dash-mini {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 48px;
+    padding: 4px 5px;
+  }
+
+  .tender-shell--fit .dash-mini-label {
+    margin-bottom: 1px;
+    overflow: hidden;
+    font-size: 0.66rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tender-shell--fit .dash-mini-value {
+    font-size: 1.15rem;
+    line-height: 1.1;
+  }
+
+  .tender-shell--fit .dash-punct {
+    gap: 12px;
+  }
+
+  .tender-shell--fit .dash-ring {
+    width: 64px;
+    height: 64px;
+  }
+
+  .tender-shell--fit .dash-ring-track,
+  .tender-shell--fit .dash-ring-value {
+    stroke-width: 9;
+  }
+
+  .tender-shell--fit .dash-ring-text span {
+    font-size: 0.82rem;
+  }
+
+  .tender-shell--fit .dash-ring-text small {
+    font-size: 0.55rem;
+  }
+
+  .tender-shell--fit .dash-legend-row {
+    padding: 2px 0;
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  .tender-shell--fit .dash-legend-percent {
+    margin-left: 4px;
+    font-size: 0.65rem;
+  }
+}
