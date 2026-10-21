@@ -78,3 +78,18 @@ export const PRESENCE_LABELS: Record<PresenceStatus, string> = {
 }
 
 export type PresenceMap = ReadonlyMap<number, PresenceStatus>
+
+// Внешний проход за сегодня (без внутренних точек и отказов без направления)
+export interface ITodayPass {
+  id: string
+  // Время события как в СКУД: HH:MM:SS
+  time: string
+  direction: 'entry' | 'exit'
+  accessPoint: string | null
+}
+
+// Проходы за сегодня по id сотрудника, по возрастанию времени
+export type PassesMap = ReadonlyMap<number, ITodayPass[]>
+
+// Время первого входа за сегодня (HH:MM:SS) по id сотрудника
+export type FirstEntryMap = ReadonlyMap<number, string>

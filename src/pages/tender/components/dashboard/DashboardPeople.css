@@ -1,0 +1,424 @@
+/* Колонка «Люди»: вкладки, поиск, сортировка, список со строками как в «Присутствии сотрудников» ФОТ */
+
+.dash-people {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+.dash-people-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 0;
+}
+
+.dash-people-head .dash-card-title {
+  margin-bottom: 0;
+}
+
+.dash-people-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Кнопки администратора на телефоне; от 768px они стоят в строке вкладок оболочки */
+.dash-people-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Вкладки */
+
+.dash-tabs {
+  display: flex;
+  margin: 4px 12px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.dash-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dash-tab {
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 44px;
+  margin-bottom: -1px;
+  padding: 0 2px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: none;
+  border-bottom: 2px solid transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.dash-tab:hover {
+  color: var(--text-primary);
+}
+
+.dash-tab[aria-pressed='true'] {
+  color: var(--text-primary);
+  border-bottom-color: var(--primary);
+}
+
+.dash-tab-count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dash-tab[aria-pressed='true'] .dash-tab-count {
+  color: var(--primary);
+}
+
+/* Поиск, сортировка, «скрыть оклады» */
+
+.dash-people-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.dash-people-search {
+  flex: 1 1 110px;
+}
+
+.dash-people-sort {
+  flex: 0 1 120px;
+}
+
+/* Список: на телефоне и планшете без внутренней прокрутки, на широком экране прокручивается в колонке */
+
+/* В колонке фиксированной высоты сжимается только список */
+.dash-people-head,
+.dash-tabs,
+.dash-people-tools {
+  flex-shrink: 0;
+}
+
+.dash-people-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+@media (min-width: 1024px) {
+  .dash-people-list {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Строка сотрудника */
+
+.dash-person {
+  --stripe: transparent;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'avatar main side'
+    'avatar line line';
+  align-items: start;
+  gap: 4px 10px;
+  min-width: 0;
+  padding: 8px 12px 8px 9px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--stripe);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.dash-person:last-child {
+  border-bottom: none;
+}
+
+.dash-person.is-admin {
+  grid-template-areas:
+    'avatar main side'
+    'avatar line salary';
+}
+
+.dash-person.sev-bad {
+  --stripe: var(--tone-bad);
+}
+
+.dash-person.sev-warn {
+  --stripe: var(--tone-warn);
+}
+
+.dash-person:hover {
+  background: var(--surface-hover);
+}
+
+.dash-avatar-wrap {
+  position: relative;
+  grid-area: avatar;
+  width: 36px;
+  height: 36px;
+}
+
+.dash-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.dash-status-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+}
+
+.dash-status-dot.dot-ok { background: var(--tone-ok); }
+.dash-status-dot.dot-primary { background: var(--primary); }
+.dash-status-dot.dot-muted { background: var(--text-muted); }
+.dash-status-dot.dot-warn { background: var(--tone-warn); }
+.dash-status-dot.dot-bad { background: var(--tone-bad); }
+
+/* Отпуск, больничный, выходной, нет данных: пустая точка */
+.dash-status-dot.dot-neutral {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--text-muted);
+}
+
+.dash-person-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* ФИО и должность читаются целиком: переносятся по словам, без многоточия */
+.dash-person-name {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.dash-person-meta {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.dash-person-side {
+  grid-area: side;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 20px;
+  min-width: 0;
+}
+
+.dash-person-arrival {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.dash-person-arrival.is-late {
+  color: var(--tone-warn);
+}
+
+.dash-person-state {
+  max-width: 96px;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.dash-person-state.is-warn {
+  color: var(--tone-warn);
+}
+
+.dash-person-state.is-bad {
+  color: var(--tone-bad);
+}
+
+.dash-person-line {
+  grid-area: line;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.dash-person-accrued {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dash-person-hours {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.dash-person-overtime.is-warn {
+  color: var(--tone-warn);
+}
+
+.dash-person-salary {
+  grid-area: salary;
+  align-self: center;
+  justify-self: end;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+/* Меню «⋯»: тап-зона 44x44 вылезает за границы строки, видимая рамка 32x32 */
+
+.dash-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.dash-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px -8px -12px 0;
+  color: var(--text-secondary);
+  background: transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash-menu-face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.dash-menu-btn:hover .dash-menu-face,
+.dash-menu-btn[aria-expanded='true'] .dash-menu-face {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.dash-menu-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 5;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.dash-menu-list.is-up {
+  top: auto;
+  bottom: calc(100% + 2px);
+}
+
+.dash-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash-menu-item:hover {
+  background: var(--surface-hover);
+}
+
+.dash-menu-item.danger {
+  color: var(--tone-bad);
+}
+
+.dash-menu-item.danger:hover {
+  background: var(--tone-bad-bg);
+}
+
+.dash-menu-item:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .dash-people-actions {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .dash-tab {
+    min-height: 36px;
+  }
+
+  .dash-menu-item {
+    min-height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-tab,
+  .dash-person,
+  .dash-menu-face {
+    transition: none;
+  }
+}

@@ -1,0 +1,266 @@
+/* Колонка «Статистика»: переключатель периода, мини-карточки, пунктуальность, посещаемость за месяц */
+
+.dash-stat-cards {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dash-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.dash-toggle-btn {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.dash-toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.dash-toggle-btn[aria-pressed='true'] {
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* Мини-карточки: 2x2 на телефоне, в ряд от 768px */
+
+.dash-minis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.dash-mini {
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.dash-mini-label {
+  margin-bottom: 2px;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+.dash-mini-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--tone, var(--text-primary));
+}
+
+.dash-mini-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+/* Пунктуальность: кольцо «вовремя» и легенда */
+
+.dash-punct {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 92px;
+  height: 92px;
+}
+
+.dash-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.dash-ring-track,
+.dash-ring-value {
+  fill: none;
+  stroke-width: 8;
+}
+
+.dash-ring-track {
+  stroke: var(--bg-tertiary);
+}
+
+.dash-ring-value {
+  stroke: var(--tone-ok);
+  stroke-linecap: round;
+}
+
+.dash-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-ring-text span {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.dash-ring-text small {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+}
+
+.dash-legend {
+  flex: 1 1 auto;
+  min-width: 0;
+  list-style: none;
+}
+
+.dash-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-legend-row:last-child {
+  border-bottom: none;
+}
+
+.dash-legend-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.dash-legend-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--tone, var(--text-muted));
+}
+
+.dash-legend-value {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-legend-percent {
+  margin-left: 6px;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Посещаемость за прошедший месяц: горизонтальные полосы */
+
+.dash-hbars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dash-hbar-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.dash-hbar-label {
+  color: var(--text-secondary);
+}
+
+.dash-hbar-track {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.dash-hbar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--tone);
+  transform: scaleX(var(--value, 0));
+  transform-origin: left;
+  transition: transform 0.2s ease-out;
+}
+
+.dash-hbar-value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tone-work { --tone: var(--chart-positive); }
+.tone-remote { --tone: var(--chart-2); }
+.tone-vacation { --tone: var(--chart-warning); }
+.tone-sick { --tone: var(--chart-7); }
+.tone-absent { --tone: var(--chart-negative); }
+.tone-unpaid { --tone: var(--chart-6); }
+
+@media (min-width: 768px) {
+  .dash-minis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dash-hbar-row {
+    grid-template-columns: 120px minmax(0, 1fr) 64px;
+  }
+}
+
+/* Рядом с боковым меню колонка статистики узкая: карточки снова 2x2 */
+@media (min-width: 1024px) and (max-width: 1599px) {
+  .dash-minis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .dash-toggle-btn {
+    min-height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-toggle-btn,
+  .dash-hbar-fill {
+    transition: none;
+  }
+}

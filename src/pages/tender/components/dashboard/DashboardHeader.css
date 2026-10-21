@@ -1,0 +1,176 @@
+/* Шапка: дата, часы, «Прямой эфир», счётчики, обновление и выбор подразделения */
+
+.dash-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-header-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+}
+
+.dash-header-time {
+  min-width: 0;
+}
+
+.dash-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.dash-clock {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.dash-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--tone-ok);
+  background: var(--tone-ok-bg);
+  border-radius: 999px;
+}
+
+.dash-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone-ok);
+  animation: dash-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dash-live-pulse {
+  50% {
+    opacity: 0.6;
+    transform: scale(1.4);
+  }
+}
+
+/* Мини-счётчики; с отклонением окрашены тоном */
+
+.dash-stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.dash-stat-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.dash-stat-chip-value {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.dash-stat-chip:is(.is-ok, .is-warn, .is-bad) {
+  background: var(--tone-fill);
+}
+
+.dash-stat-chip:is(.is-ok, .is-warn, .is-bad) .dash-stat-chip-value {
+  color: var(--tone);
+}
+
+/* Тап-зона 44x44, видимая рамка 28x28 */
+.dash-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -6px -8px -2px;
+  color: var(--text-secondary);
+  background: transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash-refresh-face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: background 0.2s ease-out, color 0.2s ease-out;
+}
+
+.dash-refresh-btn:hover:not(:disabled) .dash-refresh-face {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.dash-refresh-btn:disabled {
+  opacity: 0.7;
+}
+
+.dash-refresh-spin {
+  animation: dash-refresh-rotate 0.8s linear infinite;
+}
+
+@keyframes dash-refresh-rotate {
+  to { transform: rotate(360deg); }
+}
+
+.dash-subdivision-select {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .dash-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dash-date {
+    font-size: 1rem;
+  }
+
+  .dash-subdivision-select {
+    width: auto;
+    min-width: 250px;
+    max-width: 320px;
+    flex: 0 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-live-dot,
+  .dash-refresh-spin {
+    animation: none;
+  }
+
+  .dash-refresh-face {
+    transition: none;
+  }
+}

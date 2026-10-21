@@ -8,29 +8,25 @@ import { EmployeeModal } from './EmployeeModal'
 import { SubdivisionsSheet } from './SubdivisionsSheet'
 import { AttendancePanel } from './dashboard/AttendancePanel'
 import { AttentionList } from './dashboard/AttentionList'
-import { DashboardPulse } from './dashboard/DashboardPulse'
-import { EmployeesSection } from './dashboard/EmployeesSection'
-import type { IAdminRowActions } from './dashboard/EmployeeRow'
+import { DashboardHeader, type ISubdivisionOption } from './dashboard/DashboardHeader'
+import { EventsFeed } from './dashboard/EventsFeed'
 import { MoneyPanel } from './dashboard/MoneyPanel'
-import { TodayPanel } from './dashboard/TodayPanel'
-import {
-  buildAttentionItems,
-  buildSeverityMap,
-  buildSubdivisionRows,
-  countAccounted,
-  countPresence,
-  summarizeScope
-} from './dashboard/dashboardMetrics'
+import { PeopleColumn } from './dashboard/PeopleColumn'
+import type { IAdminRowActions } from './dashboard/PersonRow'
+import { PunctualityCard } from './dashboard/PunctualityCard'
+import { StatCards, type StatsMode } from './dashboard/StatCards'
+import { buildAttentionItems, buildSeverityMap, summarizeScope } from './dashboard/dashboardMetrics'
 import { MONTHS_WINDOW, type AdminPanelSheet } from './dashboard/dashboardTypes'
+import { buildMonthStats, buildTodaySummary } from './dashboard/todayMetrics'
 import { useDashboardAnalytics } from './dashboard/useDashboardAnalytics'
 import { useEmployeeAdmin } from './dashboard/useEmployeeAdmin'
 import { useTodayPresence } from './dashboard/useTodayPresence'
 import './dashboard/Dashboard.css'
-import './dashboard/DashboardToday.css'
+import './dashboard/DashboardHeader.css'
+import './dashboard/DashboardPeople.css'
+import './dashboard/DashboardFeed.css'
+import './dashboard/DashboardStats.css'
 import './dashboard/DashboardMoney.css'
-import './dashboard/DashboardSubdivisions.css'
-import './dashboard/DashboardEmployees.css'
-import './dashboard/DashboardEmployeeRow.css'
 import './dashboard/DashboardAttention.css'
 
 interface Props {
@@ -40,7 +36,7 @@ interface Props {
   isAdmin: boolean
   // Лист администратора, открытый кнопкой в строке вкладок оболочки
   panelSheet: AdminPanelSheet | null
-  // Открыть лист из шапки секции «Сотрудники» (телефон)
+  // Открыть лист из шапки колонки «Люди» (телефон)
   onOpenSheet: (sheet: AdminPanelSheet) => void
   onSheetClose: () => void
   // Растёт, когда листы «Архив»/«Настройки» что-то поменяли
@@ -66,7 +62,7 @@ export function DashboardOverview({
   onSelectEmployee
 }: Props) {
   const [selectedSubdivision, setSelectedSubdivision] = useState<string | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
+  const [statsMode, setStatsMode] = useState<StatsMode>('today')
 
   // Стабильный обработчик для мемоизированных блоков
   const selectRef = useRef(onSelectEmployee)
@@ -127,34 +123,39 @@ export function DashboardOverview({
 
   const severity = useMemo(() => buildSeverityMap(allAttentionItems), [allAttentionItems])
 
-  const summary = summarizeScope(scopedTrends, live)
-  const allSubdivisions = buildSubdivisionRows(trends, presence.statuses, live, allAttentionItems)
-  const presenceCounts = countPresence(scopedTrends, presence.statuses)
   const roundedProgress = Math.round(live.progress * PROGRESS_STEP) / PROGRESS_STEP
 
-  const handleSelectSubdivision = (name: string) => {
-    if (panelOpen && activeSubdivision === name) {
-      setPanelOpen(false)
-      setSelectedSubdivision(null)
-      return
-    }
-    setSelectedSubdivision(name)
-    setPanelOpen(true)
-  }
+  const summary = useMemo(
+    () => summarizeScope(scopedTrends, { isLive: isCurrentMonth, progress: roundedProgress }),
+    [isCurrentMonth, roundedProgress, scopedTrends]
+  )
+  const today = useMemo(() => (
+    isCurrentMonth
+      ? buildTodaySummary(scopedTrends, {
+        statuses: presence.statuses,
+        passes: presence.passes,
+        firstEntries: presence.firstEntries
+      })
+      : null
+  ), [isCurrentMonth, presence.firstEntries, presence.passes, presence.statuses, scopedTrends])
+  const monthStats = useMemo(() => buildMonthStats(
+    summary,
+    isCurrentMonth,
+    roundedProgress,
+    attentionItems.filter(item => item.kind === 'unfilled').length
+  ), [attentionItems, isCurrentMonth, roundedProgress, summary])
 
-  const handleSelectAll = () => {
-    if (panelOpen && activeSubdivision === null) {
-      setPanelOpen(false)
-      return
-    }
-    setSelectedSubdivision(null)
-    setPanelOpen(true)
-  }
+  const subdivisionOptions = useMemo<ISubdivisionOption[]>(() => {
+    const counts = new Map<string, number>()
+    for (const trend of trends) counts.set(trend.subdivision, (counts.get(trend.subdivision) ?? 0) + 1)
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => left.name.localeCompare(right.name, 'ru'))
+  }, [trends])
 
-  const handleClosePanel = useCallback(() => {
-    setPanelOpen(false)
-    setSelectedSubdivision(null)
-  }, [])
+  // «Сегодня» есть только в текущем месяце
+  const mode: StatsMode = isCurrentMonth ? statsMode : 'month'
+  const peopleStatuses = isCurrentMonth ? presence.statuses : null
 
   // Модалки и листы администратора стоят рядом с содержимым; .tender-page даёт им стили карточки сотрудника
   const adminLayer = isAdmin && (
@@ -212,60 +213,83 @@ export function DashboardOverview({
             <div className="dash-error">Часть данных недоступна: {error}</div>
           )}
 
-          <DashboardPulse
-            isCurrentMonth={isCurrentMonth}
-            summary={summary}
-            live={live}
-            presence={presenceCounts}
-            accountedCount={countAccounted(scopedTrends)}
+          <DashboardHeader
+            year={year}
+            month={month}
+            today={today}
+            monthStats={monthStats}
             presenceLoading={presence.loading}
-          />
-
-          <div className="dash-columns">
-            {isCurrentMonth ? (
-              <TodayPanel
-                trends={scopedTrends}
-                statuses={presence.statuses}
-                loading={presence.loading}
-                onSelectEmployee={handleSelectEmployee}
-              />
-            ) : (
-              <AttendancePanel statusCounts={summary.statusCounts} />
-            )}
-
-            <MoneyPanel
-              monthSlots={monthSlots}
-              trends={scopedTrends}
-              summary={summary}
-              live={live}
-            />
-          </div>
-
-          <EmployeesSection
-            rows={allSubdivisions.rows}
-            total={allSubdivisions.total}
-            isCurrentMonth={isCurrentMonth}
+            refreshing={presence.refreshing}
+            onRefresh={presence.refresh}
+            subdivisions={subdivisionOptions}
+            totalCount={trends.length}
             selected={activeSubdivision}
-            open={panelOpen}
-            onSelectSubdivision={handleSelectSubdivision}
-            onSelectAll={handleSelectAll}
-            onClose={handleClosePanel}
-            onOpenSheet={isAdmin ? onOpenSheet : null}
-            panel={{
-              trends: scopedTrends,
-              isLive: isCurrentMonth,
-              progress: roundedProgress,
-              statuses: isCurrentMonth ? presence.statuses : null,
-              scores,
-              scoresLoading,
-              severity,
-              admin: adminActions,
-              onToggleHideSalaries: handleToggleHideSalaries,
-              onSelectEmployee: handleSelectEmployee
-            }}
+            onSelectSubdivision={setSelectedSubdivision}
           />
 
-          <AttentionList items={attentionItems} onSelectEmployee={handleSelectEmployee} />
+          <div className="dash-grid">
+            <div className="dash-slot slot-people">
+              <PeopleColumn
+                trends={scopedTrends}
+                isLive={isCurrentMonth}
+                progress={roundedProgress}
+                statuses={peopleStatuses}
+                firstEntries={presence.firstEntries}
+                scores={scores}
+                scoresLoading={scoresLoading}
+                severity={severity}
+                admin={adminActions}
+                onToggleHideSalaries={handleToggleHideSalaries}
+                onSelectEmployee={handleSelectEmployee}
+                onOpenSheet={isAdmin ? onOpenSheet : null}
+              />
+            </div>
+
+            <div className="dash-slot slot-feed">
+              {isCurrentMonth ? (
+                <EventsFeed
+                  trends={scopedTrends}
+                  passes={presence.passes}
+                  loading={presence.loading}
+                  onSelectEmployee={handleSelectEmployee}
+                />
+              ) : (
+                <AttendancePanel statusCounts={summary.statusCounts} />
+              )}
+            </div>
+
+            <div className="dash-stats">
+              <div className="dash-slot slot-cards">
+                <StatCards
+                  canToggle={isCurrentMonth}
+                  mode={mode}
+                  onModeChange={setStatsMode}
+                  today={today}
+                  monthStats={monthStats}
+                  presenceLoading={presence.loading}
+                />
+              </div>
+
+              {today && mode === 'today' && (
+                <div className="dash-slot slot-punct">
+                  <PunctualityCard punctuality={today.punctuality} loading={presence.loading} />
+                </div>
+              )}
+
+              <div className="dash-slot slot-fot">
+                <MoneyPanel
+                  monthSlots={monthSlots}
+                  trends={scopedTrends}
+                  summary={summary}
+                  live={live}
+                />
+              </div>
+
+              <div className="dash-slot slot-attention">
+                <AttentionList items={attentionItems} onSelectEmployee={handleSelectEmployee} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       {adminLayer}

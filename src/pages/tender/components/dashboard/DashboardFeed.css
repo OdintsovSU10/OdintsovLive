@@ -1,0 +1,112 @@
+/* Лента проходов за сегодня (как «События в эфире» ФОТ) */
+
+.dash-feed {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dash-feed-total {
+  margin: -4px 0 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dash-feed-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 360px;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dash-feed-row {
+  --edge: var(--text-muted);
+  display: grid;
+  grid-template-columns: 40px 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 0 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 0 6px 8px;
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--edge);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.dash-feed-row.is-entry {
+  --edge: var(--tone-ok);
+}
+
+.dash-feed-row:hover {
+  background: var(--surface-hover);
+}
+
+.dash-feed-list li:last-child .dash-feed-row {
+  border-bottom: none;
+}
+
+.dash-feed-time {
+  padding-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dash-feed-arrow {
+  display: flex;
+  padding-top: 2px;
+  color: var(--text-muted);
+}
+
+.dash-feed-row.is-entry .dash-feed-arrow {
+  color: var(--tone-ok);
+}
+
+.dash-feed-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dash-feed-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.dash-feed-point {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--text-secondary);
+}
+
+/* В отдельной колонке лента занимает всю высоту и прокручивается внутри */
+@media (min-width: 1280px) {
+  .dash-feed {
+    height: 100%;
+  }
+
+  .dash-feed-list {
+    max-height: none;
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .dash-feed-row {
+    min-height: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-feed-row {
+    transition: none;
+  }
+}

@@ -1,4 +1,5 @@
-/* Дашборд тендерного управления: mobile-first, базовая ширина 360px */
+/* Дашборд тендерного управления: mobile-first, базовая ширина 360px.
+   Раскладка по образцу «Обзора» ФОТ: шапка-счётчики и три колонки Люди | Проходы | Статистика */
 
 .dashboard-overview {
   width: 100%;
@@ -29,9 +30,9 @@
 }
 
 .dash-error {
-  background: color-mix(in srgb, var(--chart-negative) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--chart-negative) 30%, transparent);
-  color: var(--chart-negative);
+  background: var(--tone-bad-bg);
+  border: 1px solid color-mix(in srgb, var(--tone-bad) 30%, transparent);
+  color: var(--tone-bad);
 }
 
 .dash-empty {
@@ -49,7 +50,7 @@
 
 .dash-card {
   min-width: 0;
-  padding: 14px;
+  padding: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -65,85 +66,23 @@
 }
 
 .dash-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 10px;
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.dash-card-title svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
 }
 
 .dash-card-head .dash-card-title {
   margin-bottom: 0;
-}
-
-/* Пульс: 2x2 на телефоне, в одну строку от 768px */
-
-.dash-pulse {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.dash-pulse-tile {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  min-width: 0;
-  min-height: 68px;
-  padding: 8px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.dash-pulse-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.dash-pulse-value {
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.dash-pulse-sub {
-  font-size: 0.68rem;
-  line-height: 1.2;
-  color: var(--text-muted);
-}
-
-.dash-pulse-bar {
-  display: block;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--bg-tertiary);
-  overflow: hidden;
-}
-
-.dash-pulse-bar-fill {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--primary);
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
-  transition: transform 0.2s ease-out;
-}
-
-/* Сегодня + Деньги */
-
-.dash-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
 }
 
 /* Направление изменения */
@@ -173,45 +112,161 @@
   color: var(--tone);
 }
 
-.is-warn-text {
-  color: var(--tone-warn);
+/* Общие элементы управления: поле и иконка-кнопка */
+
+.dash-field {
+  height: 44px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 16px;
+  outline: none;
 }
 
-/* Плитка «Пульса» с отклонением: полоса слева, цвет значения, лёгкий фон */
-
-.dash-pulse-tile:is(.is-ok, .is-warn, .is-bad) {
-  padding-left: 10px;
-  background: linear-gradient(var(--tone-fill), var(--tone-fill)), var(--surface);
-  border-left: 3px solid var(--tone);
+.dash-field::placeholder {
+  color: var(--text-muted);
 }
 
-.dash-pulse-tile:is(.is-ok, .is-warn, .is-bad) .dash-pulse-value {
-  color: var(--tone);
+.dash-field:focus {
+  border-color: var(--primary);
 }
+
+select.dash-field {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.dash-icon-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.2s ease-out, background 0.2s ease-out;
+}
+
+.dash-icon-btn.is-primary {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.dash-icon-btn.active {
+  color: var(--text-primary);
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+/* Раскладка: на телефоне и планшете одна колонка в порядке важности,
+   «Статистика» раскрывается (display: contents), чтобы её блоки встали между остальными */
+
+.dash-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dash-stats {
+  display: contents;
+}
+
+.dash-slot {
+  min-width: 0;
+}
+
+.slot-cards { order: 1; }
+.slot-attention { order: 2; }
+.slot-people { order: 3; }
+.slot-feed { order: 4; }
+.slot-punct { order: 5; }
+.slot-fot { order: 6; }
 
 @media (min-width: 768px) {
-  .dash-pulse {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .dash-pulse-value {
-    font-size: 1.2rem;
-  }
-
   .dash-card {
-    padding: 16px;
+    padding: 14px;
   }
 }
 
+/* 1024–1279: Люди | Статистика, лента проходов — внизу колонки статистики.
+   Третья строка 1fr забирает лишнюю высоту «Людей», строки статистики не растягиваются */
 @media (min-width: 1024px) {
-  .dash-columns {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .dash-grid {
+    display: grid;
+    grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'people stats'
+      'people feed'
+      'people .';
     align-items: start;
+    gap: 12px 14px;
+  }
+
+  .dash-stats {
+    grid-area: stats;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  /* Люди тянутся на высоту колонки статистики, список прокручивается внутри.
+     contain: size — длинный список не раздувает строку сетки */
+  .slot-people {
+    grid-area: people;
+    align-self: stretch;
+    contain: size;
+    min-height: 480px;
+  }
+
+  .slot-feed {
+    grid-area: feed;
+  }
+
+  .slot-cards,
+  .slot-attention,
+  .slot-people,
+  .slot-feed,
+  .slot-punct,
+  .slot-fot {
+    order: 0;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dash-pulse-bar-fill {
-    transition: none;
+/* От 1280: три колонки Люди | Проходы | Статистика */
+@media (min-width: 1280px) {
+  .dash-grid {
+    grid-template-columns: minmax(340px, 400px) minmax(280px, 340px) minmax(320px, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: 'people feed stats';
+  }
+
+  .slot-feed {
+    align-self: stretch;
+    contain: size;
+    min-height: 480px;
+  }
+}
+
+/* Мышь и широкий экран: плотнее, тап-цели 44px не нужны */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .dash-field {
+    height: 36px;
+    font-size: 0.85rem;
+  }
+
+  .dash-icon-btn {
+    width: 36px;
+    height: 36px;
   }
 }

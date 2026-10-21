@@ -1,0 +1,159 @@
+import { memo, type FC } from 'react'
+import { RefreshCw } from 'lucide-react'
+import { MONTH_NAMES } from '../../utils/employeeFormat'
+import type { Tone } from './dashboardMetrics'
+import { formatHours, formatNumber, formatPercent } from './dashboardFormat'
+import { LiveClock } from './LiveClock'
+import type { IMonthStats, ITodaySummary } from './todayMetrics'
+
+export interface ISubdivisionOption {
+  name: string
+  count: number
+}
+
+interface IDashboardHeaderProps {
+  year: number
+  month: number
+  // Сводка «сегодня»; null — не текущий месяц
+  today: ITodaySummary | null
+  monthStats: IMonthStats
+  presenceLoading: boolean
+  refreshing: boolean
+  onRefresh: () => void
+  subdivisions: ISubdivisionOption[]
+  totalCount: number
+  // null — все подразделения
+  selected: string | null
+  onSelectSubdivision: (name: string | null) => void
+}
+
+interface IStatChipProps {
+  label: string
+  value: string
+  tone?: Tone | null
+}
+
+const DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
+  timeZone: 'Europe/Moscow',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric'
+})
+
+const formatToday = (): string => {
+  const text = DATE_FORMATTER.format(new Date())
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+const StatChip: FC<IStatChipProps> = ({ label, value, tone }) => (
+  <span className={`dash-stat-chip${tone ? ` is-${tone}` : ''}`}>
+    <span className="dash-stat-chip-label">{label}</span>
+    <span className="dash-stat-chip-value">{value}</span>
+  </span>
+)
+
+// Компактная шапка: дата, часы, «Прямой эфир», счётчики и выбор подразделения
+const DashboardHeaderBase: FC<IDashboardHeaderProps> = ({
+  year,
+  month,
+  today,
+  monthStats,
+  presenceLoading,
+  refreshing,
+  onRefresh,
+  subdivisions,
+  totalCount,
+  selected,
+  onSelectSubdivision
+}) => {
+  const pending = presenceLoading ? '…' : null
+
+  return (
+    <div className="dash-header">
+      <div className="dash-header-left">
+        <div className="dash-header-time">
+          <div className="dash-date">
+            {today ? formatToday() : `${MONTH_NAMES[month - 1]} ${year}`}
+          </div>
+          {today && <LiveClock />}
+        </div>
+
+        {today && (
+          <span className="dash-live-badge">
+            <span className="dash-live-dot" aria-hidden="true" />
+            Прямой эфир
+          </span>
+        )}
+
+        <div className="dash-stat-chips">
+          {today ? (
+            <>
+              <StatChip
+                label="На месте"
+                value={pending ?? `${today.present}/${today.accounted}`}
+                tone={presenceLoading ? null : 'ok'}
+              />
+              <StatChip label="Опоздали" value={pending ?? String(today.late)} tone={today.late > 0 ? 'warn' : null} />
+              <StatChip
+                label="Нет отметки"
+                value={pending ?? String(today.noMark)}
+                tone={today.noMark > 0 ? 'bad' : null}
+              />
+              <StatChip label="Входов" value={pending ?? String(today.entries)} />
+              <StatChip label="Выходов" value={pending ?? String(today.exits)} />
+            </>
+          ) : (
+            <>
+              <StatChip
+                label="Явка"
+                value={monthStats.attendancePercent === null ? '—' : formatPercent(monthStats.attendancePercent)}
+                tone={monthStats.attendanceTone}
+              />
+              <StatChip
+                label="Пропуски"
+                value={`${formatNumber(monthStats.missedDays)} дн`}
+                tone={monthStats.missedDays > 0 ? 'warn' : null}
+              />
+              <StatChip label="Переработки" value={`${formatHours(monthStats.overtime)} ч`} tone={monthStats.overtimeTone} />
+              <StatChip
+                label="Не заполнен табель"
+                value={`${formatNumber(monthStats.unfilledEmployees)} сотр.`}
+                tone={monthStats.unfilledEmployees > 0 ? 'warn' : null}
+              />
+            </>
+          )}
+
+          {today && (
+            <button
+              type="button"
+              className="dash-refresh-btn"
+              onClick={onRefresh}
+              disabled={refreshing || presenceLoading}
+              aria-label="Обновить проходы"
+              title="Обновить проходы"
+            >
+              <span className="dash-refresh-face">
+                <RefreshCw size={14} strokeWidth={1.75} className={refreshing ? 'dash-refresh-spin' : undefined} />
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <select
+        className="dash-field dash-subdivision-select"
+        value={selected ?? ''}
+        onChange={event => onSelectSubdivision(event.target.value || null)}
+        aria-label="Подразделение"
+      >
+        <option value="">Все подразделения ({totalCount})</option>
+        {subdivisions.map(item => (
+          <option key={item.name} value={item.name}>{item.name} ({item.count})</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+export const DashboardHeader = memo(DashboardHeaderBase)

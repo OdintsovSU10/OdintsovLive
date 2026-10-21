@@ -30,7 +30,10 @@ const AttentionListBase: FC<IAttentionListProps> = ({ items, onSelectEmployee })
   return (
     <section className="dash-card">
       <div className="dash-card-head">
-        <h3 className="dash-card-title">Требует внимания</h3>
+        <h3 className="dash-card-title">
+          <AlertTriangle size={16} strokeWidth={1.75} aria-hidden="true" />
+          Требует внимания
+        </h3>
         {(counts.bad > 0 || counts.warn > 0) && (
           <span className="dash-attention-counts">
             {counts.bad > 0 && <span className="tone-text is-bad">{counts.bad} критично</span>}

@@ -53,10 +53,6 @@ export const getOvertimeTone = (overtime: number, previousOvertime: number): Ton
   overtime > 0 && overtime > previousOvertime * OVERTIME_GROWTH_FACTOR ? 'warn' : null
 )
 
-export const getAttendanceTone = (workedDays: number, normDays: number): Tone | null => (
-  normDays > 0 ? getPercentTone((workedDays / normDays) * 100) : null
-)
-
 export const getPresenceStatusTone = (status: PresenceStatus): Tone | null => {
   if (status === 'office') return 'ok'
   if (status === 'noMark') return 'bad'
@@ -141,93 +137,10 @@ export function countPresence(trends: IEmployeeTrend[], statuses: PresenceMap): 
   return counts
 }
 
-export const countOnSite = (counts: PresenceCounts): number => counts.office + counts.remote + counts.left
-
-export const countAbsentNow = (counts: PresenceCounts): number => counts.vacation + counts.sick + counts.noMark
-
 // Сколько сотрудников учитывается в посещаемости (без исключённых из табеля)
 export const countAccounted = (trends: IEmployeeTrend[]): number => (
   trends.filter(trend => !trend.employee.excluded_from_timesheet).length
 )
-
-// «На месте» по порогам; тона нет, пока статусы не загружены и в выходной (большинство в статусе «выходной»).
-// Знаменатель — учитываемые без тех, кого отсутствие оправдывает: отпуск, больничный, выходной
-export function getOnSiteTone(counts: PresenceCounts, accounted: number): Tone | null {
-  const known = PRESENCE_ORDER.reduce((sum, status) => sum + counts[status], 0)
-  if (accounted <= 0 || known === 0 || counts.dayoff * 2 >= known) return null
-  const expected = accounted - counts.vacation - counts.sick - counts.dayoff
-  if (expected <= 0) return null
-  return getPercentTone((countOnSite(counts) / expected) * 100)
-}
-
-export interface ISubdivisionRow {
-  name: string
-  employeesCount: number
-  onSite: number
-  accounted: number
-  onSiteTone: Tone | null
-  // Худшая тяжесть среди сотрудников (bad/warn); null — всё в порядке
-  severity: Tone | null
-  // Число пунктов внимания (bad и warn)
-  attentionCount: number
-  accrued: number
-  overtime: number
-  delta: number
-  deltaPercent: number
-}
-
-function buildRow(
-  name: string,
-  trends: IEmployeeTrend[],
-  statuses: PresenceMap,
-  live: LiveInfo,
-  items: IAttentionItem[]
-): ISubdivisionRow {
-  const summary = summarizeScope(trends, live)
-  const delta = summary.accrued - summary.baseline
-  const counts = countPresence(trends, statuses)
-  const accounted = countAccounted(trends)
-  const problems = items.filter(item => item.tone !== 'ok')
-  return {
-    name,
-    employeesCount: trends.length,
-    onSite: countOnSite(counts),
-    accounted,
-    onSiteTone: getOnSiteTone(counts, accounted),
-    severity: problems.reduce<Tone | null>((worst, item) => getWorstTone(worst, item.tone), null),
-    attentionCount: problems.length,
-    accrued: summary.accrued,
-    overtime: summary.overtime,
-    delta,
-    deltaPercent: getGrowthPercent(delta, summary.baseline)
-  }
-}
-
-export function buildSubdivisionRows(
-  trends: IEmployeeTrend[],
-  statuses: PresenceMap,
-  live: LiveInfo,
-  attentionItems: IAttentionItem[]
-): { rows: ISubdivisionRow[]; total: ISubdivisionRow } {
-  const groups = new Map<string, IEmployeeTrend[]>()
-  for (const trend of trends) {
-    const list = groups.get(trend.subdivision) || []
-    list.push(trend)
-    groups.set(trend.subdivision, list)
-  }
-
-  const rows = Array.from(groups.entries())
-    .map(([name, list]) => buildRow(
-      name,
-      list,
-      statuses,
-      live,
-      attentionItems.filter(item => item.subdivision === name)
-    ))
-    .sort((left, right) => right.accrued - left.accrued || left.name.localeCompare(right.name, 'ru'))
-
-  return { rows, total: buildRow('Итого', trends, statuses, live, attentionItems) }
-}
 
 // Последний день выбранного месяца, который уже можно проверять на заполненность табеля (вчера включительно)
 function getLastCheckedDay(year: number, month: number): number {

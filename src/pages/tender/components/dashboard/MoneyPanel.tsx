@@ -1,13 +1,17 @@
 import { useMemo, useState, type CSSProperties, type FC } from 'react'
+import { Wallet } from 'lucide-react'
 import type { LivePayrollSnapshot } from '../../utils/livePayroll'
 import type { IEmployeeTrend, IMonthSlot } from './dashboardTypes'
 import {
   formatCompactMoney,
+  formatPercent,
   formatRub,
+  formatShortMoney,
   formatSignedPercent,
-  formatSignedRub
+  formatSignedRub,
+  getPercentOf
 } from './dashboardFormat'
-import { getGrowthPercent, isPayrollOverrun, type IScopeSummary } from './dashboardMetrics'
+import { getGrowthPercent, getPayrollTone, isPayrollOverrun, type IScopeSummary } from './dashboardMetrics'
 
 interface IMoneyPanelProps {
   monthSlots: IMonthSlot[]
@@ -22,7 +26,7 @@ interface IMonthMoney {
   fact: number
 }
 
-// План/факт по месяцам окна и сравнение с прошлым месяцем
+// ФОТ: начислено к плану, план/факт по месяцам окна и сравнение с прошлым месяцем
 export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, live }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
@@ -46,9 +50,29 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
   const delta = summary.accrued - summary.baseline
   const hasBaseline = summary.baseline > 0
 
+  const fact = live.isLive ? live.accrued : summary.accrued
+  const plan = live.isLive ? live.planned : summary.plan
+  const tone = getPayrollTone(fact, plan, live.isLive)
+
   return (
     <section className="dash-card">
-      <h3 className="dash-card-title">Деньги</h3>
+      <h3 className="dash-card-title">
+        <Wallet size={16} strokeWidth={1.75} aria-hidden="true" />
+        ФОТ
+      </h3>
+
+      <div className={`dash-fot-head${tone ? ` is-${tone}` : ''}`}>
+        <span className="dash-fot-main">{formatShortMoney(fact)} ₽</span>
+        <span className="dash-fot-sub">
+          {plan > 0 ? `из ${formatShortMoney(plan)} · ${formatPercent(getPercentOf(fact, plan))}` : 'плана нет'}
+        </span>
+      </div>
+      <span className="dash-fot-bar" aria-hidden="true">
+        <span
+          className="dash-fot-bar-fill"
+          style={{ '--progress': plan > 0 ? Math.min(1, Math.max(0, fact / plan)) : 0 } as CSSProperties}
+        />
+      </span>
 
       <div className="dash-chart" role="group" aria-label="План и факт по месяцам">
         {series.map((item, index) => (
@@ -84,14 +108,6 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
       </div>
 
       <dl className="dash-money-rows">
-        <div className="dash-money-row">
-          <dt>План месяца</dt>
-          <dd>{formatRub(summary.plan)}</dd>
-        </div>
-        <div className="dash-money-row">
-          <dt>Начислено</dt>
-          <dd>{formatRub(summary.accrued)}</dd>
-        </div>
         <div className="dash-money-row">
           <dt>
             К прошлому месяцу
