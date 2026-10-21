@@ -38,6 +38,7 @@
 }
 
 .ts-toolbar-controls {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -90,28 +91,14 @@
   touch-action: manipulation;
 }
 
-.ts-toolbar-btn[aria-pressed='true'],
 .ts-toolbar-btn[aria-expanded='true'] {
   color: var(--text-primary);
 }
 
-.ts-check-box {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--text-muted);
-  border-radius: 4px;
-  color: transparent;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.ts-toolbar-btn[aria-pressed='true'] .ts-check-box {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--bg-secondary);
+/* «По подразделениям» — справа в панели; на телефоне в первой строке рядом с «Обозначениями» */
+.ts-dept-switch {
+  margin-left: auto;
+  order: 10;
 }
 
 .ts-week-switch {
@@ -174,6 +161,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: var(--cell-fill, transparent);
 }
 
 .ts-legend-chip.ts-legend-code {
@@ -346,7 +334,7 @@
   position: sticky;
   left: 0;
   z-index: 4;
-  padding: 8px 10px;
+  padding: 5px 10px;
   background: var(--surface);
   border-right: 1px solid var(--border-light);
 }
@@ -399,11 +387,13 @@
   text-overflow: ellipsis;
 }
 
+/* Ячейка дня: кнопка во всю клетку, тон задаёт сама клетка */
 .ts-cell {
-  padding: 4px 2px;
+  position: relative;
+  min-width: 34px;
+  padding: 0;
   text-align: center;
   border-right: 1px solid var(--border-light);
-  cursor: pointer;
 }
 
 .ts-cell.ts-day-end {
@@ -414,31 +404,56 @@
   background: var(--ts-weekend-tint);
 }
 
-.ts-cell-empty {
-  color: var(--text-muted);
-  font-size: 0.62rem;
-  font-family: 'DM Mono', 'JetBrains Mono', monospace;
-}
-
-.ts-pill {
-  min-width: 26px;
-  height: 24px;
-  border-radius: 6px;
-  border: none;
-  display: inline-flex;
+.ts-day-btn {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  font-size: 0.68rem;
+  border: none;
+  border-radius: 2px;
+  background: var(--cell-fill, transparent);
+  color: var(--text-primary);
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
-}
-
-.ts-pill-hours {
+  font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: outline-color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.ts-pill-status {
+.ts-day-btn:disabled {
+  cursor: default;
+}
+
+.ts-day-status {
   font-weight: 700;
+}
+
+.ts-day-empty {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+@media (hover: hover) {
+  .ts-day-btn:hover:not(:disabled) {
+    outline: 1px solid var(--border);
+    outline-offset: -1px;
+    background: linear-gradient(var(--surface-hover), var(--surface-hover)), var(--cell-fill, transparent);
+  }
+}
+
+.ts-day-btn:focus-visible,
+.ts-mobile-day-cell:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  z-index: 1;
 }
 
 /* Спокойная норма: без заливки, цвет — только у текста */
@@ -457,12 +472,12 @@
 
 /* Отклонения от нормы (должны идти после .ts-tone-*) */
 .ts-state-low {
-  background: var(--tone-warn-bg);
+  --cell-fill: var(--tone-warn-bg);
   color: var(--tone-warn);
 }
 
 .ts-state-critical {
-  background: var(--tone-bad-bg);
+  --cell-fill: var(--tone-bad-bg);
   color: var(--tone-bad);
 }
 
@@ -471,35 +486,13 @@
   font-weight: 700;
 }
 
-.ts-underwork-tag {
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0 4px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--tone-warn) 45%, transparent);
-  background: var(--surface);
-  color: var(--tone-warn);
-  font-size: 0.48rem;
-  font-weight: 700;
-  line-height: 1.2;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.ts-state-critical .ts-underwork-tag {
-  border-color: color-mix(in srgb, var(--tone-bad) 45%, transparent);
-  color: var(--tone-bad);
-}
-
 .ts-status-vacation {
-  background: color-mix(in srgb, var(--ts-vacation) 12%, transparent);
+  --cell-fill: color-mix(in srgb, var(--ts-vacation) 12%, transparent);
   color: var(--ts-vacation);
 }
 
 .ts-status-sick {
-  background: color-mix(in srgb, var(--ts-sick) 12%, transparent);
+  --cell-fill: color-mix(in srgb, var(--ts-sick) 12%, transparent);
   color: var(--ts-sick);
 }
 
@@ -508,33 +501,35 @@
 }
 
 .ts-status-absent {
-  background: var(--tone-bad-bg);
+  --cell-fill: var(--tone-bad-bg);
   color: var(--tone-bad);
 }
 
 .ts-status-unpaid {
-  background: color-mix(in srgb, var(--ts-unpaid) 12%, transparent);
+  --cell-fill: color-mix(in srgb, var(--ts-unpaid) 12%, transparent);
   color: var(--ts-unpaid);
 }
 
 .ts-status-educational {
-  background: color-mix(in srgb, var(--ts-edu) 12%, transparent);
+  --cell-fill: color-mix(in srgb, var(--ts-edu) 12%, transparent);
   color: var(--ts-edu);
 }
 
 .ts-status-sick-worked {
-  background: color-mix(in srgb, var(--ts-sick-worked) 12%, transparent);
+  --cell-fill: color-mix(in srgb, var(--ts-sick-worked) 12%, transparent);
   color: var(--ts-sick-worked);
 }
 
+/* Отметка корректировки — точка в правом верхнем углу клетки */
 .ts-correction-dot {
   position: absolute;
-  top: 1px;
-  right: 1px;
+  top: 3px;
+  right: 3px;
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--tone-warn);
+  pointer-events: none;
 }
 
 .ts-summary-cell {
@@ -543,7 +538,7 @@
   z-index: 4;
   background: var(--surface);
   border-left: 2px solid var(--border-light);
-  padding: 7px 8px;
+  padding: 4px 8px;
   text-align: center;
 }
 
@@ -734,8 +729,13 @@
 }
 
 .ts-mobile-day-cell {
+  --cell-tint: transparent;
+  position: relative;
   border: 1px solid var(--border-light);
-  background: var(--bg-secondary);
+  background:
+    linear-gradient(var(--cell-fill, transparent), var(--cell-fill, transparent)),
+    linear-gradient(var(--cell-tint), var(--cell-tint)),
+    var(--bg-secondary);
   border-radius: 9px;
   min-height: 44px;
   padding: 4px 2px;
@@ -745,13 +745,21 @@
   justify-content: space-between;
   gap: 2px;
   cursor: pointer;
-  color: var(--text-primary);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
+/* Цвет по умолчанию с нулевой специфичностью: тон (.ts-tone-*, .ts-state-*, .ts-status-*) его перекрывает */
+:where(.ts-mobile-day-cell) {
+  color: var(--text-primary);
+}
+
+.ts-mobile-day-cell:disabled {
+  cursor: default;
+}
+
 .ts-mobile-day-cell.is-weekend {
-  background: linear-gradient(var(--ts-weekend-tint), var(--ts-weekend-tint)), var(--bg-secondary);
+  --cell-tint: var(--ts-weekend-tint);
 }
 
 .ts-mobile-day-label {
@@ -764,16 +772,33 @@
   white-space: nowrap;
 }
 
-.ts-mobile-day-cell .ts-cell-empty {
-  font-size: 0.84rem;
-  color: var(--text-muted);
+.ts-mobile-day-value {
+  font-family: 'DM Mono', 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-.ts-mobile-day-cell .ts-pill {
-  min-width: 28px;
-  height: 24px;
-  font-size: 0.7rem;
-  border-radius: 7px;
+.ts-mobile-day-cell.ts-day-status .ts-mobile-day-value {
+  font-weight: 700;
+}
+
+.ts-mobile-day-cell.ts-day-empty .ts-mobile-day-value {
+  font-weight: 400;
+}
+
+/* Подвал шторки дня: навигация по дням и переход в карточку */
+.ts-sheet-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-day-btn {
+    transition: none;
+  }
 }
 
 @media (max-width: 900px) {
@@ -810,6 +835,10 @@
   .ts-toolbar-btn {
     min-height: 44px;
     padding: 0 14px;
+  }
+
+  .ts-dept-switch {
+    order: 0;
   }
 
   .ts-week-switch {

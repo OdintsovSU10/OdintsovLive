@@ -1,14 +1,25 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
-import { getDailyHoursNorm, isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
-import { TIMESHEET_STATUS_META } from '../utils/timesheetStatus'
+import { toIsoDate } from '../utils/employeeFormat'
+import { GroupByDeptToggle, useGroupByDept } from './GroupByDeptToggle'
+import {
+  buildTimesheetMap,
+  buildWeeks,
+  DOW_NAMES,
+  EMPTY_TIMESHEET_STATS,
+  getCellVisual,
+  getDayDowMonday,
+  getEmployeeStats,
+  getMonthNormDays,
+  getMonthNormHours,
+  isFutureDay,
+  isWeekendDay,
+  LEGEND_ITEMS
+} from '../utils/timesheetCells'
+import type { ITimesheetEmployeeStats } from '../utils/timesheetCells'
+import { TimesheetDaySheet } from './TimesheetDaySheet'
 import { TimesheetMobileList } from './TimesheetMobileList'
-import type {
-  ITimesheetCellVisual,
-  ITimesheetEmployeeStats,
-  ITimesheetMobileDay,
-  ITimesheetSection
-} from './TimesheetMobileList'
+import type { ITimesheetMobileDay, ITimesheetSection } from './TimesheetMobileList'
 import './TimesheetGrid.css'
 
 interface Props {
@@ -16,11 +27,16 @@ interface Props {
   year: number
   month: number
   onCellClick?: (employeeId: number, date: string) => void
+  // Открыть карточку сотрудника из шторки дня
+  onSelectEmployee?: (employee: EmployeeWithStats) => void
 }
 
 type ViewMode = 'month' | 'week'
 
-const DOW_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+interface IDaySelection {
+  employee: EmployeeWithStats
+  iso: string
+}
 
 // Цвета подразделений — только токены (--ts-* заданы на .timesheet-grid)
 const DEPT_PALETTE = [
@@ -35,49 +51,7 @@ const DEPT_PALETTE = [
 ]
 const DEFAULT_DEPT_COLOR = 'var(--text-secondary)'
 
-const GROUP_STORAGE_KEY = 'tender.timesheet.groupByDept'
-
-const EMPTY_STATS: ITimesheetEmployeeStats = {
-  workDays: 0,
-  remoteDays: 0,
-  vacationDays: 0,
-  weekendDays: 0,
-  totalHours: 0,
-  overtimeHours: 0
-}
-
-const LEGEND_ITEMS: { chip: string; sample: string; label: string }[] = [
-  { chip: 'ts-legend-weekend', sample: '', label: 'Выходные дни' },
-  { chip: 'ts-tone-workday', sample: '9', label: 'Рабочие дни (будни)' },
-  { chip: 'ts-tone-weekend', sample: '5', label: 'Работа в выходной' },
-  { chip: 'ts-state-low', sample: '7', label: 'Недоработка (ярлык <9/<8/<5)' },
-  { chip: 'ts-state-critical', sample: '2', label: 'Критично (<3ч)' },
-  { chip: 'ts-state-high', sample: '11', label: 'Повышенная нагрузка (>10ч)' },
-  { chip: 'ts-status-vacation', sample: 'От', label: 'Отпуск' },
-  { chip: 'ts-status-sick', sample: 'Б', label: 'Больничный' },
-  { chip: 'ts-status-absent', sample: 'Н', label: 'Неявка' },
-  { chip: 'ts-status-dayoff', sample: 'В', label: 'Выходной' },
-  { chip: 'ts-status-remote', sample: 'УУ', label: 'Удалёнка' },
-  { chip: 'ts-status-unpaid', sample: 'С', label: 'За свой счёт' },
-  { chip: 'ts-status-educational', sample: 'У', label: 'Учебный отпуск' },
-  { chip: 'ts-status-sick-worked', sample: 'РБ', label: 'Работа на больничном' }
-]
-
-const readGroupByDept = (): boolean => {
-  try {
-    return localStorage.getItem(GROUP_STORAGE_KEY) !== '0'
-  } catch {
-    return true
-  }
-}
-
-const writeGroupByDept = (value: boolean): void => {
-  try {
-    localStorage.setItem(GROUP_STORAGE_KEY, value ? '1' : '0')
-  } catch {
-    // хранилище недоступно — настройка живёт только в сессии
-  }
-}
+const EMPTY_DAY_ENTRIES = new Map<number, TimesheetEntry>()
 
 const getPositionPriority = (position: string | undefined): number => {
   const p = position?.toLowerCase() || ''
@@ -86,231 +60,23 @@ const getPositionPriority = (position: string | undefined): number => {
   return 2
 }
 
-const getDayDowMonday = (year: number, month: number, day: number): number => {
-  const date = new Date(year, month - 1, day)
-  return (date.getDay() + 6) % 7
-}
-
-const isWeekendDay = (year: number, month: number, day: number): boolean => {
-  return isWeekendOrHoliday(new Date(year, month - 1, day))
-}
-
-const formatHours = (value: number): string => String(roundTimesheetHours(value))
-
-const toIsoDate = (year: number, month: number, day: number): string => {
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-// Норма часов в табеле: Пн-Чт = 9, Пт = 8, выходные = 0.
-const getTimesheetNormHours = (date: Date): number => {
-  const day = date.getDay()
-  if (day >= 1 && day <= 4) return 9
-  if (day === 5) return 8
-  return 0
-}
-
-const WEEKEND_TARGET_HOURS = 5
-
-const getWorkedHours = (entry: TimesheetEntry, date: Date): number => {
-  if (entry.status !== 'work' && entry.status !== 'remote' && entry.status !== 'sick_worked') return 0
-
-  const expectedHours = getDailyHoursNorm(date)
-  if (entry.status === 'sick_worked') {
-    return roundTimesheetHours(entry.hours_worked) || expectedHours
-  }
-
-  const weekendOrHoliday = isWeekendOrHoliday(date)
-  const rawHours = roundTimesheetHours(entry.hours_worked, expectedHours)
-
-  // Импорт "У" подставляет 8ч по умолчанию. В будни считаем это полной нормой дня (9/8),
-  // чтобы суммарные часы и факт/план не занижались.
-  if (
-    entry.status === 'remote'
-    && !weekendOrHoliday
-    && entry.hours_worked === 8
-    && !entry.is_correction
-  ) {
-    return expectedHours
-  }
-
-  return roundTimesheetHours(rawHours)
-}
-
-const getMinimumHoursForDay = (date: Date): number => {
-  if (isWeekendOrHoliday(date)) return WEEKEND_TARGET_HOURS
-  if (date.getDay() === 5) return 8
-  return 9
-}
-
-const getUnderworkTag = (date: Date): string => {
-  if (isWeekendOrHoliday(date)) return '<5ч'
-  if (date.getDay() === 5) return '<8ч'
-  return '<9ч'
-}
-
-const buildWeeks = (year: number, month: number, daysInMonth: number): number[][] => {
-  const weeks: number[][] = []
-  let week: number[] = []
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    week.push(day)
-    if (getDayDowMonday(year, month, day) === 6 || day === daysInMonth) {
-      weeks.push(week)
-      week = []
-    }
-  }
-
-  return weeks
-}
-
-const buildTimesheetMap = (timesheet: TimesheetEntry[] | undefined, year: number, month: number): Map<number, TimesheetEntry> => {
-  const map = new Map<number, TimesheetEntry>()
-  if (!timesheet) return map
-
-  for (const entry of timesheet) {
-    const date = new Date(`${entry.work_date}T12:00:00`)
-    if (date.getFullYear() !== year || date.getMonth() + 1 !== month) continue
-    map.set(date.getDate(), entry)
-  }
-
-  return map
-}
-
-const getEmployeeStats = (timesheetMap: Map<number, TimesheetEntry>, year: number, month: number, days: number[]): ITimesheetEmployeeStats => {
-  let workDays = 0
-  let remoteDays = 0
-  let vacationDays = 0
-  let weekendDays = 0
-  let totalHours = 0
-  let overtimeHours = 0
-
-  for (const day of days) {
-    const entry = timesheetMap.get(day)
-    if (!entry) continue
-
-    const date = new Date(year, month - 1, day)
-    const weekend = isWeekendOrHoliday(date)
-
-    if (entry.status === 'work' || entry.status === 'remote' || entry.status === 'sick_worked') {
-      const hours = getWorkedHours(entry, date)
-      totalHours += hours
-      overtimeHours += Math.max(0, hours - getDailyHoursNorm(date))
-
-      if (entry.status === 'remote') {
-        remoteDays += 1
-      }
-
-      if (weekend) {
-        if (entry.status === 'remote' || entry.status === 'sick_worked' || hours >= 3) weekendDays += 1
-      } else {
-        if (entry.status === 'remote' || entry.status === 'sick_worked' || hours >= 3) {
-          workDays += 1
-        }
-      }
-      continue
-    }
-
-    if (entry.status === 'vacation' || entry.status === 'educational_leave') {
-      vacationDays += 1
-    }
-  }
-
-  return {
-    workDays,
-    remoteDays,
-    vacationDays,
-    weekendDays,
-    totalHours: Math.round(totalHours),
-    overtimeHours: Math.round(overtimeHours)
-  }
-}
-
-const getCellVisual = (
-  entry: TimesheetEntry | undefined,
-  date: Date
-): ITimesheetCellVisual | null => {
-  if (!entry) return null
-
-  if (entry.status === 'work' || entry.status === 'remote') {
-    const hours = getWorkedHours(entry, date)
-    const rawHours = roundTimesheetHours(entry.hours_worked, getDailyHoursNorm(date))
-    const minimumHours = getMinimumHoursForDay(date)
-    const isCritical = hours < 3
-    const isUnderworked = hours < minimumHours
-    const isOverTenHours = hours > 10
-    const baseTone = entry.status === 'remote'
-      ? 'ts-tone-remote'
-      : (isWeekendOrHoliday(date) ? 'ts-tone-weekend' : 'ts-tone-workday')
-
-    let stateTone = 'ts-state-normal'
-    if (isCritical) {
-      stateTone = 'ts-state-critical'
-    } else if (isOverTenHours) {
-      stateTone = 'ts-state-high'
-    } else if (isUnderworked) {
-      stateTone = 'ts-state-low'
-    }
-
-    const titlePrefix = entry.status === 'remote'
-      ? TIMESHEET_STATUS_META.remote.label
-      : TIMESHEET_STATUS_META.work.label
-    const hasAdjustedHours = Math.abs(rawHours - hours) > 0.001
-    const title = hasAdjustedHours
-      ? `${titlePrefix}. Факт в табеле: ${formatHours(rawHours)} ч. Учтено в расчёте: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
-      : `${titlePrefix}. Отработано: ${formatHours(hours)} ч. Норма дня: ${minimumHours} ч.`
-
-    return {
-      label: entry.status === 'remote' ? TIMESHEET_STATUS_META.remote.short : formatHours(hours),
-      className: `ts-pill ${entry.status === 'remote' ? 'ts-pill-status' : 'ts-pill-hours'} ${baseTone} ${stateTone}`,
-      title,
-      underworkTag: isUnderworked ? getUnderworkTag(date) : undefined
-    }
-  }
-
-  if (entry.status === 'sick_worked') {
-    const hours = getWorkedHours(entry, date)
-    const meta = TIMESHEET_STATUS_META.sick_worked
-    return {
-      label: meta.short,
-      className: `ts-pill ts-pill-status ts-status-${meta.className}`,
-      title: `${meta.label}. Учтено: ${formatHours(hours)} ч.`
-    }
-  }
-
-  const meta = TIMESHEET_STATUS_META[entry.status]
-  return {
-    label: meta.short,
-    className: `ts-pill ts-pill-status ts-status-${meta.className}`,
-    title: `${meta.label}. Отработано: 0 ч.`
-  }
-}
-
-export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
+export function TimesheetGrid({ employees, year, month, onCellClick, onSelectEmployee }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [selectedWeek, setSelectedWeek] = useState(0)
   const [collapsedDepartments, setCollapsedDepartments] = useState<Record<string, boolean>>({})
   const [highlightedEmployeeId, setHighlightedEmployeeId] = useState<number | null>(null)
-  const [groupByDept, setGroupByDept] = useState<boolean>(readGroupByDept)
+  const [groupByDept, setGroupByDept] = useGroupByDept('tender.timesheet.groupByDept')
   const [legendOpen, setLegendOpen] = useState(false)
+  const [daySelection, setDaySelection] = useState<IDaySelection | null>(null)
+  const [today] = useState(() => new Date())
   const [isMobile, setIsMobile] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false
   ))
 
   const daysInMonth = new Date(year, month, 0).getDate()
   const allDays = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => i + 1), [daysInMonth])
-  const monthNormHours = useMemo(() => (
-    allDays.reduce((sum, day) => {
-      const date = new Date(year, month - 1, day)
-      if (isWeekendOrHoliday(date)) return sum
-      return sum + getTimesheetNormHours(date)
-    }, 0)
-  ), [allDays, month, year])
-  const monthNormDays = useMemo(() => (
-    allDays.reduce((sum, day) => {
-      const date = new Date(year, month - 1, day)
-      return isWeekendOrHoliday(date) ? sum : sum + 1
-    }, 0)
-  ), [allDays, month, year])
+  const monthNormHours = useMemo(() => getMonthNormHours(year, month, allDays), [allDays, month, year])
+  const monthNormDays = useMemo(() => getMonthNormDays(year, month, allDays), [allDays, month, year])
   const weeks = useMemo(() => buildWeeks(year, month, daysInMonth), [year, month, daysInMonth])
   const resolvedViewMode: ViewMode = isMobile ? 'week' : viewMode
   const activeWeek = weeks.length > 0 ? Math.min(selectedWeek, weeks.length - 1) : 0
@@ -395,19 +161,30 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
       date: new Date(year, month - 1, day),
       iso: toIsoDate(year, month, day),
       dowName: DOW_NAMES[getDayDowMonday(year, month, day)],
-      weekend: isWeekendDay(year, month, day)
+      weekend: isWeekendDay(year, month, day),
+      future: isFutureDay(year, month, day, today)
     }))
-  ), [daysToShow, month, year])
+  ), [daysToShow, month, today, year])
+
+  // Клик по дню открывает шторку с проходами; будущие дни не открываются
+  const openDay = (employee: EmployeeWithStats, iso: string) => {
+    setDaySelection({ employee, iso })
+    onCellClick?.(employee.id, iso)
+  }
+
+  const openEmployeeFromSheet = (employee: EmployeeWithStats) => {
+    setDaySelection(null)
+    onSelectEmployee?.(employee)
+  }
 
   const toggleDepartment = (department: string) => {
     setCollapsedDepartments(previous => ({ ...previous, [department]: !previous[department] }))
   }
 
-  const toggleGroupByDept = () => {
-    const next = !groupByDept
-    setGroupByDept(next)
-    writeGroupByDept(next)
-  }
+  // Смена месяца закрывает шторку: выбранный день принадлежит прежнему месяцу
+  useEffect(() => {
+    setDaySelection(null)
+  }, [month, year])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -446,20 +223,6 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
 
       <div className="ts-toolbar">
         <div className="ts-toolbar-controls">
-          <button
-            type="button"
-            className="ts-toolbar-btn"
-            aria-pressed={groupByDept}
-            onClick={toggleGroupByDept}
-          >
-            <span className="ts-check-box" aria-hidden="true">
-              <svg viewBox="0 0 12 12" width="10" height="10" focusable="false">
-                <path d="M2.2 6.3 4.8 8.8 9.8 3.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            По подразделениям
-          </button>
-
           {isMobile && (
             <button
               type="button"
@@ -471,6 +234,8 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
               Обозначения
             </button>
           )}
+
+          <GroupByDeptToggle className="ts-dept-switch" checked={groupByDept} onChange={setGroupByDept} />
 
           {!isMobile && (
             <div className="ts-view-toggle">
@@ -563,7 +328,7 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                   )}
                   {(section.title === null || !collapsedDepartments[section.key]) && section.employees.map(emp => {
                     const timesheetMap = timesheetByEmployee.get(emp.id) || new Map<number, TimesheetEntry>()
-                    const stats = employeeStats.get(emp.id) || EMPTY_STATS
+                    const stats = employeeStats.get(emp.id) || EMPTY_TIMESHEET_STATS
                     const deptColor = employeeColors.get(emp.id) || DEFAULT_DEPT_COLOR
 
                     const isHighlighted = highlightedEmployeeId === emp.id
@@ -603,23 +368,24 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
                           const visual = getCellVisual(entry, date)
                           const weekend = isWeekendDay(year, month, day)
                           const dateStr = toIsoDate(year, month, day)
+                          const hint = visual?.title || 'Нет записи'
 
                           return (
                             <td
                               key={`${emp.id}-${day}`}
                               className={`ts-cell ${weekend ? 'ts-weekend' : ''} ${getDayDowMonday(year, month, day) === 6 ? 'ts-day-end' : ''}`}
-                              onClick={() => onCellClick?.(emp.id, dateStr)}
-                              title={visual?.title || ''}
                             >
-                              {visual ? (
-                                <span className={visual.className} title={visual.title} aria-label={visual.title}>
-                                  {visual.underworkTag && <span className="ts-underwork-tag">{visual.underworkTag}</span>}
-                                  {visual.label}
-                                  {entry?.is_correction && <span className="ts-correction-dot" />}
-                                </span>
-                              ) : (
-                                <span className="ts-cell-empty">—</span>
-                              )}
+                              <button
+                                type="button"
+                                className={`ts-day-btn ${visual?.className ?? 'ts-day-empty'}`}
+                                disabled={isFutureDay(year, month, day, today)}
+                                onClick={() => openDay(emp, dateStr)}
+                                title={hint}
+                                aria-label={`${emp.full_name}, ${day}: ${hint}`}
+                              >
+                                {visual ? visual.label : '·'}
+                                {entry?.is_correction && <span className="ts-correction-dot" />}
+                              </button>
                             </td>
                           )
                         })}
@@ -662,9 +428,21 @@ export function TimesheetGrid({ employees, year, month, onCellClick }: Props) {
           employeeStats={employeeStats}
           monthNormDays={monthNormDays}
           monthNormHours={monthNormHours}
-          getCellVisual={getCellVisual}
           onToggleSection={toggleDepartment}
-          onCellClick={onCellClick}
+          onDayClick={openDay}
+        />
+      )}
+
+      {daySelection && (
+        <TimesheetDaySheet
+          employee={daySelection.employee}
+          year={year}
+          month={month}
+          date={daySelection.iso}
+          entriesByDay={timesheetByEmployee.get(daySelection.employee.id) || EMPTY_DAY_ENTRIES}
+          onClose={() => setDaySelection(null)}
+          onChangeDate={iso => setDaySelection({ employee: daySelection.employee, iso })}
+          onOpenEmployee={onSelectEmployee ? openEmployeeFromSheet : undefined}
         />
       )}
     </div>

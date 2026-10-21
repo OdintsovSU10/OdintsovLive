@@ -349,8 +349,28 @@
 .fot-table-card {
   border: 1px solid var(--border-light);
   border-radius: 14px;
-  overflow: auto;
+  overflow: hidden;
   background: var(--surface);
+}
+
+.fot-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.fot-table-head h3 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.fot-table-scroll {
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .fot-table {
@@ -504,6 +524,11 @@
 .fot-employee-cell .raise {
   color: var(--text-muted);
   font-size: 0.62rem;
+}
+
+/* В плоском списке подразделение — рядом с должностью, без переноса */
+.fot-employee-cell .fot-employee-dept {
+  white-space: nowrap;
 }
 
 .fot-employee-row td:nth-child(5) small {

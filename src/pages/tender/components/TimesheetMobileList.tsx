@@ -1,21 +1,7 @@
 import type { FC } from 'react'
 import type { EmployeeWithStats, TimesheetEntry } from '../types'
-
-export interface ITimesheetCellVisual {
-  label: string
-  className: string
-  title: string
-  underworkTag?: string
-}
-
-export interface ITimesheetEmployeeStats {
-  workDays: number
-  remoteDays: number
-  vacationDays: number
-  weekendDays: number
-  totalHours: number
-  overtimeHours: number
-}
+import { EMPTY_TIMESHEET_STATS, getCellVisual } from '../utils/timesheetCells'
+import type { ITimesheetEmployeeStats } from '../utils/timesheetCells'
 
 // Секция списка: подразделение (title) или единый плоский список (title = null)
 export interface ITimesheetSection {
@@ -30,6 +16,8 @@ export interface ITimesheetMobileDay {
   iso: string
   dowName: string
   weekend: boolean
+  // День позже сегодняшнего: не открывается
+  future: boolean
 }
 
 export interface ITimesheetMobileListProps {
@@ -41,18 +29,8 @@ export interface ITimesheetMobileListProps {
   employeeStats: Map<number, ITimesheetEmployeeStats>
   monthNormDays: number
   monthNormHours: number
-  getCellVisual: (entry: TimesheetEntry | undefined, date: Date) => ITimesheetCellVisual | null
   onToggleSection: (key: string) => void
-  onCellClick?: (employeeId: number, date: string) => void
-}
-
-const EMPTY_STATS: ITimesheetEmployeeStats = {
-  workDays: 0,
-  remoteDays: 0,
-  vacationDays: 0,
-  weekendDays: 0,
-  totalHours: 0,
-  overtimeHours: 0
+  onDayClick: (employee: EmployeeWithStats, date: string) => void
 }
 
 const DEFAULT_COLOR = 'var(--text-secondary)'
@@ -66,13 +44,12 @@ export const TimesheetMobileList: FC<ITimesheetMobileListProps> = ({
   employeeStats,
   monthNormDays,
   monthNormHours,
-  getCellVisual,
   onToggleSection,
-  onCellClick
+  onDayClick
 }) => {
   const renderCard = (emp: EmployeeWithStats) => {
     const timesheetMap = timesheetByEmployee.get(emp.id) || new Map<number, TimesheetEntry>()
-    const stats = employeeStats.get(emp.id) || EMPTY_STATS
+    const stats = employeeStats.get(emp.id) || EMPTY_TIMESHEET_STATS
     const color = employeeColors.get(emp.id) || DEFAULT_COLOR
     const totalWorkedDays = stats.workDays + stats.weekendDays
     const isDaysOverNorm = totalWorkedDays > monthNormDays
@@ -118,31 +95,27 @@ export const TimesheetMobileList: FC<ITimesheetMobileListProps> = ({
         </div>
 
         <div className="ts-mobile-week-strip">
-          {days.map(({ day, date, iso, dowName, weekend }) => {
+          {days.map(({ day, date, iso, dowName, weekend, future }) => {
             const entry = timesheetMap.get(day)
             const visual = getCellVisual(entry, date)
+            const hint = visual?.title || 'Нет записи'
 
             return (
               <button
                 key={`${emp.id}-${day}`}
                 type="button"
-                className={`ts-mobile-day-cell ${weekend ? 'is-weekend' : ''}`}
-                onClick={() => onCellClick?.(emp.id, iso)}
-                title={visual?.title || ''}
+                className={`ts-mobile-day-cell ${weekend ? 'is-weekend' : ''} ${visual?.className ?? 'ts-day-empty'}`}
+                disabled={future}
+                onClick={() => onDayClick(emp, iso)}
+                title={hint}
+                aria-label={`${dowName}, ${day}: ${hint}`}
               >
                 <span className="ts-mobile-day-label">
                   <span>{dowName}</span>
                   <span>{day}</span>
                 </span>
-                {visual ? (
-                  <span className={visual.className} title={visual.title} aria-label={visual.title}>
-                    {visual.underworkTag && <span className="ts-underwork-tag">{visual.underworkTag}</span>}
-                    {visual.label}
-                    {entry?.is_correction && <span className="ts-correction-dot" />}
-                  </span>
-                ) : (
-                  <span className="ts-cell-empty">—</span>
-                )}
+                <span className="ts-mobile-day-value">{visual ? visual.label : '·'}</span>
+                {entry?.is_correction && <span className="ts-correction-dot" />}
               </button>
             )
           })}

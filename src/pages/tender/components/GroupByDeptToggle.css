@@ -1,0 +1,55 @@
+/* Переключатель «По подразделениям» — в стиле кнопок панели Табеля */
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.group-toggle[aria-pressed='true'] {
+  color: var(--text-primary);
+}
+
+.group-toggle-box {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 4px;
+  color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.group-toggle[aria-pressed='true'] .group-toggle-box {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--bg-secondary);
+}
+
+@media (max-width: 640px) {
+  .group-toggle {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-toggle,
+  .group-toggle-box {
+    transition: none;
+  }
+}

@@ -1,10 +1,12 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import type { EmployeeWithStats, SalaryCalculation } from '../types'
+import { useEffect, useMemo, useState } from 'react'
+import type { EmployeeWithStats } from '../types'
 import { calculateSalary, formatMoney, getSalaryForMonth } from '../utils/salaryCalculator'
 import { getWorkDaysNorm } from '../../../lib/workNorms'
 import { getEmployeeInitials, getEmployeeShortName, getPositionPriority } from '../utils/tenderPresentation'
 import { useLivePayroll } from '../hooks/useLivePayroll'
 import { FotSummaryBar, type FotGrowthTone } from './FotSummaryBar'
+import { FotEmployeesTable, type DepartmentPayrollGroup, type EmployeePayrollRow } from './FotEmployeesTable'
+import { GroupByDeptToggle, useGroupByDept } from './GroupByDeptToggle'
 import {
   calculateMonthlyPayrollPlan,
   getLivePayrollAccrualColor,
@@ -21,38 +23,6 @@ interface Props {
   year: number
   month: number
   onSelectEmployee?: (employee: EmployeeWithStats) => void
-}
-
-interface EmployeePayrollRow {
-  employee: EmployeeWithStats
-  shortName: string
-  initials: string
-  department: string
-  salaryForMonth: number
-  monthlyBonus: number
-  extraBonus: number
-  bonusTotal: number
-  calculation: SalaryCalculation
-  dailyRate: number
-  workedDays: number
-  shareOfTotal: number
-}
-
-interface DepartmentPayrollGroup {
-  name: string
-  color: string
-  employees: EmployeePayrollRow[]
-  count: number
-  totals: {
-    salary: number
-    calculatedWorkPay: number
-    weekendPay: number
-    transportPay: number
-    bonus: number
-    final: number
-    weekendWorked: number
-    workedDays: number
-  }
 }
 
 // Палитра рядов — только через токены темы
@@ -85,6 +55,7 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
     parseExtraBonuses(localStorage.getItem(getExtraBonusKey(year, month)))
   ))
   const [expandedDepartments, setExpandedDepartments] = useState<Record<string, boolean>>({})
+  const [groupByDept, setGroupByDept] = useGroupByDept('tender.fot.groupByDept')
 
   // Подтягиваем единую ставку проезда из БД
   useEffect(() => {
@@ -280,6 +251,10 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
     void saveTransportSetting(safeValue)
   }
 
+  const handleToggleDepartment = (name: string, nextExpanded: boolean) => {
+    setExpandedDepartments(previous => ({ ...previous, [name]: nextExpanded }))
+  }
+
   const handleExtraBonusChange = (employeeId: number, value: number) => {
     const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0
     setExtraBonuses(previous => {
@@ -378,111 +353,23 @@ export function DepartmentFOT({ employees, year, month, onSelectEmployee }: Prop
       </div>
 
       <section className="fot-table-card">
-        <table className="fot-table">
-          <thead>
-            <tr>
-              <th>ФИО</th>
-              <th>Ставка/день</th>
-              <th>Раб. дни</th>
-              <th>Вых.</th>
-              <th>Оклад</th>
-              <th>За вых.</th>
-              <th>Проезд</th>
-              <th>Бонус</th>
-              <th>Доля от ФОТ</th>
-              <th>Итого</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="fot-grand-total-row">
-              <td>Итого</td>
-              <td />
-              <td className="mono">—</td>
-              <td className="mono">—</td>
-              <td>{formatMoney(payrollData.totals.salary)}</td>
-              <td>{formatMoney(payrollData.totals.weekendPay)}</td>
-              <td>{formatMoney(payrollData.totals.transportPay)}</td>
-              <td>{formatMoney(payrollData.totals.bonus)}</td>
-              <td />
-              <td className="final">{formatMoney(payrollData.totals.final)}</td>
-            </tr>
-
-            {payrollData.groups.map(group => {
-              const isExpanded = expandedDepartments[group.name] !== false
-
-              return (
-                <Fragment key={`group-${group.name}`}>
-                  <tr
-                    key={`dept-${group.name}`}
-                    className="fot-department-row"
-                    onClick={() => setExpandedDepartments(previous => ({ ...previous, [group.name]: !isExpanded }))}
-                  >
-                    <td>
-                      <div className="fot-department-cell">
-                        <span className={`toggle ${isExpanded ? 'open' : ''}`}>▼</span>
-                        <span className="line" style={{ background: group.color }} />
-                        <strong>{group.name}</strong>
-                        <small>({group.count})</small>
-                      </div>
-                    </td>
-                    <td />
-                    <td className="mono">—</td>
-                    <td className="mono">—</td>
-                    <td>{formatMoney(group.totals.salary)}</td>
-                    <td>{formatMoney(group.totals.weekendPay)}</td>
-                    <td>{formatMoney(group.totals.transportPay)}</td>
-                    <td>{formatMoney(group.totals.bonus)}</td>
-                    <td />
-                    <td className="final" style={{ color: group.color }}>{formatMoney(group.totals.final)}</td>
-                  </tr>
-
-                  {isExpanded && group.employees.map(row => (
-                    <tr key={row.employee.id} className="fot-employee-row">
-                      <td>
-                        <div className="fot-employee-cell">
-                          <span className="avatar" style={{ color: group.color }}>{row.initials}</span>
-                          <button
-                            type="button"
-                            className="name-btn"
-                            onClick={() => onSelectEmployee?.(row.employee)}
-                          >
-                            {row.shortName}
-                          </button>
-                          <span className="raise">
-                            {row.employee.position}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="mono">{formatMoney(row.dailyRate)}</td>
-                      <td className="mono">{row.workedDays}<span>/</span>{workDaysNorm}</td>
-                      <td className="mono">{row.calculation.weekend_work_days}<span>/</span>{weekendsNorm}</td>
-                      <td className="mono">
-                        {formatMoney(row.salaryForMonth)}
-                        {row.monthlyBonus > 0 && <small>вкл. ежемес. {formatMoney(row.monthlyBonus)}</small>}
-                      </td>
-                      <td className="mono">{row.calculation.weekend_payment > 0 ? formatMoney(row.calculation.weekend_payment) : '—'}</td>
-                      <td className="mono">{formatMoney(row.calculation.transport_payment)}</td>
-                      <td>
-                        <div className="fot-bonus-editor">
-                          <input
-                            type="number"
-                            value={row.extraBonus || ''}
-                            onChange={event => handleExtraBonusChange(row.employee.id, Number(event.target.value))}
-                            placeholder="0"
-                          />
-                        </div>
-                      </td>
-                      <td>
-                        <span className="fot-share-percent">{row.shareOfTotal}%</span>
-                      </td>
-                      <td className="final">{formatMoney(row.calculation.final_salary)}</td>
-                    </tr>
-                  ))}
-                </Fragment>
-              )
-            })}
-          </tbody>
-        </table>
+        <div className="fot-table-head">
+          <h3 className="fot-card-title-strong">Сотрудники</h3>
+          <GroupByDeptToggle checked={groupByDept} onChange={setGroupByDept} />
+        </div>
+        <div className="fot-table-scroll">
+          <FotEmployeesTable
+            groups={payrollData.groups}
+            totals={payrollData.totals}
+            groupByDept={groupByDept}
+            expandedDepartments={expandedDepartments}
+            workDaysNorm={workDaysNorm}
+            weekendsNorm={weekendsNorm}
+            onToggleDepartment={handleToggleDepartment}
+            onSelectEmployee={onSelectEmployee}
+            onExtraBonusChange={handleExtraBonusChange}
+          />
+        </div>
       </section>
     </div>
   )
