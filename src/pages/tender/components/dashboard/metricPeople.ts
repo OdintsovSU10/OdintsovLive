@@ -1,5 +1,5 @@
 import type { EmployeeWithStats } from '../../types'
-import { countMissingTimesheetDays } from './dashboardMetrics'
+import { countMissingTimesheetDays, getPercentTone, OVERTIME_ATTENTION_HOURS } from './dashboardMetrics'
 import { formatHours, formatNumber, formatPercent } from './dashboardFormat'
 import type { IEmployeeTrend, StatusCounts } from './dashboardTypes'
 import { isTodayKind, TODAY_METRIC_TITLES, type TodayMetricKind } from './todayPeople'
@@ -9,11 +9,22 @@ export type AttendanceStatusKey = 'work' | 'remote' | 'vacation' | 'sick' | 'abs
 
 export type MetricKind = 'attendance' | 'missed' | 'overtime' | 'unfilled' | `status:${AttendanceStatusKey}` | TodayMetricKind
 
+// Тон акцента: ok — норма, warn — внимание, bad — критично, info — нейтральная причина, muted — фон
+export type MetricTone = 'ok' | 'warn' | 'bad' | 'info' | 'muted'
+
+export interface IMetricTag {
+  text: string
+  tone?: MetricTone
+}
+
 export interface IMetricPerson {
   employee: EmployeeWithStats
   subdivision: string
   value: string
-  detail?: string
+  // Тон значения справа и цветной полосы слева
+  valueTone?: MetricTone
+  // Чипы под именем
+  tags?: IMetricTag[]
   // Порядок по возрастанию: у «чем больше, тем выше» значение со знаком минус
   sort: number
 }
@@ -32,6 +43,16 @@ export const getStatusDays = (counts: StatusCounts, key: AttendanceStatusKey): n
   if (key === 'work') return counts.work + counts.sick_worked
   if (key === 'vacation') return counts.vacation + counts.educational_leave
   return counts[key]
+}
+
+// Тон значения в окнах «Посещаемость за месяц»
+const STATUS_TONES: Record<AttendanceStatusKey, MetricTone> = {
+  work: 'ok',
+  remote: 'info',
+  vacation: 'info',
+  sick: 'info',
+  absent: 'bad',
+  unpaid: 'warn'
 }
 
 const METRIC_TITLES: Record<'attendance' | 'missed' | 'overtime' | 'unfilled', string> = {
@@ -73,30 +94,40 @@ export function buildMetricPeople(
       result.push({
         ...base,
         value: formatPercent(percent),
-        detail: `${formatNumber(latest.workedWeekdays)} из ${formatNumber(latest.normWorkdays)} дн`,
+        valueTone: getPercentTone(percent),
+        tags: [{ text: `${formatNumber(latest.workedWeekdays)} из ${formatNumber(latest.normWorkdays)} дн`, tone: 'muted' }],
         sort: percent
       })
     } else if (kind === 'missed') {
       const { absent, unpaid, sick } = latest.statusCounts
       const days = absent + unpaid + sick
       if (days <= 0) continue
-      const parts = [
-        absent > 0 ? `прогул ${absent}` : null,
-        sick > 0 ? `больничный ${sick}` : null,
-        unpaid > 0 ? `за свой счёт ${unpaid}` : null
-      ].filter((part): part is string => part !== null)
-      result.push({ ...base, value: formatDays(days), detail: parts.join(' · '), sort: -days })
+      const tags: IMetricTag[] = []
+      if (absent > 0) tags.push({ text: `прогул ${absent}`, tone: 'bad' })
+      if (sick > 0) tags.push({ text: `больничный ${sick}`, tone: 'info' })
+      if (unpaid > 0) tags.push({ text: `за свой счёт ${unpaid}`, tone: 'warn' })
+      result.push({ ...base, value: formatDays(days), valueTone: 'bad', tags, sort: -days })
     } else if (kind === 'overtime') {
       if (latest.overtime <= 0) continue
-      result.push({ ...base, value: `${formatHours(latest.overtime)} ч`, sort: -latest.overtime })
+      result.push({
+        ...base,
+        value: `${formatHours(latest.overtime)} ч`,
+        valueTone: latest.overtime > OVERTIME_ATTENTION_HOURS ? 'warn' : 'muted',
+        sort: -latest.overtime
+      })
     } else if (kind === 'unfilled') {
       const missing = countMissingTimesheetDays(employee, year, month)
       if (missing <= 0) continue
-      result.push({ ...base, value: formatDays(missing), sort: -missing })
+      result.push({ ...base, value: formatDays(missing), valueTone: 'warn', sort: -missing })
     } else if (kind.startsWith('status:')) {
       const days = getStatusDays(latest.statusCounts, kind.slice('status:'.length) as AttendanceStatusKey)
       if (days <= 0) continue
-      result.push({ ...base, value: formatDays(days), sort: -days })
+      result.push({
+        ...base,
+        value: formatDays(days),
+        valueTone: STATUS_TONES[kind.slice('status:'.length) as AttendanceStatusKey],
+        sort: -days
+      })
     }
   }
 

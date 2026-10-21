@@ -5,7 +5,7 @@ import { MONTH_NAMES } from '../../utils/employeeFormat'
 import { pluralize } from './dashboardFormat'
 import type { IEmployeeTrend } from './dashboardTypes'
 import { buildMetricPeople, getMetricTitle, type MetricKind } from './metricPeople'
-import { buildTodayPeople, isTodayKind, type ITodayPeopleInput } from './todayPeople'
+import { buildTodayPeople, getLateSummary, isTodayKind, type ITodayPeopleInput } from './todayPeople'
 
 interface IMetricPeopleSheetProps {
   kind: MetricKind
@@ -34,6 +34,8 @@ export const MetricPeopleSheet: FC<IMetricPeopleSheetProps> = ({
     return todayData ? buildTodayPeople(kind, trends, todayData) : []
   }, [kind, month, todayData, trends, year])
 
+  const lateSummary = kind === 'today:late' ? getLateSummary(people) : null
+
   return (
     <BottomSheet
       variant="modal"
@@ -47,25 +49,39 @@ export const MetricPeopleSheet: FC<IMetricPeopleSheetProps> = ({
         <>
           <p className="dash-metric-lead">
             {people.length} {pluralize(people.length, 'сотрудник', 'сотрудника', 'сотрудников')}
+            {lateSummary ? ` · ${lateSummary}` : ''}
           </p>
           <ul className="dash-metric-list">
             {people.map(person => (
               <li key={person.employee.id}>
                 <button
                   type="button"
-                  className="dash-metric-item"
+                  className={`dash-metric-item${person.valueTone ? ` dash-metric-item--${person.valueTone}` : ''}`}
                   onClick={() => {
                     onClose()
                     onSelectEmployee(person.employee)
                   }}
                 >
-                  <span className="dash-metric-main">
+                  <span className="dash-metric-top">
                     <span className="dash-metric-name">{person.employee.full_name}</span>
-                    <span className="dash-metric-sub">
-                      {person.detail ? `${person.subdivision} · ${person.detail}` : person.subdivision}
+                    <span className={`dash-metric-value dash-metric-value--${person.valueTone ?? 'none'}`}>
+                      {person.value}
                     </span>
                   </span>
-                  <span className="dash-metric-value">{person.value}</span>
+                  <span className="dash-metric-sub">
+                    {person.employee.position}
+                    {person.employee.position && person.subdivision ? ' · ' : ''}
+                    <span className="dash-metric-subdivision">{person.subdivision}</span>
+                  </span>
+                  {person.tags && person.tags.length > 0 && (
+                    <span className="dash-metric-tags">
+                      {person.tags.map(tag => (
+                        <span key={tag.text} className={`dash-metric-tag dash-metric-tag--${tag.tone ?? 'muted'}`}>
+                          {tag.text}
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
