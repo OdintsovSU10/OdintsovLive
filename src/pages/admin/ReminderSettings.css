@@ -47,6 +47,7 @@
 
 .reminder-group input[type='number'],
 .reminder-group input[type='time'],
+.reminder-group input[type='date'],
 .reminder-group select {
   width: 100%;
   min-width: 0;

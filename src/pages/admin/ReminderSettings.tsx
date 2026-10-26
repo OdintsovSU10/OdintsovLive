@@ -56,6 +56,10 @@ export default function ReminderSettings() {
     setSettings(current => ({ ...current, daily: { ...current.daily, ...patch } }))
   }
 
+  const updateLife = (patch: Partial<IReminderSettings['life']>) => {
+    setSettings(current => ({ ...current, life: { ...current.life, ...patch } }))
+  }
+
   const toggleCheck = (key: string, value: boolean) => {
     setSettings(current => ({
       ...current,
@@ -97,7 +101,7 @@ export default function ReminderSettings() {
 
   const busy = loading || saving
   const changed = JSON.stringify(settings) !== JSON.stringify(saved)
-  const { meters, todos, daily } = settings
+  const { meters, todos, daily, life } = settings
 
   return (
     <div className="fot-token-settings reminder-settings">
@@ -232,6 +236,18 @@ export default function ReminderSettings() {
                 <span>{label}</span>
               </label>
             ))}
+          </div>
+          <div className="reminder-field">
+            <label htmlFor="reminder-birth-date" className="reminder-field-label">Дата рождения</label>
+            <input
+              id="reminder-birth-date"
+              type="date"
+              min="1900-01-01"
+              value={life.birthDate}
+              onChange={event => updateLife({ birthDate: event.target.value })}
+              disabled={busy}
+            />
+            <p className="fot-token-help">Для картинки «недели жизни»</p>
           </div>
           <p className="fot-token-help">Эти проверки бот делает только в окне между «Не раньше» и «Не позже».</p>
         </section>

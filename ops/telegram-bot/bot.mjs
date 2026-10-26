@@ -6,8 +6,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { createEntry, createRest, emptyContext, executeTools, loadContext, parseSalaryCallback, undoEntry } from './actions.mjs'
+import { createEntry, createRest, emptyContext, executeTools, loadContext, nowInZone, parseSalaryCallback, undoEntry } from './actions.mjs'
 import { askLlm, transcribe } from './llm.mjs'
+import { sendLifeWeeks } from './lifeWeeks.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { normalizeReminderSettings } from './reminderSettings.mjs'
@@ -40,6 +41,7 @@ const HELP = `Пиши как есть, я разложу по разделам 
 • голосовое — то же самое, только вслух
 • фото счётчиков — показания уйдут в «Аренду»
 • CSV-выписка банка файлом — импортирую операции в «Траты»
+• /weeks — твоя жизнь в неделях (картинка)
 Под каждой записью — кнопка «Отменить».`
 
 const log = (...args) => console.log(new Date().toISOString(), ...args)
@@ -218,6 +220,19 @@ const createBot = config => {
     }
     if (msg.text === '/start' || msg.text === '/help') {
       await reply(msg, HELP)
+      return
+    }
+    if (msg.text === '/weeks') {
+      const birthDate = config.reminders?.life?.birthDate
+      if (!birthDate) {
+        await reply(msg, 'Укажи дату рождения на сайте: Админка → Telegram-бот → Напоминания')
+        return
+      }
+      try {
+        await sendLifeWeeks(config, birthDate, nowInZone(config.timeZone).today)
+      } catch (err) {
+        await reply(msg, `Не получилось отправить картинку: ${err.message || err}`)
+      }
       return
     }
 

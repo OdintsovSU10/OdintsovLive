@@ -5,6 +5,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { nowInZone } from './actions.mjs'
 import { DEFAULT_REMINDER_SETTINGS } from './reminderSettings.mjs'
 import { askNextTransferNote } from './transferNotes.mjs'
+import { lifeWeeksCheck } from './lifeWeeks.mjs'
 import { budgetLimits, insuranceExpiring, morningBrief, serviceSoon, weeklyDigest } from './notify.mjs'
 
 const TICK_MS = 10 * 60_000
@@ -27,6 +28,7 @@ const CHECKS = [
   // эти проверки шлют сами и помнят отправленное в базе (notify.mjs), поэтому текст не возвращают
   { key: 'morning', repeatDays: 0, run: morningBrief },
   { key: 'weekly', repeatDays: 0, run: weeklyDigest },
+  { key: 'life-weeks', repeatDays: 0, run: lifeWeeksCheck },
   { key: 'budget-limits', repeatDays: 0, run: budgetLimits },
   { key: 'service-soon', repeatDays: 0, run: serviceSoon },
   { key: 'insurance', repeatDays: 0, run: insuranceExpiring },
