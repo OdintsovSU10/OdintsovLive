@@ -48,6 +48,7 @@
 .reminder-group input[type='number'],
 .reminder-group input[type='time'],
 .reminder-group input[type='date'],
+.reminder-group input[type='text'],
 .reminder-group select {
   width: 100%;
   min-width: 0;
@@ -167,6 +168,41 @@
   gap: 2px;
 }
 
+/* памятные даты: на узком экране дата и название в две строки, от 600px — в одну */
+.life-event-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 44px;
+  grid-template-areas:
+    'dot date remove'
+    'label label label';
+  align-items: center;
+  gap: 8px;
+}
+
+.life-event-dot {
+  grid-area: dot;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.life-event-date {
+  grid-area: date;
+}
+
+.life-event-label {
+  grid-area: label;
+}
+
+.reminder-group .life-event-label .ui-clearable-input {
+  padding-right: 44px;
+}
+
+.life-event-remove {
+  grid-area: remove;
+}
+
 .reminder-check {
   display: flex;
   align-items: center;
@@ -213,6 +249,11 @@
 
   .reminder-checks {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .life-event-row {
+    grid-template-columns: 14px 170px minmax(0, 1fr) 44px;
+    grid-template-areas: 'dot date label remove';
   }
 }
 

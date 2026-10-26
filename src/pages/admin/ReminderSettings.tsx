@@ -9,6 +9,7 @@ import {
   validateReminderSettings,
   type IReminderSettings
 } from './reminderDefaults'
+import LifeEvents from './LifeEvents'
 import ReminderOffsets from './ReminderOffsets'
 import ReminderTimeList from './ReminderTimeList'
 import './ReminderSettings.css'
@@ -249,6 +250,11 @@ export default function ReminderSettings() {
             />
             <p className="fot-token-help">Для картинки «недели жизни»</p>
           </div>
+          <LifeEvents
+            events={life.events}
+            disabled={busy}
+            onChange={events => updateLife({ events })}
+          />
           <p className="fot-token-help">Эти проверки бот делает только в окне между «Не раньше» и «Не позже».</p>
         </section>
       </div>

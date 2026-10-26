@@ -10,8 +10,8 @@ export const DEFAULT_REMINDER_SETTINGS = {
     toHour: 21,
     checks: Object.fromEntries(CHECK_KEYS.map(key => [key, true]))
   },
-  // дата рождения для картинки «недели жизни»; пусто — картинка отключена
-  life: { birthDate: '' }
+  // дата рождения для картинки «недели жизни» (пусто — картинка отключена) и памятные даты на ней
+  life: { birthDate: '', events: [] }
 }
 
 const MAX_OFFSETS = 5
@@ -20,6 +20,8 @@ const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MIN_BIRTH_DATE = '1900-01-01'
 const DAY_MS = 24 * 60 * 60 * 1000
+const MAX_LIFE_EVENTS = 6
+const MAX_EVENT_LABEL = 40
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const asBool = (value, fallback) => (typeof value === 'boolean' ? value : fallback)
@@ -33,6 +35,27 @@ const asBirthDate = value => {
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return ''
   if (value < MIN_BIRTH_DATE || date.getTime() > Date.now() + DAY_MS) return ''
   return value
+}
+
+// YYYY-MM-DD: реальная дата не раньше 1900 (будущее допустимо) — иначе ''
+const asEventDate = value => {
+  if (typeof value !== 'string' || !DATE_RE.test(value) || value < MIN_BIRTH_DATE) return ''
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : ''
+}
+
+// Памятные даты: только с реальной датой и непустым названием, по возрастанию даты, не больше MAX_LIFE_EVENTS
+const asLifeEvents = value => {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(isObject)
+    .map(item => ({
+      date: asEventDate(item.date),
+      label: typeof item.label === 'string' ? item.label.trim().slice(0, MAX_EVENT_LABEL).trim() : ''
+    }))
+    .filter(item => item.date && item.label)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    .slice(0, MAX_LIFE_EVENTS)
 }
 
 // Список времён: невалидные отбрасываются, остальные по возрастанию без дублей; не массив — по умолчанию
@@ -80,6 +103,6 @@ export const normalizeReminderSettings = raw => {
       toHour,
       checks: Object.fromEntries(CHECK_KEYS.map(key => [key, asBool(checks[key], true)]))
     },
-    life: { birthDate: asBirthDate(life.birthDate) }
+    life: { birthDate: asBirthDate(life.birthDate), events: asLifeEvents(life.events) }
   }
 }
