@@ -4,7 +4,7 @@ import { ClearableInput } from '../components/ui/ClearableInput'
 import { Toast } from '../components/ui/Toast'
 import { useToast } from '../hooks/useToast'
 import { TodoRow } from './todo/TodoRow'
-import { getMoscowToday, sortOpen, toMoscowISO } from './todo/todoDates'
+import { getMoscowToday, localToMoscowISO, sortOpen } from './todo/todoDates'
 import type { TodoItem } from './todo/types'
 import { useTodos } from './todo/useTodos'
 import './TodoPage.css'
@@ -17,6 +17,7 @@ export default function TodoPage() {
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState('')
+  const [remindAt, setRemindAt] = useState('')
   const [adding, setAdding] = useState(false)
   const [doneOpen, setDoneOpen] = useState(false)
 
@@ -32,12 +33,13 @@ export default function TodoPage() {
 
     setAdding(true)
     const date = dueDate || (dueTime ? today : '')
-    const ok = await add(trimmed, date || null, dueTime ? toMoscowISO(date, dueTime) : null)
+    const ok = await add(trimmed, date || null, remindAt ? localToMoscowISO(remindAt) : null)
     setAdding(false)
     if (!ok) return failToast('Не удалось добавить')
     setTitle('')
     setDueDate('')
     setDueTime('')
+    setRemindAt('')
   }
 
   const handleToggle = async (item: TodoItem) => {
@@ -109,6 +111,15 @@ export default function TodoPage() {
               type="time"
               value={dueTime}
               onChange={event => setDueTime(event.target.value)}
+            />
+          </label>
+          <label className="todo-date-field">
+            <span>Напомнить (необязательно)</span>
+            <input
+              className="todo-input todo-date-input"
+              type="datetime-local"
+              value={remindAt}
+              onChange={event => setRemindAt(event.target.value)}
             />
           </label>
           <button type="submit" className="todo-add-btn" disabled={!title.trim() || adding}>

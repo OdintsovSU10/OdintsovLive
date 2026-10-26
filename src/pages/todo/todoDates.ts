@@ -46,6 +46,23 @@ export function toMoscowISO(date: string, time: string): string {
   return `${date}T${time}:00+03:00`
 }
 
+// datetime-local «YYYY-MM-DDTHH:MM» (московское время) → ISO со смещением +03:00
+export function localToMoscowISO(dtLocal: string): string {
+  return dtLocal + ':00+03:00'
+}
+
+// ISO → «YYYY-MM-DDTHH:MM» в московском часовом поясе (для datetime-local)
+export function moscowToLocal(iso: string): string {
+  const dt = new Date(iso)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIME_ZONE,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(dt)
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`
+}
+
 // ЧЧ:ММ по Москве
 export function moscowTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('ru-RU', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit' })

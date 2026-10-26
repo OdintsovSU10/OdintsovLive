@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Bell, Check, Mic, Trash2, X } from 'lucide-react'
 import { ClearableInput } from '../../components/ui/ClearableInput'
-import { formatDueLabel, formatRemindLabel, isOverdue, moscowTime, toMoscowISO } from './todoDates'
+import { formatDueLabel, formatRemindLabel, isOverdue, localToMoscowISO, moscowTime, moscowToLocal } from './todoDates'
 import type { TodoItem } from './types'
 
 interface Props {
@@ -19,11 +19,13 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
   const [title, setTitle] = useState(item.title)
   const [dueDate, setDueDate] = useState(item.due_date ?? '')
   const [dueTime, setDueTime] = useState(item.remind_at ? moscowTime(item.remind_at) : '')
+  const [remindAt, setRemindAt] = useState(item.remind_at ? moscowToLocal(item.remind_at) : '')
 
   const startEdit = () => {
     setTitle(item.title)
     setDueDate(item.due_date ?? '')
     setDueTime(item.remind_at ? moscowTime(item.remind_at) : '')
+    setRemindAt(item.remind_at ? moscowToLocal(item.remind_at) : '')
     setEditing(true)
   }
 
@@ -32,7 +34,7 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
     const trimmed = title.trim()
     if (!trimmed) return
     const date = dueDate || (dueTime ? today : '')
-    const ok = await onSave(item, trimmed, date || null, dueTime ? toMoscowISO(date, dueTime) : null)
+    const ok = await onSave(item, trimmed, date || null, remindAt ? localToMoscowISO(remindAt) : null)
     if (ok) setEditing(false)
   }
 
@@ -72,6 +74,7 @@ export const TodoRow = ({ item, today, onToggle, onDelete, onSave }: Props) => {
                 onChange={event => setDueTime(event.target.value)}
               />
             </div>
+            <input className="todo-input todo-date-input" type="datetime-local" value={remindAt} aria-label="Напомнить" onChange={event => setRemindAt(event.target.value)} />
             <button type="submit" className="todo-icon-btn" aria-label="Сохранить" disabled={!title.trim()}>
               <Check size={20} strokeWidth={1.5} />
             </button>
