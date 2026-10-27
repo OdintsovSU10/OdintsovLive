@@ -4,6 +4,7 @@ import { BotFeedCard } from './home/BotFeedCard'
 import { CarSummaryCard } from './home/CarSummaryCard'
 import { ExpensesCard } from './home/ExpensesCard'
 import { HomeClock } from './home/HomeClock'
+import { LifeWeeksCard } from './home/LifeWeeksCard'
 import { RentCard } from './home/RentCard'
 import { SalaryCard } from './home/SalaryCard'
 import { useSalarySummary } from './home/useSalarySummary'
@@ -29,6 +30,7 @@ export default function HomePage({ userId }: Props) {
           <ExpensesCard userId={userId} />
           <WorkDaysCard summary={salary} />
           <SalaryCard summary={salary} />
+          <LifeWeeksCard />
           <RentCard userId={userId} />
           <CarSummaryCard />
           <BotFeedCard userId={userId} />

@@ -1,0 +1,139 @@
+/* Карточка «Жизнь в неделях» на главной и сетка в листе */
+
+button.life-card {
+  align-items: stretch;
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.life-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+button.life-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Полоса: бледный градиент на всю жизнь, поверх него яркий слой до текущей недели */
+.life-bar {
+  position: relative;
+  height: 10px;
+  margin: 4px 0;
+  border-radius: 5px;
+  overflow: visible;
+}
+
+.life-bar-track,
+.life-bar-lived {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+}
+
+.life-bar-track {
+  opacity: 0.25;
+}
+
+.life-bar-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--text-primary);
+}
+
+.life-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.life-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.life-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.life-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--text-secondary);
+}
+
+.life-legend-date {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.life-legend-label {
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.ui-sheet-body .life-caption {
+  margin-top: 12px;
+}
+
+.ui-sheet-body .life-legend {
+  margin-top: 8px;
+}
+
+.life-grid {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.life-grid-label {
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .home-card.life-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.life-card {
+    transition: none;
+  }
+
+  button.life-card:hover {
+    transform: none;
+  }
+}
+
+.life-grid-current {
+  fill: var(--text-primary);
+}
+
+[data-theme="dark"] .life-grid-current {
+  fill: var(--danger);
+}
