@@ -1,13 +1,14 @@
-// «90 лет жизни в неделях»: PNG-сетка 90 строк (годы) × 52 столбца (недели) и отправка в Telegram.
+// «90 лет жизни в неделях»: PNG-сетка 90 строк (годы) × до 53 столбцов (недели) и отправка в Telegram.
+// Неделя жизни — всегда 7 дней от даты рождения, поэтому новая неделя начинается в тот же день недели, что и рождение.
 // Без зависимостей: свой PNG-энкодер (RGB, фильтр 0) и битмап-шрифт цифр 3×5.
 import zlib from 'node:zlib'
 import { fmtNum } from './actions.mjs'
 import { once } from './notify.mjs'
 
 const YEARS = 90
-const WEEKS_IN_YEAR = 52
-const TOTAL_WEEKS = YEARS * WEEKS_IN_YEAR
+const MAX_COLS = 53
 const DAY_MS = 24 * 60 * 60 * 1000
+const WEEK_MS = 7 * DAY_MS
 
 // геометрия холста
 const CELL = 10
@@ -39,7 +40,7 @@ const EVENT_COLORS = [
 ]
 const CURRENT_BORDER = 2
 
-const GRID_W = WEEKS_IN_YEAR * CELL + (WEEKS_IN_YEAR - 1) * GAP
+const GRID_W = MAX_COLS * CELL + (MAX_COLS - 1) * GAP
 const GRID_H = YEARS * CELL + (YEARS - 1) * GAP + (YEARS / 10 - 1) * DECADE_GAP
 const WIDTH = MARGIN * 2 + LABEL_W + GRID_W
 const HEIGHT = MARGIN * 2 + LABEL_H + GRID_H
@@ -122,16 +123,17 @@ const textWidth = text => text.length * CHAR_STEP - FONT_SCALE
 const cellX = col => GRID_X + col * (CELL + GAP)
 const cellY = row => GRID_Y + row * (CELL + GAP) + Math.floor(row / 10) * DECADE_GAP
 
-// marks — [{ cell, rgb }] памятных дат; при совпадении клеток побеждает первая
-export const renderLifeWeeks = (cell, marks = []) => {
+// marks — [{ week, rgb }] памятных дат; при совпадении недель побеждает первая.
+// weeksLived — номер текущей недели (0-based); раскладка по строкам зависит от даты рождения
+export const renderLifeWeeks = (birthDate, weeksLived, marks = []) => {
   const markColors = new Map()
   for (const mark of marks) {
-    if (!markColors.has(mark.cell)) markColors.set(mark.cell, mark.rgb)
+    if (!markColors.has(mark.week)) markColors.set(mark.week, mark.rgb)
   }
   const pixels = Buffer.alloc(WIDTH * HEIGHT * 3)
   fillRect(pixels, 0, 0, WIDTH, HEIGHT, COLOR_BG)
 
-  // подписи недель сверху
+  // подписи недель сверху (53-й столбец не подписываем)
   for (const week of [1, 10, 20, 30, 40, 52]) {
     const text = String(week)
     drawText(pixels, text, cellX(week - 1) + Math.round((CELL - textWidth(text)) / 2), MARGIN, COLOR_LABEL)
@@ -142,26 +144,30 @@ export const renderLifeWeeks = (cell, marks = []) => {
     drawText(pixels, text, MARGIN + LABEL_W - 4 - textWidth(text), cellY(year) + Math.round((CELL - GLYPH_H * FONT_SCALE) / 2), COLOR_LABEL)
   }
 
-  for (let i = 0; i < TOTAL_WEEKS; i++) {
-    const x = cellX(i % WEEKS_IN_YEAR)
-    const y = cellY(Math.floor(i / WEEKS_IN_YEAR))
-    const mark = markColors.get(i)
-    if (i === cell) {
-      if (mark) {
-        // текущая неделя совпала с памятной датой: красная клетка в рамке цвета даты
+  // клетка в 53-м столбце есть только у строк с 53 неделями — у остальных остаётся фон
+  const first = rowStarts(birthDate)
+  for (let row = 0; row < YEARS; row++) {
+    for (let k = first[row]; k < first[row + 1]; k++) {
+      const x = cellX(k - first[row])
+      const y = cellY(row)
+      const mark = markColors.get(k)
+      if (k === weeksLived) {
+        if (mark) {
+          // текущая неделя совпала с памятной датой: красная клетка в рамке цвета даты
+          fillRect(pixels, x, y, CELL, CELL, mark)
+          fillRect(pixels, x + CURRENT_BORDER, y + CURRENT_BORDER, CELL - CURRENT_BORDER * 2, CELL - CURRENT_BORDER * 2, COLOR_CURRENT)
+        } else {
+          fillRect(pixels, x, y, CELL, CELL, COLOR_CURRENT)
+        }
+      } else if (mark) {
         fillRect(pixels, x, y, CELL, CELL, mark)
-        fillRect(pixels, x + CURRENT_BORDER, y + CURRENT_BORDER, CELL - CURRENT_BORDER * 2, CELL - CURRENT_BORDER * 2, COLOR_CURRENT)
+      } else if (k < weeksLived) {
+        fillRect(pixels, x, y, CELL, CELL, COLOR_LIVED)
       } else {
-        fillRect(pixels, x, y, CELL, CELL, COLOR_CURRENT)
+        // контур 1 px, внутри фон
+        fillRect(pixels, x, y, CELL, CELL, COLOR_FUTURE)
+        fillRect(pixels, x + 1, y + 1, CELL - 2, CELL - 2, COLOR_BG)
       }
-    } else if (mark) {
-      fillRect(pixels, x, y, CELL, CELL, mark)
-    } else if (i < cell) {
-      fillRect(pixels, x, y, CELL, CELL, COLOR_LIVED)
-    } else {
-      // контур 1 px, внутри фон
-      fillRect(pixels, x, y, CELL, CELL, COLOR_FUTURE)
-      fillRect(pixels, x + 1, y + 1, CELL - 2, CELL - 2, COLOR_BG)
     }
   }
   return encodePng(WIDTH, HEIGHT, pixels)
@@ -181,30 +187,31 @@ const fullMonthsBetween = (birthDate, date) => {
   return Math.max(0, (ty - by) * 12 + (tm - bm) - (td < bd ? 1 : 0))
 }
 
-// Клетка сетки для даты: строка = полный возраст, столбец = неделя с последнего дня рождения (максимум 51):
-// в году 52,18 недели, и без этого клетка к 40 годам уезжает на 1,5 месяца вперёд.
-// Дата раньше рождения — -1; дальше сетки — TOTAL_WEEKS.
-export const cellOf = (birthDate, date) => {
-  if (dayStamp(date) < dayStamp(birthDate)) return -1
+// Первые недели строк: строка y (год жизни) вмещает недели, которые начинаются от дня рождения в год by+y
+// (включительно) до дня рождения в год by+y+1 (не включая); в строке 52 или 53 недели.
+// Массив из YEARS + 1 элемента: [YEARS] — всего недель в сетке. Date.UTC переносит 29.02 на 01.03 сам.
+const rowStarts = birthDate => {
   const [by, bm, bd] = birthDate.split('-').map(Number)
-  const years = Math.floor(fullMonthsBetween(birthDate, date) / 12)
-  const sinceBirthday = Math.round((dayStamp(date) - Date.UTC(by + years, bm - 1, bd)) / DAY_MS)
-  return Math.min(TOTAL_WEEKS, years * WEEKS_IN_YEAR + Math.min(WEEKS_IN_YEAR - 1, Math.floor(Math.max(0, sinceBirthday) / 7)))
+  const birth = dayStamp(birthDate)
+  return Array.from({ length: YEARS + 1 }, (_, y) => Math.ceil((Date.UTC(by + y, bm - 1, bd) - birth) / WEEK_MS))
+}
+
+// Номер недели жизни (0-based) для даты: неделя k начинается в день рождения + 7k. Дата раньше рождения — null
+export const weekOf = (birthDate, date) => {
+  const days = Math.round((dayStamp(date) - dayStamp(birthDate)) / DAY_MS)
+  return days < 0 ? null : Math.floor(days / 7)
 }
 
 export const lifeWeeksStats = (birthDate, today) => {
-  const days = Math.max(0, Math.round((dayStamp(today) - dayStamp(birthDate)) / DAY_MS))
-  const weeksLived = Math.floor(days / 7)
+  const weeksLived = weekOf(birthDate, today) ?? 0
+  const total = rowStarts(birthDate)[YEARS]
   const fullMonths = fullMonthsBetween(birthDate, today)
-  const years = Math.floor(fullMonths / 12)
-  const cell = Math.max(0, cellOf(birthDate, today))
   return {
     weeksLived,
-    cell,
     currentWeek: weeksLived + 1,
-    total: TOTAL_WEEKS,
-    percent: Math.min(100, Math.round((weeksLived / TOTAL_WEEKS) * 100)),
-    years,
+    total,
+    percent: Math.min(100, Math.round((weeksLived / total) * 100)),
+    years: Math.floor(fullMonths / 12),
     months: fullMonths % 12
   }
 }
@@ -212,12 +219,13 @@ export const lifeWeeksStats = (birthDate, today) => {
 // Памятные даты на сетке: цвет по порядку после сортировки по дате; раньше рождения и за пределами сетки пропускаются
 // (цвет при этом остаётся за своим номером — как на сайте)
 export const lifeMarks = (birthDate, events = []) => {
+  const total = rowStarts(birthDate)[YEARS]
   const sorted = [...events].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   const marks = []
   sorted.slice(0, EVENT_COLORS.length).forEach((event, index) => {
-    const cell = cellOf(birthDate, event.date)
-    if (cell < 0 || cell >= TOTAL_WEEKS) return
-    marks.push({ cell, rgb: EVENT_COLORS[index].rgb, emoji: EVENT_COLORS[index].emoji, date: event.date, label: event.label })
+    const week = weekOf(birthDate, event.date)
+    if (week === null || week >= total) return
+    marks.push({ week, rgb: EVENT_COLORS[index].rgb, emoji: EVENT_COLORS[index].emoji, date: event.date, label: event.label })
   })
   return marks
 }
@@ -256,7 +264,7 @@ export const sendLifeWeeks = async (config, birthDate, today) => {
   const form = new FormData()
   form.append('chat_id', config.ownerTelegramId)
   form.append('caption', lifeWeeksCaption(stats, marks))
-  form.append('photo', new Blob([renderLifeWeeks(stats.cell, marks)], { type: 'image/png' }), 'life-weeks.png')
+  form.append('photo', new Blob([renderLifeWeeks(birthDate, stats.weeksLived, marks)], { type: 'image/png' }), 'life-weeks.png')
   const res = await fetch(`https://api.telegram.org/bot${config.token}/sendPhoto`, {
     method: 'POST',
     body: form,
@@ -268,13 +276,11 @@ export const sendLifeWeeks = async (config, birthDate, today) => {
   }
 }
 
-// Проверка для цикла напоминаний: один раз на каждую новую клетку сетки.
-// Ключ — по клетке, а не по currentWeek: клетка отсчитывается от последнего дня рождения
-// и сдвигается в другой день недели, иначе картинка приходила бы со старой клеткой
+// Проверка для цикла напоминаний: картинка приходит раз в неделю, в день недели рождения (с началом новой недели жизни)
 export const lifeWeeksCheck = async (rest, config, today, bot) => {
   const birthDate = config.reminders?.life?.birthDate
   if (!birthDate) return null
   const stats = lifeWeeksStats(birthDate, today)
-  await once(rest, config.userId, `life-weeks:cell:${stats.cell}`, () => sendLifeWeeks(config, birthDate, today))
+  await once(rest, config.userId, `life-weeks:${stats.currentWeek}`, () => sendLifeWeeks(config, birthDate, today))
   return null
 }
