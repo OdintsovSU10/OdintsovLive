@@ -185,6 +185,8 @@
   height: 14px;
   border-radius: 50%;
   background: var(--border);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
 }
 
 .life-event-date {

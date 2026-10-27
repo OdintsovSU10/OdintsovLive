@@ -23,22 +23,60 @@ const LABEL_W = 2 * CHAR_STEP + 4
 const LABEL_H = GLYPH_H * FONT_SCALE + 6
 
 // цвета (RGB): фон и границы из Branding.md; акцент проекта (#C4A77D) на светлом фоне слабо контрастен,
-// поэтому текущая неделя — красная
+// поэтому текущая неделя — чернила проекта (тёмная сплошная клетка)
 const COLOR_BG = [0xf8, 0xf6, 0xf3]
-const COLOR_LIVED = [0x1a, 0x1a, 0x1a]
-const COLOR_CURRENT = [0xd3, 0x2f, 0x2f]
-const COLOR_FUTURE = [0xc9, 0xc3, 0xb8]
+const COLOR_INK = [0x1f, 0x1f, 0x1f]
 const COLOR_LABEL = [0x6b, 0x6b, 0x6b]
-// палитра памятных дат по порядку (красный занят текущей неделей): RGB подобран под эмодзи рядом в подписи
+// Градиент на всю жизнь (от рождения до 90 лет): опорные точки RGB равномерно по t = k / (всего недель − 1),
+// линейная интерполяция RGB между соседними. Прожитое — полный цвет, будущее — тот же цвет, но бледный
+export const LIFE_GRADIENTS = {
+  // «Времена года»: весна → лето → золото → осень → зима
+  seasons: [
+    [0xa8, 0xd8, 0x7a],
+    [0x2e, 0x9e, 0x4f],
+    [0xe8, 0xb9, 0x2f],
+    [0xd9, 0x5a, 0x2b],
+    [0x6b, 0x84, 0x9c]
+  ],
+  // «Рассвет → ночь»
+  dawn: [
+    [0xf6, 0xb7, 0xa0],
+    [0xf0, 0xb4, 0x2f],
+    [0xe8, 0x6a, 0x5c],
+    [0x9b, 0x3f, 0x8f],
+    [0x1f, 0x2d, 0x5c]
+  ],
+  // «Росток»: салатовый → зелёный → тёмный изумруд
+  sprout: [
+    [0xb5, 0xe3, 0x6b],
+    [0x3f, 0xa3, 0x4d],
+    [0x0b, 0x5d, 0x45]
+  ],
+  // viridis в обратную сторону: жёлтый → зелёный → бирюзовый → сине-фиолетовый
+  viridis: [
+    [0xfd, 0xe7, 0x25],
+    [0x5e, 0xc9, 0x62],
+    [0x21, 0x91, 0x8c],
+    [0x3b, 0x52, 0x8b],
+    [0x44, 0x01, 0x54]
+  ]
+}
+const DEFAULT_GRADIENT = 'seasons'
+// бледное будущее: контур — 45% цвета недели на фоне, заливка — 12% цвета на фоне
+const FUTURE_EDGE = 0.45
+const FUTURE_FILL = 0.12
+// палитра памятных дат по порядку: RGB подобран под эмодзи рядом в подписи
 const EVENT_COLORS = [
-  { rgb: [0xf4, 0x90, 0x0c], emoji: '🟧' },
+  { rgb: [0x3b, 0x88, 0xc3], emoji: '🟦' },
   { rgb: [0xaa, 0x8e, 0xd6], emoji: '🟪' },
-  { rgb: [0x55, 0xac, 0xee], emoji: '🟦' },
-  { rgb: [0x78, 0xb1, 0x59], emoji: '🟩' },
-  { rgb: [0xfd, 0xcb, 0x58], emoji: '🟨' },
-  { rgb: [0xc1, 0x69, 0x4f], emoji: '🟫' }
+  { rgb: [0xff, 0xff, 0xff], emoji: '⬜' },
+  { rgb: [0xc1, 0x69, 0x4f], emoji: '🟫' },
+  { rgb: [0xf4, 0x90, 0x0c], emoji: '🟧' },
+  { rgb: [0xfd, 0xcb, 0x58], emoji: '🟨' }
 ]
-const CURRENT_BORDER = 2
+// рамка клетки памятной даты (1 px чернил) и рамка текущей недели с памятной датой (2 px чернил вокруг цвета даты)
+const EVENT_BORDER = 1
+const CURRENT_EVENT_BORDER = 2
 
 const GRID_W = MAX_COLS * CELL + (MAX_COLS - 1) * GAP
 const GRID_H = YEARS * CELL + (YEARS - 1) * GAP + (YEARS / 10 - 1) * DECADE_GAP
@@ -120,12 +158,25 @@ const drawText = (pixels, text, x, y, color) => {
 
 const textWidth = text => text.length * CHAR_STEP - FONT_SCALE
 
+// цвет недели k на градиенте всей жизни (total — всего недель в сетке)
+const gradientColor = (stops, k, total) => {
+  const t = Math.min(1, Math.max(0, k / Math.max(1, total - 1))) * (stops.length - 1)
+  const i = Math.min(stops.length - 2, Math.floor(t))
+  const f = t - i
+  return stops[i].map((c, ch) => Math.round(c + (stops[i + 1][ch] - c) * f))
+}
+
+// смесь: доля amount цвета color поверх base
+const mix = (base, color, amount) => base.map((c, ch) => Math.round(c + (color[ch] - c) * amount))
+
 const cellX = col => GRID_X + col * (CELL + GAP)
 const cellY = row => GRID_Y + row * (CELL + GAP) + Math.floor(row / 10) * DECADE_GAP
 
 // marks — [{ week, rgb }] памятных дат; при совпадении недель побеждает первая.
-// weeksLived — номер текущей недели (0-based); раскладка по строкам зависит от даты рождения
-export const renderLifeWeeks = (birthDate, weeksLived, marks = []) => {
+// weeksLived — номер текущей недели (0-based); раскладка по строкам зависит от даты рождения;
+// gradient — ключ из LIFE_GRADIENTS
+export const renderLifeWeeks = (birthDate, weeksLived, marks = [], gradient = DEFAULT_GRADIENT) => {
+  const stops = LIFE_GRADIENTS[gradient] ?? LIFE_GRADIENTS[DEFAULT_GRADIENT]
   const markColors = new Map()
   for (const mark of marks) {
     if (!markColors.has(mark.week)) markColors.set(mark.week, mark.rgb)
@@ -146,27 +197,27 @@ export const renderLifeWeeks = (birthDate, weeksLived, marks = []) => {
 
   // клетка в 53-м столбце есть только у строк с 53 неделями — у остальных остаётся фон
   const first = rowStarts(birthDate)
+  const total = first[YEARS]
   for (let row = 0; row < YEARS; row++) {
     for (let k = first[row]; k < first[row + 1]; k++) {
       const x = cellX(k - first[row])
       const y = cellY(row)
       const mark = markColors.get(k)
       if (k === weeksLived) {
-        if (mark) {
-          // текущая неделя совпала с памятной датой: красная клетка в рамке цвета даты
-          fillRect(pixels, x, y, CELL, CELL, mark)
-          fillRect(pixels, x + CURRENT_BORDER, y + CURRENT_BORDER, CELL - CURRENT_BORDER * 2, CELL - CURRENT_BORDER * 2, COLOR_CURRENT)
-        } else {
-          fillRect(pixels, x, y, CELL, CELL, COLOR_CURRENT)
-        }
+        // текущая неделя — сплошные чернила; с памятной датой внутри остаётся квадрат цвета даты
+        fillRect(pixels, x, y, CELL, CELL, COLOR_INK)
+        if (mark) fillRect(pixels, x + CURRENT_EVENT_BORDER, y + CURRENT_EVENT_BORDER, CELL - CURRENT_EVENT_BORDER * 2, CELL - CURRENT_EVENT_BORDER * 2, mark)
       } else if (mark) {
-        fillRect(pixels, x, y, CELL, CELL, mark)
+        // памятная дата: рамка чернил + цвет даты внутри — читается на градиенте и на фоне
+        fillRect(pixels, x, y, CELL, CELL, COLOR_INK)
+        fillRect(pixels, x + EVENT_BORDER, y + EVENT_BORDER, CELL - EVENT_BORDER * 2, CELL - EVENT_BORDER * 2, mark)
       } else if (k < weeksLived) {
-        fillRect(pixels, x, y, CELL, CELL, COLOR_LIVED)
+        fillRect(pixels, x, y, CELL, CELL, gradientColor(stops, k, total))
       } else {
-        // контур 1 px, внутри фон
-        fillRect(pixels, x, y, CELL, CELL, COLOR_FUTURE)
-        fillRect(pixels, x + 1, y + 1, CELL - 2, CELL - 2, COLOR_BG)
+        // будущее: бледный контур 1 px цвета градиента, внутри фон с лёгким оттенком того же цвета
+        const color = gradientColor(stops, k, total)
+        fillRect(pixels, x, y, CELL, CELL, mix(COLOR_BG, color, FUTURE_EDGE))
+        fillRect(pixels, x + 1, y + 1, CELL - 2, CELL - 2, mix(COLOR_BG, color, FUTURE_FILL))
       }
     }
   }

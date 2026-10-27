@@ -50,7 +50,7 @@ export const REMINDER_CHECKS: { key: string; label: string }[] = [
 export const MAX_LIFE_EVENTS = 6
 export const MAX_LIFE_EVENT_LABEL = 40
 // Цвета памятных дат по порядку после сортировки по дате; совпадают с палитрой бота (lifeWeeks.mjs)
-export const LIFE_EVENT_COLORS = ['#f4900c', '#aa8ed6', '#55acee', '#78b159', '#fdcb58', '#c1694f']
+export const LIFE_EVENT_COLORS = ['#3b88c3', '#aa8ed6', '#ffffff', '#c1694f', '#f4900c', '#fdcb58']
 
 export const MAX_OFFSETS = 5
 export const MAX_OFFSET_MIN = 1440
