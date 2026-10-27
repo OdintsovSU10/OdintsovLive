@@ -268,11 +268,13 @@ export const sendLifeWeeks = async (config, birthDate, today) => {
   }
 }
 
-// Проверка для цикла напоминаний: один раз на каждую новую неделю жизни
+// Проверка для цикла напоминаний: один раз на каждую новую клетку сетки.
+// Ключ — по клетке, а не по currentWeek: клетка отсчитывается от последнего дня рождения
+// и сдвигается в другой день недели, иначе картинка приходила бы со старой клеткой
 export const lifeWeeksCheck = async (rest, config, today, bot) => {
   const birthDate = config.reminders?.life?.birthDate
   if (!birthDate) return null
   const stats = lifeWeeksStats(birthDate, today)
-  await once(rest, config.userId, `life-weeks:${stats.currentWeek}`, () => sendLifeWeeks(config, birthDate, today))
+  await once(rest, config.userId, `life-weeks:cell:${stats.cell}`, () => sendLifeWeeks(config, birthDate, today))
   return null
 }
