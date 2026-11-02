@@ -1,16 +1,13 @@
 .tender-shell {
   min-height: 100vh;
   padding-top: env(safe-area-inset-top);
-  background:
-    radial-gradient(circle at 15% 20%, rgba(129, 140, 248, 0.1), transparent 36%),
-    radial-gradient(circle at 85% 5%, rgba(56, 189, 248, 0.08), transparent 34%),
-    linear-gradient(160deg, #080e1a 0%, #0c1425 35%, #0f172a 100%);
-  color: #e2e8f0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .tender-shell-header {
   padding: 18px 24px 0;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.06);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .tender-shell-top {
@@ -37,21 +34,22 @@
 .tender-brand-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #818cf8, #6ee7b7);
-  color: #0f172a;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  background: transparent;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
 .tender-brand h1 {
   margin: 0;
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
   font-family: var(--font-body);
@@ -59,7 +57,7 @@
 
 .tender-brand p {
   margin: 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 0.72rem;
   font-family: var(--font-body);
 }
@@ -85,9 +83,9 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  border: 1px solid rgba(100, 116, 139, 0.32);
-  background: linear-gradient(135deg, rgba(18, 31, 56, 0.9), rgba(15, 23, 42, 0.74));
-  color: #cbd5e1;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -95,19 +93,18 @@
 }
 
 .tender-shell-icon-btn:hover {
-  border-color: rgba(129, 140, 248, 0.58);
-  color: #ffffff;
+  border-color: var(--primary);
+  color: var(--text-primary);
 }
 
 .tender-period-badge {
   padding: 8px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(94, 234, 212, 0.42);
-  background: linear-gradient(135deg, rgba(17, 43, 62, 0.88), rgba(14, 34, 49, 0.7));
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.12), 0 10px 28px rgba(20, 184, 166, 0.12);
-  color: #5eead4;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: clamp(0.92rem, 0.74rem + 0.55vw, 1.18rem);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.15;
   white-space: nowrap;
@@ -123,18 +120,18 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 1px solid rgba(100, 116, 139, 0.32);
-  background: linear-gradient(135deg, rgba(18, 31, 56, 0.9), rgba(15, 23, 42, 0.74));
-  color: #e2e8f0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .tender-month-btn:hover {
-  border-color: rgba(129, 140, 248, 0.58);
-  color: #ffffff;
+  border-color: var(--primary);
+  color: var(--text-primary);
   transform: translateY(-1px);
 }
 
@@ -176,10 +173,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px solid rgba(100, 116, 139, 0.24);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(100, 116, 139, 0.14);
-  color: #cbd5e1;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 600;
@@ -191,17 +188,17 @@
 }
 
 .tender-tab-action:hover {
-  border-color: rgba(129, 140, 248, 0.5);
+  border-color: var(--primary);
 }
 
 .tender-tab-action.primary {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.24), rgba(56, 189, 248, 0.22));
-  border-color: rgba(129, 140, 248, 0.45);
-  color: #c7d2fe;
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--accent-text);
 }
 
 .tender-tab-action.primary:hover {
-  border-color: rgba(129, 140, 248, 0.7);
+  border-color: var(--primary);
 }
 
 .tender-tab-action span {
@@ -244,7 +241,7 @@
   border-radius: 8px 8px 0 0;
   border-bottom: 2px solid transparent;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.84rem;
   font-weight: 500;
   cursor: pointer;
@@ -253,13 +250,13 @@
 }
 
 .tender-shell-tab:hover {
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 .tender-shell-tab.active {
-  color: #e2e8f0;
-  border-bottom-color: #818cf8;
-  background: rgba(100, 116, 139, 0.08);
+  color: var(--text-primary);
+  border-bottom-color: var(--primary);
+  background: var(--bg-tertiary);
 }
 
 .tender-shell-main {
@@ -358,19 +355,19 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .tender-state-container.error {
-  color: #f87171;
+  color: var(--tone-bad-text);
 }
 
 .tender-spinner {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 3px solid rgba(100, 116, 139, 0.25);
-  border-top-color: #818cf8;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   animation: tender-spin 0.7s linear infinite;
 }
 
@@ -397,15 +394,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px solid rgba(100, 116, 139, 0.14);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 9px;
   padding: 8px 12px;
   min-width: 260px;
 }
 
 .tender-search span {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tender-search input {
@@ -413,33 +410,36 @@
   outline: none;
   width: 100%;
   background: transparent;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 0.86rem;
   font-family: inherit;
 }
 
 .tender-search input::placeholder {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .tender-filter-select {
   appearance: none;
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px solid rgba(100, 116, 139, 0.14);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 9px;
-  color: #cbd5e1;
+  color: var(--text-primary);
   font-size: 0.83rem;
   padding: 8px 30px 8px 12px;
   font-family: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11'%3E%3Cpath fill='%2364758b' d='M5.5 7.8 1.2 3.5h8.6z'/%3E%3C/svg%3E");
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+    linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
+  background-size: 5px 5px;
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
   cursor: pointer;
 }
 
 .tender-filter-select:focus {
   outline: none;
-  border-color: rgba(129, 140, 248, 0.5);
+  border-color: var(--primary);
 }
 
 .tender-view-toggle {
@@ -453,36 +453,36 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.18);
-  background: rgba(15, 23, 42, 0.58);
-  color: #64748b;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 15px;
 }
 
 .tender-view-toggle button.active {
-  color: #a5b4fc;
-  border-color: rgba(129, 140, 248, 0.4);
-  background: rgba(129, 140, 248, 0.12);
+  color: var(--accent-text);
+  border-color: var(--primary);
+  background: var(--primary-light);
 }
 
 .tender-found-count {
   margin-left: auto;
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tender-found-count b {
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 .tender-empty {
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px dashed rgba(100, 116, 139, 0.3);
+  background: var(--surface);
+  border: 1px dashed var(--border);
   border-radius: 12px;
   text-align: center;
   padding: 38px 20px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tender-empty span {
@@ -502,8 +502,8 @@
 }
 
 .tender-group-section {
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px solid rgba(100, 116, 139, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 14px;
 }
@@ -518,15 +518,15 @@
 .tender-group-head h3 {
   margin: 0;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .tender-group-head span {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(100, 116, 139, 0.15);
+  background: var(--bg-tertiary);
 }
 
 .tender-employee-grid {
@@ -536,8 +536,8 @@
 }
 
 .tender-employee-card {
-  border: 1px solid rgba(100, 116, 139, 0.14);
-  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 12px;
   padding: 14px;
   color: inherit;
@@ -547,9 +547,9 @@
 }
 
 .tender-employee-card:hover {
-  border-color: rgba(129, 140, 248, 0.45);
+  border-color: var(--primary);
   transform: translateY(-1px);
-  background: rgba(15, 23, 42, 0.74);
+  background: var(--surface-hover);
 }
 
 .tender-employee-card-top {
@@ -563,11 +563,11 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.28), rgba(110, 231, 183, 0.14));
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  color: #c7d2fe;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  color: var(--accent-text);
   font-size: 0.76rem;
-  font-weight: 700;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -596,7 +596,7 @@
 .tender-employee-name {
   font-size: 0.89rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -604,7 +604,7 @@
 
 .tender-employee-role {
   font-size: 0.74rem;
-  color: #64748b;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -613,7 +613,7 @@
 .tender-employee-age-left {
   margin-top: 2px;
   font-size: 0.7rem;
-  color: #c4b5fd;
+  color: var(--text-secondary);
 }
 
 .tender-employee-meta-left {
@@ -635,15 +635,15 @@
   border-radius: 6px;
   font-size: 0.68rem;
   font-weight: 600;
-  color: #a5b4fc;
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  background: rgba(129, 140, 248, 0.13);
+  color: var(--accent-text);
+  border: 1px solid var(--primary);
+  background: var(--primary-light);
 }
 
 .tender-chip.muted {
-  color: #94a3b8;
-  border-color: rgba(100, 116, 139, 0.2);
-  background: rgba(100, 116, 139, 0.08);
+  color: var(--text-secondary);
+  border-color: var(--border);
+  background: var(--bg-tertiary);
 }
 
 .tender-employee-stats {
@@ -659,51 +659,51 @@
   gap: 3px;
   padding: 7px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(100, 116, 139, 0.2);
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
 }
 
 .tender-employee-stat-block small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.58rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .tender-employee-stat-block b {
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 0.82rem;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
 }
 
 .tender-employee-stat-block.remote b {
-  color: #38bdf8;
+  color: var(--chart-2-text);
 }
 
 .tender-employee-stat-block.weekend {
-  border-color: rgba(251, 191, 36, 0.36);
-  background: linear-gradient(145deg, rgba(251, 191, 36, 0.16), rgba(15, 23, 42, 0.4));
+  border-color: var(--tone-warn);
+  background: var(--tone-warn-bg);
 }
 
 .tender-employee-stat-block.weekend small {
-  color: #f59e0b;
+  color: var(--tone-warn-text);
 }
 
 .tender-employee-stat-block.weekend b {
-  color: #fbbf24;
+  color: var(--tone-warn-text);
 }
 
 .tender-employee-progress {
   height: 4px;
   border-radius: 999px;
-  background: rgba(100, 116, 139, 0.22);
+  background: var(--bg-tertiary);
   overflow: hidden;
   margin-bottom: 10px;
 }
 
 .tender-employee-progress > div {
   height: 100%;
-  background: linear-gradient(90deg, #6ee7b7, #818cf8);
+  background: var(--primary);
 }
 
 .tender-employee-salary {
@@ -715,8 +715,8 @@
 
 .tender-employee-salary span {
   font-size: 0.88rem;
-  color: #a7f3d0;
-  font-weight: 700;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .tender-employee-salary .tender-employee-salary-meta {
@@ -731,13 +731,13 @@
 }
 
 .tender-employee-salary .tender-employee-age {
-  color: #93c5fd;
+  color: var(--text-secondary);
 }
 
 .tender-employees-table-wrap {
   overflow: auto;
-  background: rgba(15, 23, 42, 0.58);
-  border: 1px solid rgba(100, 116, 139, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
 }
 
@@ -750,20 +750,20 @@
 .tender-employees-table th {
   padding: 12px 14px;
   text-align: left;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.14);
-  background: rgba(12, 18, 32, 0.95);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-tertiary);
 }
 
 .tender-employees-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.06);
+  border-bottom: 1px solid var(--border-light);
   font-size: 0.82rem;
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 .tender-employees-row {
@@ -772,7 +772,7 @@
 }
 
 .tender-employees-row:hover {
-  background: rgba(129, 140, 248, 0.06);
+  background: var(--surface-hover);
 }
 
 .tender-employees-name-cell {
@@ -786,25 +786,25 @@
 }
 
 .tender-employees-table .salary {
-  color: #a7f3d0;
-  font-weight: 700;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .tender-employees-table .sep {
-  color: #334155;
+  color: var(--text-muted);
   margin: 0 3px;
 }
 
 .tender-group-row td {
-  background: rgba(15, 23, 42, 0.82);
-  color: #e2e8f0;
-  font-weight: 700;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
   font-size: 0.8rem;
 }
 
 .tender-group-row span {
   margin-left: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 

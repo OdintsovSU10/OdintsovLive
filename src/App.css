@@ -118,7 +118,7 @@
   border-radius: 50%;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), color var(--transition), transform var(--transition);
   box-shadow: var(--shadow-md);
   z-index: 50;
 }

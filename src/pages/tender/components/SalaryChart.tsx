@@ -150,17 +150,17 @@ export function SalaryChart({ employeeId, currentSalary }: Props) {
           <Line
             type="monotone"
             dataKey="salary"
-            stroke="#9e9e9e"
+            stroke="var(--text-muted)"
             strokeWidth={2}
             strokeDasharray="5 5"
-            dot={{ fill: '#9e9e9e', r: 3 }}
+            dot={{ fill: 'var(--text-muted)', r: 3 }}
           />
           <Line
             type="monotone"
             dataKey="realSalary"
-            stroke="#4caf50"
+            stroke="var(--tone-ok)"
             strokeWidth={2}
-            dot={{ fill: '#4caf50', r: 3 }}
+            dot={{ fill: 'var(--tone-ok)', r: 3 }}
           />
         </LineChart>
       </ResponsiveContainer>

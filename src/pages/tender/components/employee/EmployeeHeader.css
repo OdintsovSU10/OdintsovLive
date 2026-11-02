@@ -38,7 +38,7 @@
   padding: 0 10px 0 4px;
   border-radius: var(--radius-sm);
   background: none;
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 14px;
   font-weight: 500;
   touch-action: manipulation;
@@ -51,7 +51,7 @@
 
 .emp-head-info {
   grid-area: info;
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 .emp-head-avatar {
@@ -65,9 +65,9 @@
   border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   border-radius: var(--radius-md);
   background: var(--primary-light);
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .emp-head-main {
@@ -179,7 +179,7 @@
   min-height: 44px;
   padding: 0 4px;
   background: none;
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 12px;
   font-weight: 500;
   transform: translateY(-50%);

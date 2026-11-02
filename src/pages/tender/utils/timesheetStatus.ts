@@ -8,15 +8,15 @@ export interface TimesheetStatusMeta {
 }
 
 export const TIMESHEET_STATUS_META: Record<TimesheetStatus, TimesheetStatusMeta> = {
-  work: { label: 'Работа', short: '', className: 'work', color: '#6ee7b7' },
-  remote: { label: 'Удалёнка', short: 'УУ', className: 'remote', color: '#38bdf8' },
-  vacation: { label: 'Отпуск', short: 'От', className: 'vacation', color: '#fbbf24' },
-  sick: { label: 'Больничный', short: 'Б', className: 'sick', color: '#60a5fa' },
-  dayoff: { label: 'Выходной', short: 'В', className: 'dayoff', color: '#94a3b8' },
-  absent: { label: 'Неявка', short: 'Н', className: 'absent', color: '#f87171' },
-  unpaid: { label: 'За свой счёт', short: 'С', className: 'unpaid', color: '#fb923c' },
-  educational_leave: { label: 'Учебный отпуск', short: 'У', className: 'educational', color: '#a78bfa' },
-  sick_worked: { label: 'Работа на больничном', short: 'РБ', className: 'sick-worked', color: '#2dd4bf' }
+  work: { label: 'Работа', short: '', className: 'work', color: 'var(--tone-ok)' },
+  remote: { label: 'Удалёнка', short: 'УУ', className: 'remote', color: 'var(--chart-7)' },
+  vacation: { label: 'Отпуск', short: 'От', className: 'vacation', color: 'var(--tone-warn)' },
+  sick: { label: 'Больничный', short: 'Б', className: 'sick', color: 'var(--chart-2)' },
+  dayoff: { label: 'Выходной', short: 'В', className: 'dayoff', color: 'var(--text-muted)' },
+  absent: { label: 'Неявка', short: 'Н', className: 'absent', color: 'var(--tone-bad)' },
+  unpaid: { label: 'За свой счёт', short: 'С', className: 'unpaid', color: 'var(--chart-3)' },
+  educational_leave: { label: 'Учебный отпуск', short: 'У', className: 'educational', color: 'var(--chart-5)' },
+  sick_worked: { label: 'Работа на больничном', short: 'РБ', className: 'sick-worked', color: 'var(--chart-4)' }
 }
 
 export const TIMESHEET_STATUS_ORDER: TimesheetStatus[] = [

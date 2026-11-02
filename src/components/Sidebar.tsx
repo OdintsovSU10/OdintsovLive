@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import { Wallet, Home, LogOut, ChevronLeft, ChevronRight, Activity, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { syncThemeColor } from '../lib/themeColor'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
 import './Sidebar.css'
@@ -33,25 +32,6 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
   const swipeStartX = useRef(0)
   const swipeStartY = useRef(0)
   const isSwipeFromEdge = useRef(false)
-
-  useEffect(() => {
-    const isTenderRoute = location.pathname === '/tender' || location.pathname.startsWith('/tender/')
-
-    if (isTenderRoute) {
-      document.documentElement.dataset.routeTheme = 'tender'
-    } else {
-      delete document.documentElement.dataset.routeTheme
-    }
-
-    syncThemeColor()
-  }, [location.pathname])
-
-  useEffect(() => {
-    return () => {
-      delete document.documentElement.dataset.routeTheme
-      syncThemeColor()
-    }
-  }, [])
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 430)

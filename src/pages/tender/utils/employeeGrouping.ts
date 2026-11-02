@@ -13,13 +13,13 @@ const SUBDIVISION_ORDER = [
 ]
 
 const SUBDIVISION_ACCENTS = [
-  '#818cf8',
-  '#38bdf8',
-  '#22d3ee',
-  '#14b8a6',
-  '#a78bfa',
-  '#60a5fa',
-  '#34d399'
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-7)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-3)',
+  'var(--chart-8)'
 ]
 
 export interface IEmployeeGroup {

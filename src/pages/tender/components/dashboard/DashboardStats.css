@@ -36,7 +36,7 @@
 
 .dash-toggle-btn[aria-pressed='true'] {
   font-weight: 600;
-  color: var(--primary);
+  color: var(--accent-text);
   background: var(--primary-light);
 }
 
@@ -97,7 +97,7 @@
   align-items: baseline;
   gap: 4px;
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--tone, var(--text-primary));
 }
@@ -157,7 +157,7 @@
 
 .dash-ring-text span {
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
 }
 

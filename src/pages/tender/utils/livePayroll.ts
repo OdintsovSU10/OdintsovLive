@@ -257,27 +257,18 @@ export function calculateLivePayrollSnapshot(
   }
 }
 
-const ACCRUAL_COLOR_STOPS = [
-  { at: 0, rgb: [251, 113, 133] },
-  { at: 0.5, rgb: [251, 191, 36] },
-  { at: 1, rgb: [52, 211, 153] }
-] as const
-
+// Цвет начисления по доле рабочего дня: критично -> внимание -> норма (тона темы, на обеих темах читаются)
 export function getLivePayrollAccrualColor(workdayProgress: number): string {
   const progress = Number.isFinite(workdayProgress)
     ? Math.min(1, Math.max(0, workdayProgress))
     : 0
-  const endIndex = ACCRUAL_COLOR_STOPS.findIndex(stop => progress <= stop.at)
-  const end = ACCRUAL_COLOR_STOPS[endIndex === -1 ? ACCRUAL_COLOR_STOPS.length - 1 : endIndex]
-  const start = ACCRUAL_COLOR_STOPS[Math.max(0, (endIndex === -1 ? ACCRUAL_COLOR_STOPS.length - 1 : endIndex) - 1)]
-  const segmentProgress = end.at === start.at
-    ? 0
-    : (progress - start.at) / (end.at - start.at)
-  const rgb = start.rgb.map((channel, index) => (
-    Math.round(channel + (end.rgb[index] - channel) * segmentProgress)
-  ))
 
-  return `rgb(${rgb.join(', ')})`
+  if (progress <= 0.5) {
+    const warnShare = Math.round((progress / 0.5) * 100)
+    return `color-mix(in srgb, var(--tone-warn-text) ${warnShare}%, var(--tone-bad-text))`
+  }
+  const okShare = Math.round(((progress - 0.5) / 0.5) * 100)
+  return `color-mix(in srgb, var(--tone-ok-text) ${okShare}%, var(--tone-warn-text))`
 }
 
 export function getLivePayrollPauseLabel(state: LivePayrollAccrualState): string {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Archive, Building2, Plus, Settings } from 'lucide-react'
+import { Archive, Building2, Plus, Settings, TriangleAlert } from 'lucide-react'
 import { useTenderData } from './hooks/useTenderData'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { TimesheetGrid } from './components/TimesheetGrid'
@@ -189,7 +189,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     return (
       <>
         <div key="error" className="tender-state-container error">
-          <span>⚠️</span>
+          <TriangleAlert size={28} strokeWidth={1.5} aria-hidden="true" />
           <strong>{error}</strong>
         </div>
         {sheets}

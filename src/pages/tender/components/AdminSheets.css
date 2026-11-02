@@ -238,7 +238,7 @@
 .tsh-setting-copy h3 {
   font-family: var(--font-body);
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -261,7 +261,7 @@
 .tsh-year-title {
   min-width: 72px;
   text-align: center;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .tsh-months-grid {
@@ -283,7 +283,7 @@
 
 .tsh-month-name {
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .tsh-month-status {
@@ -296,13 +296,13 @@
 }
 
 .tsh-check {
-  color: var(--chart-positive);
-  font-weight: 700;
+  color: var(--tone-ok-text);
+  font-weight: 600;
 }
 
 .tsh-cross {
   color: var(--text-muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .tsh-period {

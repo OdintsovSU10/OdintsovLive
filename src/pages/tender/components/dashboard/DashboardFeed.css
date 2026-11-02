@@ -69,11 +69,11 @@
 }
 
 .dash-feed-row.is-entry .dash-feed-arrow {
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
 }
 
 .dash-feed-row.is-exit .dash-feed-arrow {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .dash-feed-info {

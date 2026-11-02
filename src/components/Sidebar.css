@@ -70,7 +70,7 @@
   padding: 12px 14px;
   color: var(--sidebar-text);
   border-radius: var(--radius-md);
-  transition: all var(--transition);
+  transition: color var(--transition), background var(--transition);
   white-space: nowrap;
 }
 
@@ -110,7 +110,7 @@
   color: var(--sidebar-text);
   font-size: 0.875rem;
   border-radius: var(--radius-md);
-  transition: all var(--transition);
+  transition: color var(--transition);
 }
 
 .sidebar.collapsed .sidebar-clock {
@@ -131,7 +131,7 @@
   border: none;
   color: var(--sidebar-text);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), color var(--transition);
   font-size: 0.9rem;
   font-weight: 500;
   width: 100%;
@@ -254,11 +254,6 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
-  :root[data-route-theme="tender"] .sidebar {
-    background: rgba(12, 20, 37, 0.52) !important;
-    border-right: 1px solid rgba(100, 116, 139, 0.24);
-  }
-
   .sidebar.mobile-hidden {
     transform: translateX(-100%);
   }
@@ -316,7 +311,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    transition: all var(--transition);
+    transition: background var(--transition);
   }
 
   .mobile-menu-btn:hover {
@@ -337,7 +332,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    transition: all var(--transition);
+    transition: background var(--transition);
   }
 
   .mobile-logo:hover {
@@ -350,10 +345,6 @@
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 99;
-  }
-
-  :root[data-route-theme="tender"] .sidebar-overlay {
-    background: rgba(8, 14, 26, 0.66);
   }
 
   .sidebar-overlay.visible {

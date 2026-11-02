@@ -73,7 +73,7 @@
   margin-top: 6px;
   padding: 0 14px;
   font-size: 0.82rem;
-  color: var(--primary);
+  color: var(--accent-text);
   background: transparent;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -131,7 +131,7 @@
   padding: 0 16px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--accent-text);
   background: var(--primary-light);
   border: 1px solid var(--primary);
   border-radius: var(--radius-sm);

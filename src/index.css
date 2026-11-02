@@ -71,6 +71,26 @@
   --tone-warn-bg: color-mix(in srgb, var(--tone-warn) 14%, transparent);
   --tone-bad-bg: color-mix(in srgb, var(--tone-bad) 14%, transparent);
 
+  /* Цвет как текст: на светлой теме затемнён до контраста >= 4.5:1, на тёмной равен самому цвету */
+  --accent-text: #7A5F30;
+  --tone-ok-text: color-mix(in srgb, var(--tone-ok) 60%, var(--text-primary));
+  --tone-warn-text: color-mix(in srgb, var(--tone-warn) 60%, var(--text-primary));
+  --tone-bad-text: color-mix(in srgb, var(--tone-bad) 60%, var(--text-primary));
+  --chart-2-text: color-mix(in srgb, var(--chart-2) 60%, var(--text-primary));
+  --chart-3-text: color-mix(in srgb, var(--chart-3) 60%, var(--text-primary));
+  --chart-5-text: color-mix(in srgb, var(--chart-5) 60%, var(--text-primary));
+  --chart-7-text: color-mix(in srgb, var(--chart-7) 60%, var(--text-primary));
+
+  /* Алиасы палитры для листов импорта и графика зарплаты */
+  --color-bg: var(--surface);
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--bg-tertiary);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-primary: var(--primary);
+
   /* Текст на кнопках с фоном --primary */
   --on-primary: #1A1A1A;
 
@@ -126,58 +146,15 @@
   --tone-ok-bg: color-mix(in srgb, var(--tone-ok) 14%, transparent);
   --tone-warn-bg: color-mix(in srgb, var(--tone-warn) 14%, transparent);
   --tone-bad-bg: color-mix(in srgb, var(--tone-bad) 14%, transparent);
-}
 
-:root[data-route-theme="tender"] {
-  --primary: #818CF8;
-  --primary-hover: #A5B4FC;
-  --primary-light: rgba(129, 140, 248, 0.18);
-
-  --chart-2: #7EA0D6;
-  --chart-positive: #5BC48A;
-  --chart-negative: #F07B72;
-  --chart-warning: #F6AD55;
-
-  /* Семантические тона состояния: норма / внимание / критично */
-  --tone-ok: var(--chart-positive);
-  --tone-warn: var(--chart-warning);
-  --tone-bad: var(--chart-negative);
-  --tone-ok-bg: color-mix(in srgb, var(--tone-ok) 14%, transparent);
-  --tone-warn-bg: color-mix(in srgb, var(--tone-warn) 14%, transparent);
-  --tone-bad-bg: color-mix(in srgb, var(--tone-bad) 14%, transparent);
-
-  --bg-primary: #080E1A;
-  --bg-secondary: #0C1425;
-  --bg-tertiary: #111C31;
-  --surface: #0F172A;
-  --surface-rgb: 15, 23, 42;
-  --surface-solid: #0F172A;
-  --surface-hover: #17223A;
-
-  --sidebar-bg: #0A1220;
-  --sidebar-text: rgba(203, 213, 225, 0.72);
-  --sidebar-text-hover: #E2E8F0;
-  --sidebar-text-active: #F8FAFC;
-
-  --text-primary: #E2E8F0;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-
-  --border: #243247;
-  --border-light: rgba(148, 163, 184, 0.14);
-
-  --shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.35);
-  --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.42);
-  --shadow-lg: 0 16px 36px rgba(2, 6, 23, 0.52);
-
-  --color-bg: #0F172A;
-  --color-surface: #0F172A;
-  --color-surface-secondary: rgba(30, 41, 59, 0.62);
-  --color-surface-hover: rgba(51, 65, 85, 0.48);
-  --color-border: rgba(100, 116, 139, 0.35);
-  --color-text: #E2E8F0;
-  --color-text-secondary: #94A3B8;
-  --color-primary: #818CF8;
+  --accent-text: var(--primary);
+  --tone-ok-text: var(--tone-ok);
+  --tone-warn-text: var(--tone-warn);
+  --tone-bad-text: var(--tone-bad);
+  --chart-2-text: var(--chart-2);
+  --chart-3-text: var(--chart-3);
+  --chart-5-text: var(--chart-5);
+  --chart-7-text: var(--chart-7);
 }
 
 * {
@@ -302,10 +279,5 @@ code, pre {
   body:has(.ui-sheet-root) .app-statusbar-tint {
     background: color-mix(in srgb, var(--bg-primary), #000 45%);
     z-index: 550;
-  }
-
-  /* В «Тендере» затемнение меню того же цвета, что и фон */
-  :root[data-route-theme="tender"] body:has(.sidebar.mobile-open) .app-statusbar-tint {
-    background: var(--bg-primary);
   }
 }

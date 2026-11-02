@@ -40,11 +40,11 @@ interface IDaySelection {
 
 // Цвета подразделений — только токены (--ts-* заданы на .timesheet-grid)
 const DEPT_PALETTE = [
-  'var(--primary)',
-  'var(--chart-2)',
-  'var(--chart-positive)',
-  'var(--chart-warning)',
-  'var(--chart-negative)',
+  'var(--accent-text)',
+  'var(--chart-2-text)',
+  'var(--tone-ok-text)',
+  'var(--tone-warn-text)',
+  'var(--tone-bad-text)',
   'var(--ts-edu)',
   'var(--ts-sick-worked)',
   'var(--text-secondary)'

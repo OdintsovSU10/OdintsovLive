@@ -25,7 +25,7 @@
 .dash-error {
   background: var(--tone-bad-bg);
   border: 1px solid color-mix(in srgb, var(--tone-bad) 30%, transparent);
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .dash-empty {
@@ -149,7 +149,7 @@ select.dash-field {
 }
 
 .dash-icon-btn.is-primary {
-  color: var(--primary);
+  color: var(--accent-text);
   border-color: color-mix(in srgb, var(--primary) 45%, transparent);
 }
 

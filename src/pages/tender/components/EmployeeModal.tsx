@@ -330,13 +330,13 @@ export function EmployeeModal({ employee, onClose, onSave, onSalaryHistoryChange
           <div className="emp-detail-grid">
             <div className="emp-detail-card">
               <div className="emp-detail-label">Оклад</div>
-              <div className="emp-detail-value" style={{ color: 'var(--primary)', fontSize: '1.1rem' }}>
+              <div className="emp-detail-value" style={{ color: 'var(--accent-text)', fontSize: '1.1rem' }}>
                 {displaySalary.toLocaleString('ru-RU')} ₽
               </div>
             </div>
             <div className="emp-detail-card">
               <div className="emp-detail-label">Ежемесячный бонус</div>
-              <div className="emp-detail-value" style={{ color: 'var(--primary)' }}>
+              <div className="emp-detail-value" style={{ color: 'var(--accent-text)' }}>
                 {employee.monthly_bonus.toLocaleString('ru-RU')} ₽
               </div>
             </div>

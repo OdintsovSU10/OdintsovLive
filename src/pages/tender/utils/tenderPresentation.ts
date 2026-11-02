@@ -159,15 +159,15 @@ export function getPositionPriority(position: string | undefined): number {
 }
 
 export function getNoRaiseColor(months: number): string {
-  if (months >= 9) return '#f87171'
-  if (months >= 6) return '#fb923c'
-  return '#22d3ee'
+  if (months >= 9) return 'var(--tone-bad-text)'
+  if (months >= 6) return 'var(--chart-3-text)'
+  return 'var(--chart-7-text)'
 }
 
 export function getDurationHighlightColor(months: number): string {
-  if (months > 9) return '#f87171'
-  if (months >= 6) return '#facc15'
-  return '#34d399'
+  if (months > 9) return 'var(--tone-bad-text)'
+  if (months >= 6) return 'var(--tone-warn-text)'
+  return 'var(--tone-ok-text)'
 }
 
 export function getWorkSummaryForMonth(

@@ -83,7 +83,7 @@
 }
 
 .dash-tab[aria-pressed='true'] .dash-tab-count {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 /* Поиск, сортировка, «скрыть оклады» */
@@ -258,7 +258,7 @@
 }
 
 .dash-person-arrival.is-late {
-  color: var(--tone-warn);
+  color: var(--tone-warn-text);
 }
 
 .dash-person-state {
@@ -270,11 +270,11 @@
 }
 
 .dash-person-state.is-warn {
-  color: var(--tone-warn);
+  color: var(--tone-warn-text);
 }
 
 .dash-person-state.is-bad {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .dash-person-line {
@@ -298,7 +298,7 @@
 }
 
 .dash-person-overtime.is-warn {
-  color: var(--tone-warn);
+  color: var(--tone-warn-text);
 }
 
 .dash-person-salary {
@@ -387,7 +387,7 @@
 }
 
 .dash-menu-item.danger {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .dash-menu-item.danger:hover {

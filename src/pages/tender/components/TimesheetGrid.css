@@ -1,10 +1,10 @@
 .timesheet-grid {
-  /* Оттенки статусов (единственное место с hex в табеле) */
-  --ts-vacation: #F6AD55;
-  --ts-sick: #7EA0D6;
-  --ts-unpaid: #FDBA74;
-  --ts-edu: #C4B5FD;
-  --ts-sick-worked: #5EEAD4;
+  /* Оттенки статусов: тексты палитры, на светлой теме затемнены до контраста 4.5:1 */
+  --ts-vacation: var(--tone-warn-text);
+  --ts-sick: var(--chart-2-text);
+  --ts-unpaid: var(--chart-3-text);
+  --ts-edu: var(--chart-5-text);
+  --ts-sick-worked: var(--chart-7-text);
   /* Нейтральная подсветка выходных колонок */
   --ts-weekend-tint: color-mix(in srgb, var(--text-muted) 10%, transparent);
 
@@ -62,13 +62,13 @@
   padding: 0 14px;
   min-height: 32px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 .ts-view-btn.active {
-  color: var(--primary);
+  color: var(--accent-text);
   background: var(--primary-light);
 }
 
@@ -117,11 +117,11 @@
   font-weight: 600;
   padding: 6px 10px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .ts-week-btn.active {
-  color: var(--primary);
+  color: var(--accent-text);
   border-color: var(--primary);
   background: var(--primary-light);
 }
@@ -171,7 +171,7 @@
   padding: 0 4px;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
   font-size: 0.6rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -313,7 +313,7 @@
 
 .ts-group-title {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -359,7 +359,7 @@
   align-items: center;
   justify-content: center;
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -433,7 +433,7 @@
 }
 
 .ts-day-status {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ts-day-empty {
@@ -462,28 +462,28 @@
 }
 
 .ts-tone-weekend {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 .ts-tone-remote,
 .ts-status-remote {
-  color: var(--chart-2);
+  color: var(--chart-2-text);
 }
 
 /* Отклонения от нормы (должны идти после .ts-tone-*) */
 .ts-state-low {
   --cell-fill: var(--tone-warn-bg);
-  color: var(--tone-warn);
+  color: var(--tone-warn-text);
 }
 
 .ts-state-critical {
   --cell-fill: var(--tone-bad-bg);
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .ts-state-high {
-  color: var(--tone-ok);
-  font-weight: 700;
+  color: var(--tone-ok-text);
+  font-weight: 600;
 }
 
 .ts-status-vacation {
@@ -502,7 +502,7 @@
 
 .ts-status-absent {
   --cell-fill: var(--tone-bad-bg);
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .ts-status-unpaid {
@@ -564,7 +564,7 @@
   align-items: baseline;
   gap: 2px;
   font-size: 0.84rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
   color: var(--text-primary);
 }
@@ -574,7 +574,7 @@
 }
 
 .ts-summary-fact.over {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .ts-summary-divider,
@@ -595,7 +595,7 @@
 }
 
 .ts-summary-overtime.over {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .ts-mobile-groups {
@@ -701,7 +701,7 @@
 }
 
 .ts-mobile-fact.over {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .ts-mobile-divider,
@@ -714,11 +714,11 @@
 }
 
 .ts-mobile-kpi.overtime.over strong {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .ts-mobile-kpi.weekend strong {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 .ts-mobile-week-strip {
@@ -780,7 +780,7 @@
 }
 
 .ts-mobile-day-cell.ts-day-status .ts-mobile-day-value {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ts-mobile-day-cell.ts-day-empty .ts-mobile-day-value {

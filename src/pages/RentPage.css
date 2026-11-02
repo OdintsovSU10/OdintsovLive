@@ -47,7 +47,7 @@
   height: 44px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  transition: all var(--transition);
+  transition: background var(--transition), color var(--transition), opacity var(--transition);
 }
 
 .rent-header .year-btn:hover:not(:disabled) {
@@ -244,7 +244,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  transition: all var(--transition);
+  transition: background var(--transition);
   width: 100%;
   text-align: left;
   cursor: pointer;

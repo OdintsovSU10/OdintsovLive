@@ -23,9 +23,9 @@
   border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   border-radius: 50%;
   background: var(--primary-light);
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .emp-info-name {
@@ -69,7 +69,7 @@
 }
 
 .emp-info-section h3 svg {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 .emp-info-list div {
@@ -133,7 +133,7 @@
 }
 
 .emp-info-mail {
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 14px;
   text-decoration: none;
 }

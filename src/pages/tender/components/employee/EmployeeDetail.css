@@ -76,7 +76,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: none;
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 14px;
   font-weight: 500;
 }
@@ -216,7 +216,7 @@
 }
 
 .emp-payroll-label.live {
-  color: var(--chart-positive);
+  color: var(--tone-ok-text);
 }
 
 .emp-payroll-label i {
@@ -288,7 +288,7 @@
 }
 
 .emp-payroll-info .accruing {
-  color: var(--chart-positive);
+  color: var(--tone-ok-text);
 }
 
 @keyframes emp-pulse {

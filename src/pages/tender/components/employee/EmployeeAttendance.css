@@ -272,7 +272,7 @@
 .emp-day-hero-main strong {
   font-family: var(--font-mono);
   font-size: 30px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
   white-space: nowrap;
@@ -296,7 +296,7 @@
 }
 
 .emp-day-short {
-  color: var(--chart-warning);
+  color: var(--tone-warn-text);
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 600;
@@ -327,7 +327,7 @@
 }
 
 .emp-day-compare.warn {
-  color: var(--chart-warning);
+  color: var(--tone-warn-text);
 }
 
 .emp-day-flag {
@@ -337,7 +337,7 @@
 }
 
 .emp-day-flag.warn {
-  color: var(--chart-warning);
+  color: var(--tone-warn-text);
 }
 
 .emp-metrics {
@@ -428,11 +428,11 @@
 }
 
 .emp-pass.entry .emp-pass-mark {
-  color: var(--chart-positive);
+  color: var(--tone-ok-text);
 }
 
 .emp-pass.exit .emp-pass-mark {
-  color: var(--chart-negative);
+  color: var(--tone-bad-text);
 }
 
 .emp-pass time {
@@ -452,7 +452,7 @@
 }
 
 .emp-pass-duration.warn {
-  color: var(--chart-warning);
+  color: var(--tone-warn-text);
 }
 
 .emp-pass-dir {
@@ -512,7 +512,7 @@
   display: flex;
   align-items: center;
   min-height: 44px;
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 13px;
   cursor: pointer;
 }

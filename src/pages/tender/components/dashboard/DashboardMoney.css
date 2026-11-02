@@ -11,7 +11,7 @@
 .dash-fot-main {
   font-family: var(--font-mono);
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--tone, var(--text-primary));
 }
 

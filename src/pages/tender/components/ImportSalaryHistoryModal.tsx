@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { FileSpreadsheet } from 'lucide-react'
 import { useOverlayClose } from '../../../hooks/useOverlayClose'
 import { useSalaryHistoryImport } from '../hooks/useSalaryHistoryImport'
 import './ImportModal.css'
@@ -88,7 +89,7 @@ export function ImportSalaryHistoryModal({ onClose, onSuccess }: Props) {
                 onClick={() => fileRef.current?.click()}
               >
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e => handleFile(e.target.files?.[0])} />
-                <div className="import-icon">📊</div>
+                <div className="import-icon"><FileSpreadsheet size={32} strokeWidth={1.5} aria-hidden="true" /></div>
                 <div className="import-text">Перетащите файл сюда</div>
                 <div className="import-subtext">или нажмите для выбора</div>
               </div>

@@ -27,14 +27,14 @@ interface Props {
 
 // Палитра рядов — только через токены темы
 const DEPT_COLORS = [
-  'var(--primary)',
-  'var(--chart-2)',
-  'var(--tone-ok)',
-  'var(--tone-warn)',
-  'var(--tone-bad)',
-  'var(--primary-hover)',
-  'color-mix(in srgb, var(--primary) 55%, var(--tone-ok))',
-  'color-mix(in srgb, var(--chart-2) 55%, var(--tone-warn))'
+  'var(--accent-text)',
+  'var(--chart-2-text)',
+  'var(--tone-ok-text)',
+  'var(--tone-warn-text)',
+  'var(--tone-bad-text)',
+  'var(--chart-7-text)',
+  'color-mix(in srgb, var(--accent-text) 55%, var(--tone-ok-text))',
+  'color-mix(in srgb, var(--chart-2-text) 55%, var(--tone-warn-text))'
 ]
 const WORK_PAY_COLOR = 'var(--primary)'
 const WEEKEND_PAY_COLOR = 'var(--tone-warn)'

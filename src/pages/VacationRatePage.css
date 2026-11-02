@@ -41,7 +41,7 @@
   height: 36px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  transition: all var(--transition);
+  transition: background var(--transition), color var(--transition), opacity var(--transition);
 }
 
 .year-btn:hover:not(:disabled) {

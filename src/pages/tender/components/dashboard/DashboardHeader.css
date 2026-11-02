@@ -40,7 +40,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
   background: var(--tone-ok-bg);
   border-radius: 999px;
 }

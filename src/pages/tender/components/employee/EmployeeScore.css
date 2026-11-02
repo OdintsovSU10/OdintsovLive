@@ -202,7 +202,7 @@
   margin: -6px 0;
   padding: 0 4px;
   background: none;
-  color: var(--primary);
+  color: var(--accent-text);
   font-size: 14px;
   font-weight: 500;
   touch-action: manipulation;

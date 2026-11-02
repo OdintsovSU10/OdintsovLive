@@ -33,18 +33,18 @@
 .fot-total {
   color: var(--text-primary);
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   font-variant-numeric: tabular-nums;
 }
 
 .fot-total.over {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
 }
 
 .fot-total.under {
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
 }
 
 .fot-total.equal {
@@ -52,7 +52,7 @@
 }
 
 .fot-total.live {
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
   transition: color 1s linear, text-shadow 1s linear;
 }
 
@@ -72,9 +72,9 @@
 }
 
 .fot-live-rate {
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-weight: 700;
+  font-weight: 600;
   transition: color 1s linear;
 }
 
@@ -90,19 +90,19 @@
   border-radius: 7px;
   border: 1px solid transparent;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   white-space: nowrap;
 }
 
 .fot-growth.over {
-  color: var(--tone-bad);
+  color: var(--tone-bad-text);
   border-color: color-mix(in srgb, var(--tone-bad) 25%, transparent);
   background: var(--tone-bad-bg);
 }
 
 .fot-growth.under {
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
   border-color: color-mix(in srgb, var(--tone-ok) 25%, transparent);
   background: var(--tone-ok-bg);
 }
@@ -127,7 +127,7 @@
 .fot-kpi-chip strong {
   color: var(--text-primary);
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   font-variant-numeric: tabular-nums;
@@ -167,10 +167,10 @@
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--chart-2) 30%, transparent);
   background: color-mix(in srgb, var(--chart-2) 10%, transparent);
-  color: var(--chart-2);
+  color: var(--chart-2-text);
   font-size: 16px;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   outline: none;
 }
@@ -180,7 +180,7 @@
 }
 
 .fot-transport-control b {
-  color: var(--chart-2);
+  color: var(--chart-2-text);
   font-size: 0.86rem;
 }
 
@@ -200,7 +200,7 @@
 .fot-card h3 {
   margin: 0 0 12px;
   font-size: 0.84rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .fot-card-title-strong {
@@ -365,7 +365,7 @@
 
 .fot-table-head h3 {
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .fot-table-scroll {
@@ -408,7 +408,7 @@
 .fot-grand-total-row td {
   background: var(--tone-ok-bg);
   border-bottom: 2px solid color-mix(in srgb, var(--tone-ok) 16%, transparent);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .fot-grand-total-row td:first-child {
@@ -417,7 +417,7 @@
 }
 
 .fot-grand-total-row .final {
-  color: var(--tone-ok);
+  color: var(--tone-ok-text);
   font-size: 0.9rem;
 }
 
@@ -432,7 +432,7 @@
 
 .fot-table .final {
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -500,7 +500,7 @@
   border: 1px solid currentColor;
   background: var(--border-light);
   font-size: 0.58rem;
-  font-weight: 700;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -518,7 +518,7 @@
 }
 
 .fot-employee-cell .name-btn:hover {
-  color: var(--primary-hover);
+  color: var(--accent-text);
 }
 
 .fot-employee-cell .raise {
@@ -533,7 +533,7 @@
 
 .fot-employee-row td:nth-child(5) small {
   display: block;
-  color: var(--tone-warn);
+  color: var(--tone-warn-text);
   margin-top: 1px;
   font-size: 0.6rem;
 }
@@ -551,10 +551,10 @@
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg-secondary);
-  color: var(--tone-warn);
+  color: var(--tone-warn-text);
   font-size: 0.7rem;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   outline: none;
 }
@@ -563,7 +563,7 @@
   display: inline-block;
   color: var(--text-primary);
   font-size: 0.86rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
 }
 
