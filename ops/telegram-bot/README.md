@@ -13,9 +13,9 @@ Telegram ──getUpdates──► odintsovlive-bot (quantor, node:24-alpine)
 Бот живёт на `quantor`, а не на Selectel: с Selectel Telegram API заблокирован,
 OpenRouter отвечает 403. На `quantor` трафик к ним идёт через туннель AmneziaWG (`awg0`).
 
-Голосовые расшифровывает Deepgram (`nova-3`, `POST /v1/listen`, OGG/Opus телом запроса), затем текст
-разбирается как обычный. Ключ — `DEEPGRAM_API_KEY` в `.env` бота, модель и язык — `DEEPGRAM_MODEL`,
-`DEEPGRAM_LANGUAGE`. Без ключа Deepgram работает запасной ElevenLabs Scribe (`scribe_v2`, ключ в Админке).
+Голосовые расшифровывает ElevenLabs Scribe (`scribe_v2`, ключ в Админке), затем текст разбирается как
+обычный. Запасной — Deepgram (`nova-3`): без ключа ElevenLabs или при его ошибке. Ключ — `DEEPGRAM_API_KEY`
+в `.env` бота, модель и язык — `DEEPGRAM_MODEL`, `DEEPGRAM_LANGUAGE`.
 ElevenLabs блокирует РФ — его запросы идут через tinyproxy на nl3 (`194.37.81.38:18443`,
 IP `quantor` в `Allow`, домен в `/etc/tinyproxy/filter.conf`); см. `environment` в `docker-compose.yml`.
 

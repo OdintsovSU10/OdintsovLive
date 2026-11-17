@@ -1,6 +1,6 @@
 // Разбор сообщений через OpenRouter: нейронка выбирает инструменты (tool calls) и заполняет поля,
-// запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает Deepgram
-// (запасной — ElevenLabs).
+// запись в базу делают обработчики из actions.mjs. Голосовые сначала расшифровывает ElevenLabs
+// (запасной — Deepgram).
 import { BODY_PARAM_FIELDS, CAR_EXPENSE_CATEGORIES, ENGINE_OIL_KEY, FUEL_TYPES } from './actions.mjs'
 import { buildReadTools, executeReads, isReadCall } from './reads.mjs'
 
@@ -263,7 +263,7 @@ const transcribeDeepgram = async (config, audio) => {
   return (data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '').trim()
 }
 
-// Запасной вариант, пока ключа Deepgram нет: ElevenLabs Scribe. ElevenLabs блокирует РФ,
+// Основной вариант: ElevenLabs Scribe. ElevenLabs блокирует РФ,
 // поэтому запрос идёт через tinyproxy на nl3 (HTTPS_PROXY в docker-compose.yml)
 const transcribeElevenlabs = async (config, audio) => {
   const form = new FormData()
@@ -284,5 +284,14 @@ const transcribeElevenlabs = async (config, audio) => {
   return (data?.text || '').trim()
 }
 
-export const transcribe = (config, audio) =>
-  (config.deepgramKey ? transcribeDeepgram(config, audio) : transcribeElevenlabs(config, audio))
+// Основной — ElevenLabs Scribe; Deepgram — запасной, если ключа ElevenLabs нет или он упал
+export const transcribe = async (config, audio) => {
+  if (!config.elevenlabsKey) return transcribeDeepgram(config, audio)
+  try {
+    return await transcribeElevenlabs(config, audio)
+  } catch (error) {
+    if (!config.deepgramKey) throw error
+    console.error(`${error.message} — пробую Deepgram`)
+    return transcribeDeepgram(config, audio)
+  }
+}

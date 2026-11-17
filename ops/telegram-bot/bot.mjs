@@ -251,7 +251,7 @@ const createBot = config => {
       content = photoContent(chat.photo, msg.caption)
     } else if (msg.voice) {
       if (!config.deepgramKey && !config.elevenlabsKey) {
-        await reply(msg, 'Голосовые не настроены: нужен DEEPGRAM_API_KEY в .env бота')
+        await reply(msg, 'Голосовые не настроены: нужен ключ ElevenLabs в Админке')
         return
       }
       if (msg.voice.duration > VOICE_MAX_SECONDS) {
