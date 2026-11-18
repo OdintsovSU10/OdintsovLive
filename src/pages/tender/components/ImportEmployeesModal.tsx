@@ -4,6 +4,8 @@ import {
   DEFAULT_EMPLOYEE_IMPORT_OPTIONS,
   useEmployeeImport
 } from '../hooks/useEmployeeImport'
+import { getDefaultSelection, getPickStatuses, FotEmployeePicker } from './FotEmployeePicker'
+import type { ITenderEmployeeRef } from '../utils/matchTenderEmployee'
 import { fetchFotApiDepartments } from '../utils/fotApi'
 import type { EmployeeImportOptions, FotApiDepartment, FotApiLoadOptions } from '../types'
 import './ImportModal.css'
@@ -27,7 +29,9 @@ const FOT_FIELD_OPTIONS: Array<{
 ]
 
 export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
-  const { loading, preview, loadFromFotApi, importEmployees, clearPreview } = useEmployeeImport()
+  const { loading, preview, loadFromFotApi, importEmployees, loadTenderRefs, clearPreview } = useEmployeeImport()
+  const [refs, setRefs] = useState<ITenderEmployeeRef[] | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [departments, setDepartments] = useState<FotApiDepartment[]>([])
   const [departmentsLoading, setDepartmentsLoading] = useState(false)
@@ -40,17 +44,6 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
   const [fotImportOptions, setFotImportOptions] = useState<EmployeeImportOptions>(DEFAULT_EMPLOYEE_IMPORT_OPTIONS)
 
   const activeImportOptions = fotImportOptions
-  const previewColumnCount = [
-    true,
-    activeImportOptions.work,
-    activeImportOptions.work,
-    activeImportOptions.employment,
-    activeImportOptions.salary,
-    activeImportOptions.contacts,
-    activeImportOptions.contacts,
-    activeImportOptions.documents
-  ].filter(Boolean).length
-
   useEffect(() => {
     let cancelled = false
 
@@ -86,20 +79,32 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
 
   const handleFotApiLoad = async () => {
     setError(null)
+    setRefs(null)
     try {
-      await loadFromFotApi(fotLoadOptions)
+      const loaded = await loadFromFotApi(fotLoadOptions)
+      const tenderRefs = await loadTenderRefs()
+      setRefs(tenderRefs)
+      setSelected(getDefaultSelection(getPickStatuses(loaded, tenderRefs)))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки FOT API')
     }
   }
 
+  const chosen = preview.filter((_, index) => selected.has(index))
+  const isPicking = preview.length > 0 && refs !== null
+
   const handleImport = async () => {
-    const result = await importEmployees(preview, activeImportOptions)
-    if (result.success) {
-      onSuccess()
-      onClose()
-    } else {
-      setError(`Импортировано ${result.records_success} из ${result.records_total}. Ошибки: ${result.errors.slice(0, 3).join('; ')}`)
+    setError(null)
+    try {
+      const result = await importEmployees(chosen, activeImportOptions)
+      if (result.success) {
+        onSuccess()
+        onClose()
+      } else {
+        setError(`Импортировано ${result.records_success} из ${result.records_total}. Ошибки: ${result.errors.slice(0, 3).join('; ')}`)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка синхронизации')
     }
   }
 
@@ -129,7 +134,7 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
         </div>
 
         <div className="import-content">
-          {preview.length === 0 ? (
+          {!isPicking ? (
             <>
               <div className="fot-import-panel">
                 <div className="fot-import-title-row">
@@ -215,7 +220,7 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
           ) : (
             <>
               <p className="import-desc">
-                Найдено {preview.length} сотрудников из FOT API. Проверьте данные перед синхронизацией.
+                Найдено {preview.length} сотрудников из FOT API. Отметьте, кого синхронизировать.
               </p>
               <div className="fot-selected-summary">
                 <span>Будет синхронизировано:</span>
@@ -228,41 +233,13 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
                   {activeImportOptions.documents ? ', документы/организация' : ''}
                 </strong>
               </div>
-              <div className="import-preview-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ФИО</th>
-                      {activeImportOptions.work && <th>Должность</th>}
-                      {activeImportOptions.work && <th>Отдел</th>}
-                      {activeImportOptions.employment && <th>Дата приёма</th>}
-                      {activeImportOptions.salary && <th>ЗП</th>}
-                      {activeImportOptions.contacts && <th>Телефон</th>}
-                      {activeImportOptions.contacts && <th>Email</th>}
-                      {activeImportOptions.documents && <th>Организация</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.slice(0, 10).map((emp, i) => (
-                      <tr key={i}>
-                        <td>{emp.full_name}</td>
-                        {activeImportOptions.work && <td>{emp.position || '—'}</td>}
-                        {activeImportOptions.work && <td>{emp.department || '—'}</td>}
-                        {activeImportOptions.employment && <td>{emp.hire_date || '—'}</td>}
-                        {activeImportOptions.salary && <td>{emp.salary > 0 ? `${emp.salary.toLocaleString('ru-RU')} ₽` : '—'}</td>}
-                        {activeImportOptions.contacts && <td>{emp.phone || '—'}</td>}
-                        {activeImportOptions.contacts && <td>{emp.email || '—'}</td>}
-                        {activeImportOptions.documents && <td>{emp.company || emp.country || '—'}</td>}
-                      </tr>
-                    ))}
-                    {preview.length > 10 && (
-                      <tr>
-                        <td colSpan={previewColumnCount} className="import-more">...и ещё {preview.length - 10} записей</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <FotEmployeePicker
+                employees={preview}
+                refs={refs}
+                selected={selected}
+                onChange={setSelected}
+                showWork={activeImportOptions.work}
+              />
             </>
           )}
 
@@ -270,9 +247,9 @@ export function ImportEmployeesModal({ onClose, onSuccess }: Props) {
         </div>
 
         <div className="import-actions">
-          {preview.length > 0 && (
-            <button className="import-btn-primary" onClick={handleImport} disabled={loading}>
-              {loading ? 'Синхронизация...' : `Синхронизировать ${preview.length} сотр.`}
+          {isPicking && (
+            <button className="import-btn-primary" onClick={handleImport} disabled={loading || chosen.length === 0}>
+              {loading ? 'Синхронизация...' : `Синхронизировать ${chosen.length} сотр.`}
             </button>
           )}
           <button className="import-btn-secondary" onClick={handleClose} disabled={loading}>

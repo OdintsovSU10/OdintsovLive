@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { parseEmployeesExcel } from '../utils/excelParser'
 import { fetchFotApiEmployees } from '../utils/fotApi'
+import { matchTenderEmployee, type ITenderEmployeeRef } from '../utils/matchTenderEmployee'
 import type { EmployeeImportOptions, FotApiLoadOptions, ImportResult, ParsedEmployee } from '../types'
 
 export const DEFAULT_EMPLOYEE_IMPORT_OPTIONS: EmployeeImportOptions = {
@@ -195,16 +196,17 @@ export function useEmployeeImport() {
     let failed = 0
 
     try {
+      const { data: allEmployees, error: loadError } = await supabase
+        .from('tender_employees')
+        .select('*')
+      if (loadError) throw loadError
+
+      const known: Array<Record<string, unknown> & ITenderEmployeeRef> =
+        (allEmployees ?? []) as Array<Record<string, unknown> & ITenderEmployeeRef>
+
       for (const emp of employees) {
         try {
-          // Проверяем, существует ли сотрудник с такой фамилией
-          const { data: existingList } = await supabase
-            .from('tender_employees')
-            .select('*')
-            .ilike('full_name', `${emp.last_name}%`)
-            .limit(1)
-
-          const existing = existingList?.[0]
+          const existing = matchTenderEmployee(emp, known)
 
           if (existing) {
             if (!options.updateExisting) {
@@ -212,7 +214,7 @@ export function useEmployeeImport() {
               continue
             }
 
-            const updates = createUpdatePayload(emp, existing, options)
+            const updates = createUpdatePayload(emp, known.find(item => item.id === existing.id) ?? {}, options)
 
             // Обновляем только если есть изменения
             if (Object.keys(updates).length > 0) {
@@ -230,11 +232,14 @@ export function useEmployeeImport() {
             }
 
             // Создаём нового
-            const { error } = await supabase
+            const { data: created, error } = await supabase
               .from('tender_employees')
               .insert(createInsertPayload(emp, options))
+              .select()
+              .single()
 
             if (error) throw error
+            if (created) known.push(created as Record<string, unknown> & ITenderEmployeeRef)
           }
 
           success++
@@ -270,6 +275,14 @@ export function useEmployeeImport() {
     }
   }
 
+  const loadTenderRefs = async (): Promise<ITenderEmployeeRef[]> => {
+    const { data, error } = await supabase
+      .from('tender_employees')
+      .select('id, full_name, fot_employee_id, is_archived')
+    if (error) throw error
+    return (data ?? []) as ITenderEmployeeRef[]
+  }
+
   const clearPreview = () => setPreview([])
 
   return {
@@ -278,6 +291,7 @@ export function useEmployeeImport() {
     parseFile,
     loadFromFotApi,
     importEmployees,
+    loadTenderRefs,
     clearPreview
   }
 }

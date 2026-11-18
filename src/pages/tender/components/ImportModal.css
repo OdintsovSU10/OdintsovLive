@@ -457,6 +457,171 @@
   border-radius: 6px;
 }
 
+/* Выбор сотрудников FOT */
+.fot-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fot-pick-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fot-pick-filter {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.fot-pick-filter.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--color-text);
+}
+
+.fot-pick-search-wrap {
+  width: 100%;
+}
+
+.fot-pick-search {
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 16px;
+  padding: 0 12px;
+}
+
+.fot-pick-search::-webkit-search-cancel-button {
+  display: none;
+}
+
+.fot-pick-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fot-pick-count {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.fot-pick-bulk {
+  display: flex;
+  gap: 6px;
+}
+
+.fot-pick-bulk-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.fot-pick-bulk-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fot-pick-list {
+  max-height: 45dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.fot-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.fot-pick-row:last-child {
+  border-bottom: none;
+}
+
+.fot-pick-row:hover {
+  background: var(--color-surface-hover);
+}
+
+.fot-pick-row input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.fot-pick-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fot-pick-name {
+  color: var(--color-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.fot-pick-sub {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.fot-pick-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-surface-secondary);
+  color: var(--text-muted);
+}
+
+.fot-pick-badge-new {
+  background: var(--primary-light);
+  color: var(--accent-text);
+}
+
+.fot-pick-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
 @media (max-width: 720px) {
   .fot-import-controls,
   .fot-import-option-grid {
