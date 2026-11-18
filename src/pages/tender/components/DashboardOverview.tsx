@@ -35,7 +35,10 @@ import './dashboard/DashboardAttention.css'
 import './dashboard/DashboardMetricSheet.css'
 
 interface Props {
+  // Работавшие в выбранном месяце
   employees: EmployeeWithStats[]
+  // Все сотрудники, включая архивных: для графиков по месяцам окна
+  allEmployees: EmployeeWithStats[]
   year: number
   month: number
   isAdmin: boolean
@@ -58,6 +61,7 @@ const PROGRESS_STEP = 2000
 
 export function DashboardOverview({
   employees,
+  allEmployees,
   year,
   month,
   isAdmin,
@@ -79,7 +83,12 @@ export function DashboardOverview({
   selectRef.current = onSelectEmployee
   const handleSelectEmployee = useCallback((employee: EmployeeWithStats) => selectRef.current(employee), [])
 
-  const { monthSlots, trends, loading, error } = useDashboardAnalytics(employees, year, month)
+  const { monthSlots, trends: windowTrends, loading, error } = useDashboardAnalytics(allEmployees, year, month)
+  // Всё, что относится к выбранному месяцу (численность, средние, внимание), — только по работавшим в нём
+  const trends = useMemo(() => {
+    const lastIndex = monthSlots.length - 1
+    return windowTrends.filter(trend => trend.employedBySlot[lastIndex])
+  }, [monthSlots, windowTrends])
   const { scores, loading: scoresLoading } = useEmployeeScores(employees)
 
   useEffect(() => {
@@ -112,6 +121,11 @@ export function DashboardOverview({
   const scopedTrends = useMemo(() => (
     activeSubdivision ? trends.filter(trend => trend.subdivision === activeSubdivision) : trends
   ), [activeSubdivision, trends])
+
+  // Для помесячного ФОТ — все, кто работал хотя бы в одном месяце окна
+  const scopedWindowTrends = useMemo(() => (
+    activeSubdivision ? windowTrends.filter(trend => trend.subdivision === activeSubdivision) : windowTrends
+  ), [activeSubdivision, windowTrends])
 
   const scopePlan = useMemo(
     () => scopedTrends.reduce((sum, trend) => sum + trend.latest.plan, 0),
@@ -308,7 +322,7 @@ export function DashboardOverview({
               <div className="dash-slot slot-fot">
                 <MoneyPanel
                   monthSlots={monthSlots}
-                  trends={scopedTrends}
+                  trends={scopedWindowTrends}
                   summary={summary}
                   live={live}
                   hideMoney={money.hidden}

@@ -3,6 +3,7 @@ import type { IListScore } from '../../hooks/useEmployeeScores'
 import { getMoscowParts, type LivePayrollSnapshot } from '../../utils/livePayroll'
 import { isWeekendOrHoliday } from '../../utils/salaryCalculator'
 import { toIsoDate } from '../../utils/employeeFormat'
+import { isEmployedOnDate } from '../../utils/employmentPeriods'
 import { formatHours, formatNumber, pluralize } from './dashboardFormat'
 import {
   PRESENCE_ORDER,
@@ -152,7 +153,7 @@ function getLastCheckedDay(year: number, month: number): number {
   return Math.max(0, moscow.day - 1)
 }
 
-// Прошедшие рабочие дни месяца (с даты приёма) без записи в табеле
+// Прошедшие рабочие дни месяца (с даты приёма и до архивации) без записи в табеле
 export function countMissingTimesheetDays(employee: EmployeeWithStats, year: number, month: number): number {
   if (employee.excluded_from_timesheet) return 0
 
@@ -162,7 +163,9 @@ export function countMissingTimesheetDays(employee: EmployeeWithStats, year: num
 
   for (let day = 1; day <= lastDay; day++) {
     const iso = toIsoDate(year, month, day)
-    if (employee.hire_date && iso < employee.hire_date) continue
+    if (employee.employmentPeriods) {
+      if (!isEmployedOnDate(employee.employmentPeriods, iso)) continue
+    } else if (employee.hire_date && iso < employee.hire_date) continue
     if (isWeekendOrHoliday(new Date(year, month - 1, day, 12))) continue
     if (!filled.has(iso)) missing += 1
   }

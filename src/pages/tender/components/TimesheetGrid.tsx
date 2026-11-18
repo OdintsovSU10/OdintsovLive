@@ -357,7 +357,7 @@ export function TimesheetGrid({ employees, year, month, onCellClick, onSelectEmp
                             </span>
                             <span className="ts-emp-text">
                               <span className="ts-emp-name">{emp.full_name}</span>
-                              {!compact && <span className="ts-emp-role">{emp.position}</span>}
+                              {!compact && <span className="ts-emp-role">{emp.position}{emp.is_archived ? ' · архив' : ''}</span>}
                             </span>
                           </div>
                         </td>

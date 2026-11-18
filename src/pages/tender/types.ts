@@ -1,3 +1,5 @@
+import type { IEmploymentPeriod } from './utils/employmentPeriods'
+
 export interface Employee {
   id: number
   full_name: string
@@ -111,6 +113,8 @@ export interface AttendanceStats {
 }
 
 export interface EmployeeWithStats extends Employee {
+  // Периоды работы по приёму и архивации; нужны для расчётов по месяцам
+  employmentPeriods?: IEmploymentPeriod[]
   avatar: string
   uiStatus: 'active' | 'vacation' | 'sick' | 'remote'
   attendance: AttendanceStats

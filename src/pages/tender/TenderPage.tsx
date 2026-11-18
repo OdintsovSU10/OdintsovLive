@@ -68,7 +68,7 @@ function MonthSelector({
 }
 
 export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
-  const { employees, loading, refreshing, error, selectedYear, selectedMonth, setMonth, loadEmployees, clearAllEmployees } = useTenderData()
+  const { employees, allEmployees, loading, refreshing, error, selectedYear, selectedMonth, setMonth, loadEmployees, clearAllEmployees } = useTenderData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithStats | null>(null)
   const [sheet, setSheet] = useState<SheetKind | null>(null)
@@ -108,13 +108,13 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
     setSheet(null)
     if (!sheetChangedRef.current) return
     sheetChangedRef.current = false
-    void loadEmployees(undefined, undefined, false, true)
+    void loadEmployees(undefined, undefined, true)
     setAdminRefreshKey(key => key + 1)
   }
 
   // Дашборд правит сотрудников сам и просит перечитать список тихо, без спиннера на всю страницу
   const reloadEmployees = useCallback(
-    () => loadEmployees(undefined, undefined, false, true),
+    () => loadEmployees(undefined, undefined, true),
     [loadEmployees]
   )
 
@@ -295,6 +295,7 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
               {activeTab === 'dashboard' && (
                 <DashboardOverview
                   employees={employees}
+                  allEmployees={allEmployees}
                   year={selectedYear}
                   month={selectedMonth}
                   isAdmin={isAdmin}

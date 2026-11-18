@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { isWeekendOrHoliday, roundTimesheetHours } from '../utils/salaryCalculator'
-import type { Employee, SalaryHistory, TimesheetEntry, AttendanceStats, EmployeeWithStats, HistoryItem } from '../types'
+import { isMissingEmployeeEventsTableError } from '../utils/adminTenderHelpers'
+import { buildEmploymentPeriods, isEmployedInMonth } from '../utils/employmentPeriods'
+import type {
+  Employee,
+  SalaryHistory,
+  TimesheetEntry,
+  AttendanceStats,
+  EmployeeWithStats,
+  HistoryItem,
+  TenderEmployeeEvent
+} from '../types'
 
 const getAvatar = (fullName: string): string => {
   const parts = fullName.trim().split(' ')
@@ -27,8 +37,19 @@ const mapTimesheetToUiStatus = (status: string | null): 'active' | 'vacation' | 
   return map[status] || 'active'
 }
 
+interface ITenderDataState {
+  // Все сотрудники, включая архивных, с периодами работы
+  all: EmployeeWithStats[]
+  // Работавшие в загруженном месяце
+  monthEmployees: EmployeeWithStats[]
+  // Месяц, для которого посчитан monthEmployees
+  key: string
+}
+
+const EMPTY_STATE: ITenderDataState = { all: [], monthEmployees: [], key: '' }
+
 export function useTenderData() {
-  const [employees, setEmployees] = useState<EmployeeWithStats[]>([])
+  const [data, setData] = useState<ITenderDataState>(EMPTY_STATE)
   const [loading, setLoading] = useState(true)
   // Повторная загрузка (смена месяца): данные остаются на экране, без заглушки
   const [refreshing, setRefreshing] = useState(false)
@@ -40,7 +61,7 @@ export function useTenderData() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
 
-  const loadEmployees = useCallback(async (year?: number, month?: number, showArchived = false, silent = false) => {
+  const loadEmployees = useCallback(async (year?: number, month?: number, silent = false) => {
     const requestId = ++requestIdRef.current
     const isStale = () => requestId !== requestIdRef.current
 
@@ -57,13 +78,12 @@ export function useTenderData() {
       const { data: employeesData, error: empError } = await supabase
         .from('tender_employees')
         .select('*')
-        .eq('is_archived', showArchived)
         .order('full_name')
 
       if (empError) throw empError
       if (isStale()) return
       if (!employeesData) {
-        setEmployees([])
+        setData(EMPTY_STATE)
         return
       }
 
@@ -74,7 +94,7 @@ export function useTenderData() {
       const endOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${daysInMonth}`
 
       // Оклады и табель друг от друга не зависят — запрашиваем одновременно
-      const [{ data: salaryData }, { data: timesheetData }] = await Promise.all([
+      const [{ data: salaryData }, { data: timesheetData }, eventsResult] = await Promise.all([
         supabase
           .from('tender_salary_history')
           .select('*')
@@ -85,10 +105,26 @@ export function useTenderData() {
           .select('*')
           .in('employee_id', employeeIds)
           .gte('work_date', startOfMonth)
-          .lte('work_date', endOfMonth)
+          .lte('work_date', endOfMonth),
+        supabase
+          .from('tender_employee_events')
+          .select('*')
+          .in('employee_id', employeeIds)
+          .in('event_type', ['archive', 'unarchive'])
       ])
 
       if (isStale()) return
+
+      // Нет таблицы событий — периоды строим по дате архивации сотрудника
+      if (eventsResult.error && !isMissingEmployeeEventsTableError(eventsResult.error, eventsResult.status)) {
+        throw eventsResult.error
+      }
+      const eventsByEmployee = new Map<number, TenderEmployeeEvent[]>()
+      for (const event of (eventsResult.error ? [] : (eventsResult.data || [])) as TenderEmployeeEvent[]) {
+        const list = eventsByEmployee.get(event.employee_id) || []
+        list.push(event)
+        eventsByEmployee.set(event.employee_id, list)
+      }
 
       const roundedTimesheetData = (timesheetData || []).map(entry => ({
         ...entry,
@@ -185,13 +221,24 @@ export function useTenderData() {
           attendance,
           history,
           timesheet,
-          salaryHistory: salaries
+          salaryHistory: salaries,
+          employmentPeriods: buildEmploymentPeriods(emp, eventsByEmployee.get(emp.id) || [])
         }
       })
 
-      // Опрос раз в 30 с чаще всего приносит те же данные: прежний массив не трогаем,
+      // Состав месяца: работал в нём по периодам или есть записи табеля
+      const monthEmployees = enriched.filter(emp => (
+        isEmployedInMonth(emp.employmentPeriods || [], targetYear, targetMonth) || (emp.timesheet?.length ?? 0) > 0
+      ))
+      const key = `${targetYear}-${targetMonth}`
+
+      // Опрос раз в 30 с чаще всего приносит те же данные: прежний объект не трогаем,
       // чтобы дашборд не перекачивал табель и не пересчитывался зря
-      setEmployees(prev => (JSON.stringify(prev) === JSON.stringify(enriched) ? prev : enriched))
+      setData(prev => (
+        prev.key === key && JSON.stringify(prev.all) === JSON.stringify(enriched)
+          ? prev
+          : { all: enriched, monthEmployees, key }
+      ))
       loadedRef.current = true
     } catch (err) {
       console.error('Error loading employees:', err)
@@ -251,7 +298,7 @@ export function useTenderData() {
       // Удаляем сотрудников
       const { error } = await supabase.from('tender_employees').delete().neq('id', 0)
       if (error) throw error
-      setEmployees([])
+      setData(EMPTY_STATE)
     } catch (err) {
       console.error('Error clearing employees:', err)
       throw err
@@ -271,7 +318,7 @@ export function useTenderData() {
 
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
-        loadEmployees(selectedYear, selectedMonth, false, true)
+        loadEmployees(selectedYear, selectedMonth, true)
       }
     }, 30_000)
 
@@ -279,7 +326,8 @@ export function useTenderData() {
   }, [loadEmployees, selectedMonth, selectedYear])
 
   return {
-    employees,
+    employees: data.monthEmployees,
+    allEmployees: data.all,
     loading,
     refreshing,
     error,

@@ -40,6 +40,8 @@ export interface IEmployeeTrend {
   employee: EmployeeWithStats
   subdivision: string
   points: IEmployeeTrendPoint[]
+  // По слотам окна: работал в месяце (по периодам работы) или есть табель; иначе точка нулевая
+  employedBySlot: boolean[]
   latest: IEmployeeTrendPoint
   previous: IEmployeeTrendPoint | null
 }

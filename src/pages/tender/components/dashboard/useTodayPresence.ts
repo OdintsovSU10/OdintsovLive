@@ -4,6 +4,7 @@ import { fetchFotEmployeeEvents, type FotEmployeeEvent } from '../../utils/fotEm
 import { getMoscowParts } from '../../utils/livePayroll'
 import { isWeekendOrHoliday } from '../../utils/salaryCalculator'
 import { toIsoDate } from '../../utils/employeeFormat'
+import { isEmployedOnDate } from '../../utils/employmentPeriods'
 import type { FirstEntryMap, ITodayPass, PassesMap, PresenceMap, PresenceStatus } from './dashboardTypes'
 
 const MAX_PARALLEL_REQUESTS = 4
@@ -107,6 +108,8 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
 
     for (const employee of employees) {
       if (employee.excluded_from_timesheet) continue
+      // Уволен (в архиве) к сегодняшнему дню — отметка «сегодня» для него не нужна
+      if (employee.employmentPeriods && !isEmployedOnDate(employee.employmentPeriods, today)) continue
 
       const entry = (employee.timesheet || []).find(item => item.work_date === today)
       const fromTimesheet = entry ? TIMESHEET_PRESENCE[entry.status] : undefined

@@ -29,6 +29,8 @@ interface IMonthMoney {
   slot: IMonthSlot
   plan: number
   fact: number
+  // Численность месяца: работавшие в нём
+  count: number
 }
 
 // ФОТ: начислено к плану, план/факт по месяцам окна и сравнение с прошлым месяцем
@@ -37,8 +39,10 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
 
   const baseSeries = useMemo<IMonthMoney[]>(() => monthSlots.map((slot, index) => ({
     slot,
-    plan: trends.reduce((sum, trend) => sum + trend.points[index].plan, 0),
-    fact: trends.reduce((sum, trend) => sum + trend.points[index].earned, 0)
+    // Не работавший в месяце даёт нулевую точку, но в численность не входит
+    plan: trends.reduce((sum, trend) => sum + (trend.employedBySlot[index] ? trend.points[index].plan : 0), 0),
+    fact: trends.reduce((sum, trend) => sum + (trend.employedBySlot[index] ? trend.points[index].earned : 0), 0),
+    count: trends.filter(trend => trend.employedBySlot[index]).length
   })), [monthSlots, trends])
 
   // Выбранный месяц последний; в текущем месяце факт — начислено сейчас
@@ -109,8 +113,8 @@ export const MoneyPanel: FC<IMoneyPanelProps> = ({ monthSlots, trends, summary, 
         <span className="dash-legend-item fact">Факт</span>
         <span className="dash-chart-detail">
           {hideMoney
-            ? `${shown.slot.label}: ${MASK_RUB} из ${MASK_RUB}`
-            : `${shown.slot.label}: ${formatRub(shown.fact)} из ${formatRub(shown.plan)}`}
+            ? `${shown.slot.label}: ${MASK_RUB} из ${MASK_RUB} · ${shown.count} чел.`
+            : `${shown.slot.label}: ${formatRub(shown.fact)} из ${formatRub(shown.plan)} · ${shown.count} чел.`}
         </span>
       </div>
 

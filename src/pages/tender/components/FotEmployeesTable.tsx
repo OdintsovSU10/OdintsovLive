@@ -87,6 +87,7 @@ const EmployeeRow = ({
         <span className="raise">
           {row.employee.position}
         </span>
+        {row.employee.is_archived && <span className="raise">· архив</span>}
         {showDepartment && <span className="raise fot-employee-dept">· {row.department}</span>}
       </div>
     </td>

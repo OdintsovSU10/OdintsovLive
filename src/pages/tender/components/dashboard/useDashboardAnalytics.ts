@@ -16,6 +16,7 @@ import {
   parseExtraBonuses
 } from '../../utils/livePayroll'
 import { getHireMonthIndex, monthIndex } from '../../utils/employeeFormat'
+import { isEmployedInMonth } from '../../utils/employmentPeriods'
 import { createEmptyTimesheetStatusCounts } from '../../utils/timesheetStatus'
 import {
   MONTHS_WINDOW,
@@ -88,9 +89,11 @@ interface IBuildPointInput {
   slot: IMonthSlot
   timesheet: TimesheetEntry[]
   transport: number
+  // Работал в слоте (по периодам работы) или есть табель; иначе план и факт нулевые
+  employed: boolean
 }
 
-function buildPoint({ employee, slot, timesheet, transport }: IBuildPointInput): IEmployeeTrendPoint {
+function buildPoint({ employee, slot, timesheet, transport, employed }: IBuildPointInput): IEmployeeTrendPoint {
   const hasTimesheet = timesheet.length > 0
   const normHoursWeekdays = getMonthWeekdayNormHours(slot.year, slot.month)
   const normWorkdays = getMonthWeekdayNormDays(slot.year, slot.month)
@@ -98,7 +101,7 @@ function buildPoint({ employee, slot, timesheet, transport }: IBuildPointInput):
 
   // До приёма на работу плана нет
   const hireIndex = getHireMonthIndex(employee.hire_date)
-  const plan = hireIndex !== null && hireIndex > monthIndex(slot.year, slot.month)
+  const plan = !employed || (hireIndex !== null && hireIndex > monthIndex(slot.year, slot.month))
     ? 0
     : calculateEmployeeMonthlyPayrollPlan(employee, slot.year, slot.month, transport, slotExtraBonuses)
 
@@ -171,9 +174,10 @@ export interface IDashboardAnalytics {
   error: string | null
 }
 
-// История табеля за окно месяцев и расчёт факта/плана по каждому сотруднику и месяцу
+// История табеля за окно месяцев и расчёт факта/плана по каждому сотруднику и месяцу.
+// allEmployees — все сотрудники, включая архивных: в каждом месяце учитываются работавшие в нём
 export function useDashboardAnalytics(
-  employees: EmployeeWithStats[],
+  allEmployees: EmployeeWithStats[],
   year: number,
   month: number
 ): IDashboardAnalytics {
@@ -187,7 +191,7 @@ export function useDashboardAnalytics(
     let cancelled = false
 
     const loadHistory = async () => {
-      if (employees.length === 0) {
+      if (allEmployees.length === 0) {
         setHistoryEntries([])
         return
       }
@@ -196,7 +200,7 @@ export function useDashboardAnalytics(
       setError(null)
 
       try {
-        const employeeIds = employees.map(employee => employee.id)
+        const employeeIds = allEmployees.map(employee => employee.id)
         const rangeStart = new Date(year, month - 1 - MONTHS_WINDOW, 1)
         const rangeEnd = new Date(year, month, 0)
 
@@ -232,7 +236,7 @@ export function useDashboardAnalytics(
     return () => {
       cancelled = true
     }
-  }, [employees, year, month])
+  }, [allEmployees, year, month])
 
   const trends = useMemo<IEmployeeTrend[]>(() => {
     const transport = getSavedTransport()
@@ -246,23 +250,37 @@ export function useDashboardAnalytics(
       entriesByEmployeeMonth.set(key, list)
     }
 
-    return employees.map(employee => {
-      const points = monthSlots.map(slot => buildPoint({
+    const result: IEmployeeTrend[] = []
+
+    for (const employee of allEmployees) {
+      const periods = employee.employmentPeriods || []
+      const employedBySlot = monthSlots.map(slot => (
+        isEmployedInMonth(periods, slot.year, slot.month)
+        || (entriesByEmployeeMonth.get(`${employee.id}:${slot.key}`)?.length ?? 0) > 0
+      ))
+      // Не участвовал ни в одном месяце окна — в аналитике его нет
+      if (!employedBySlot.some(Boolean)) continue
+
+      const points = monthSlots.map((slot, index) => buildPoint({
         employee,
         slot,
         timesheet: entriesByEmployeeMonth.get(`${employee.id}:${slot.key}`) || [],
-        transport
+        transport,
+        employed: employedBySlot[index]
       }))
 
-      return {
+      result.push({
         employee,
         subdivision: employee.subdivision || employee.department || NO_SUBDIVISION,
         points,
+        employedBySlot,
         latest: points[points.length - 1],
         previous: points.length > 1 ? points[points.length - 2] : null
-      }
-    })
-  }, [employees, historyEntries, monthSlots])
+      })
+    }
+
+    return result
+  }, [allEmployees, historyEntries, monthSlots])
 
   return { monthSlots, trends, loading, error }
 }
