@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { Wallet, Home, LogOut, ChevronLeft, ChevronRight, Activity, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks } from 'lucide-react'
+import { Wallet, Home, LogOut, ChevronLeft, ChevronRight, Activity, Menu, Car, Users, Settings, Sun, Moon, Clock, ReceiptText, ListChecks, Newspaper } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useMoscowDateTime } from '../hooks/useMoscowDateTime'
 import Logo from './Logo'
@@ -122,6 +122,13 @@ export default function Sidebar({ collapsed, onToggle, theme, onThemeToggle, isA
             {(!collapsed || mobileMenuOpen) && <span>{l.label}</span>}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <NavLink to="/news" className="nav-link">
+            <Newspaper size={20} strokeWidth={1.5} />
+            {(!collapsed || mobileMenuOpen) && <span>Новости</span>}
+          </NavLink>
+        )}
 
         {isAdmin && (
           <NavLink to="/admin" className="nav-link">

@@ -21,6 +21,7 @@ const BodyPage = lazy(() => import('./pages/body/BodyPage'))
 const CarPage = lazy(() => import('./pages/car'))
 const TenderPage = lazy(() => import('./pages/tender'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
+const NewsPage = lazy(() => import('./pages/news'))
 
 type Theme = 'light' | 'dark'
 
@@ -396,6 +397,7 @@ function App() {
               <Route path="/car" element={<CarPage />} />
               <Route path="/tender" element={<TenderPage isAdmin={!!profile?.is_admin} />} />
               <Route path="/tender/admin" element={<Navigate to={profile?.is_admin ? '/tender?tab=admin' : '/tender'} replace />} />
+              {profile?.is_admin && <Route path="/news" element={<NewsPage />} />}
               {profile?.is_admin && <Route path="/admin" element={<AdminPage />} />}
             </Routes>
           </Suspense>

@@ -1,6 +1,7 @@
 // Запись разобранных нейронкой данных в таблицы Supabase (PostgREST) и отмена записей бота.
 // Всё, что стоит денег, дублируется строкой в expense_transactions (source='telegram'):
 // при импорте банковской выписки портал склеивает её с банковской операцией.
+import { fetchChannel, normalizeChannel } from './newsFetch.mjs'
 
 export const FUEL_TYPES = ['АИ-95', 'АИ-100']
 export const CAR_EXPENSE_CATEGORIES = ['Мойка', 'Парковка', 'Штраф', 'Страховка', 'Налог', 'Запчасти', 'Аксессуары', 'Другое']
@@ -77,6 +78,7 @@ export const nowInZone = timeZone => {
     }).formatToParts(new Date()).map(p => [p.type, p.value])
   )
   return {
+    timeZone,
     today: `${parts.year}-${parts.month}-${parts.day}`,
     time: `${parts.hour}:${parts.minute}:${parts.second}`,
     weekday: new Intl.DateTimeFormat('ru-RU', { timeZone, weekday: 'long' }).format(new Date())
@@ -288,6 +290,37 @@ const completeTask = async ({ rest, ctx, args }) => {
   return `✅ Сделано: ${task.title}`
 }
 
+// Канал для новостей: имя из @имя, t.me/имя или ссылки. Читается ли он, проверяем сразу — иначе тик молча копил бы ошибки
+const channelName = value => {
+  const username = normalizeChannel(value)
+  if (!username) throw new UserError('Не понял канал: нужно имя вида @name или ссылка t.me/name')
+  return username
+}
+
+const addChannel = async ({ rest, ctx, args }) => {
+  const username = channelName(args.channel)
+  let title = null
+  try {
+    title = (await fetchChannel(username)).title
+  } catch (err) {
+    throw new UserError(`Канал @${username} не добавлен: ${err.message}`)
+  }
+  // merge-duplicates обновляет только переданные поля: last_post_id остаётся, первый сбор не теряется
+  await rest('news_channels?on_conflict=user_id,username', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: ctx.userId, username, enabled: true, ...(title ? { title } : {}) })
+  })
+  return `📰 Добавлен канал ${title ? `${title} ` : ''}(@${username}). Первые новости придут в течение 15 минут`
+}
+
+const removeChannel = async ({ rest, ctx, args }) => {
+  const username = channelName(args.channel)
+  const removed = await rest(`news_channels?user_id=eq.${ctx.userId}&username=eq.${encodeURIComponent(username)}&select=id`, { method: 'DELETE' })
+  if (removed.length === 0) throw new UserError(`Канала @${username} нет в списке`)
+  return `🗑 Канал @${username} удалён вместе с его новостями`
+}
+
 // Год не назван (или назван так, что месяц уходит далеко в будущее) — берём ближайший такой месяц:
 // «за декабрь» в январе — это декабрь прошлого года
 const pickSalaryYear = (ctx, month, value) => {
@@ -488,7 +521,9 @@ const HANDLERS = {
   add_weight: addWeight,
   add_body_params: addBodyParams,
   add_task: addTask,
-  complete_task: completeTask
+  complete_task: completeTask,
+  add_channel: addChannel,
+  remove_channel: removeChannel
 }
 
 // messageIds — все сообщения диалога записи (реплики и уточнения): при отмене их удаляем

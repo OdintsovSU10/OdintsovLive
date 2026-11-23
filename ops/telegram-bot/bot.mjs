@@ -13,6 +13,7 @@ import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
 import { MENU_BUTTONS, MENU_KEYBOARD, modeHint } from './menu.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { normalizeReminderSettings } from './reminderSettings.mjs'
+import { startNews } from './news.mjs'
 import { startReminders } from './reminders.mjs'
 import { startMeterAlerts } from './meterAlerts.mjs'
 import { startTodoAlerts } from './todoAlerts.mjs'
@@ -43,6 +44,7 @@ const HELP = `Кнопки внизу — режимы записи и быст�
 • фото счётчиков — показания уйдут в «Аренду»
 • CSV-выписка банка файлом — импортирую операции в «Траты»
 • /weeks — твоя жизнь в неделях (картинка)
+• новости: «добавь канал @name», «что важного за выходные», «какие каналы» — важное из каналов приходит само
 Под каждой записью — кнопка «Отменить».`
 
 const log = (...args) => console.log(new Date().toISOString(), ...args)
@@ -469,6 +471,8 @@ const main = async () => {
   // мерчанты новых банковских операций: название и категория от нейронки
   startMerchantWorker(rest, () => config, log)
   startReminders(rest, () => config, () => bot, log)
+  // новости из публичных Telegram-каналов: сбор и оценка важности
+  startNews(rest, () => config, () => bot, log)
   startTodoAlerts(rest, () => config, () => bot, log)
   startMeterAlerts(rest, () => config, () => bot, log)
   let offset = 0
