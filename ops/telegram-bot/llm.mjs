@@ -170,7 +170,8 @@ const parseArgs = raw => {
 // контент может содержать фото. withReads — давать ли модели инструменты чтения
 const hasImage = messages => messages.some(m => Array.isArray(m.content) && m.content.some(part => part.type === 'image_url'))
 
-export const callLlm = async (config, ctx, messages, withReads = false) => {
+// modeHint — строка про режим меню, добавляется в конец системного промпта
+export const callLlm = async (config, ctx, messages, withReads = false, modeHint = '') => {
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
@@ -186,7 +187,7 @@ export const callLlm = async (config, ctx, messages, withReads = false) => {
       tools: withReads ? [...buildTools(ctx), ...buildReadTools()] : buildTools(ctx),
       tool_choice: 'auto',
       usage: { include: true },
-      messages: [{ role: 'system', content: buildSystemPrompt(ctx) }, ...messages]
+      messages: [{ role: 'system', content: modeHint ? `${buildSystemPrompt(ctx)}\n\n${modeHint}` : buildSystemPrompt(ctx) }, ...messages]
     }),
     signal: AbortSignal.timeout(90_000)
   })
@@ -209,14 +210,14 @@ export const callLlm = async (config, ctx, messages, withReads = false) => {
 // Диалог с чтением данных: модель вызывает get_*, получает результаты и отвечает (до MAX_READ_ROUNDS раундов).
 // Возвращает то же, что callLlm: toolCalls — только запись, text — ответ; usage суммируется по запросам.
 // Без rest/userId (тест без базы) инструменты чтения не даём.
-export const askLlm = async (config, ctx, history, rest, log = () => {}) => {
+export const askLlm = async (config, ctx, history, rest, log = () => {}, modeHint = '') => {
   const canRead = Boolean(rest && ctx.userId)
   const messages = [...history]
   let cost = 0
 
   for (let round = 0; ; round++) {
     const withReads = canRead && round < MAX_READ_ROUNDS
-    const result = await callLlm(config, ctx, messages, withReads)
+    const result = await callLlm(config, ctx, messages, withReads, modeHint)
     cost += Number(result.usage?.cost) || 0
     const usage = { ...result.usage, cost }
 

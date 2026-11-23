@@ -10,6 +10,7 @@ import { createEntry, createRest, emptyContext, executeTools, loadContext, nowIn
 import { askLlm, transcribe } from './llm.mjs'
 import { sendLifeWeeks } from './lifeWeeks.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
+import { MENU_BUTTONS, MENU_KEYBOARD, modeHint } from './menu.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { normalizeReminderSettings } from './reminderSettings.mjs'
 import { startReminders } from './reminders.mjs'
@@ -31,7 +32,7 @@ const VOICE_MAX_SECONDS = 120
 // Бот-API Telegram отдаёт файлы до 20 МБ
 const STATEMENT_MAX_BYTES = 20 * 1024 * 1024
 
-const HELP = `Пиши как есть, я разложу по разделам сайта:
+const HELP = `Кнопки внизу — режимы записи и быстрые вопросы. Или пиши как есть, я разложу по разделам сайта:
 • «заправился 40 л по 62.5, пробег 123456»
 • «кофе 350», «вчера продукты в Ленте 2.4к»
 • «зарплата за сентябрь 150к, аванс»
@@ -140,10 +141,22 @@ const createBot = config => {
   const rest = createRest(config)
   const chats = new Map()
 
+  // mode — режим из меню: { tool, setAt }; живёт до другой кнопки, /start или HISTORY_TTL_MS без сообщений
   const getChat = chatId => {
     const chat = chats.get(chatId)
-    if (chat && Date.now() - chat.updatedAt < HISTORY_TTL_MS) return chat
-    const fresh = { history: [], messageIds: [], photo: null, updatedAt: Date.now() }
+    if (chat && Date.now() - chat.updatedAt < HISTORY_TTL_MS) {
+      if (chat.mode && Date.now() - chat.mode.setAt >= HISTORY_TTL_MS) chat.mode = null
+      return chat
+    }
+    const fresh = { history: [], messageIds: [], photo: null, mode: null, updatedAt: Date.now() }
+    chats.set(chatId, fresh)
+    return fresh
+  }
+
+  // чистый диалог, при необходимости сразу с режимом
+  const resetChat = (chatId, tool = null) => {
+    const now = Date.now()
+    const fresh = { history: [], messageIds: [], photo: null, mode: tool ? { tool, setAt: now } : null, updatedAt: now }
     chats.set(chatId, fresh)
     return fresh
   }
@@ -218,11 +231,24 @@ const createBot = config => {
       if (!config.ownerTelegramId) await reply(msg, `Нет доступа. Твой Telegram id: ${msg.from?.id}`)
       return
     }
-    if (msg.text === '/start' || msg.text === '/help') {
-      await reply(msg, HELP)
+
+    // кнопка меню: режим записи включаем сразу, вопрос уйдёт в модель ниже, команда отработает как набранная
+    const button = MENU_BUTTONS[msg.text]
+    if (button) {
+      if (button.mode) {
+        resetChat(msg.chat.id, button.mode)
+        await reply(msg, button.prompt)
+        return
+      }
+      resetChat(msg.chat.id)
+    }
+    const command = button?.command ?? msg.text
+    if (command === '/start' || command === '/menu') resetChat(msg.chat.id)
+    if (command === '/start' || command === '/menu' || command === '/help') {
+      await reply(msg, HELP, MENU_KEYBOARD)
       return
     }
-    if (msg.text === '/weeks') {
+    if (command === '/weeks') {
       const birthDate = config.reminders?.life?.birthDate
       if (!birthDate) {
         await reply(msg, 'Укажи дату рождения на сайте: Админка → Telegram-бот → Напоминания')
@@ -242,6 +268,13 @@ const createBot = config => {
     }
 
     const chat = getChat(msg.chat.id)
+    const meterMode = chat.mode?.tool === 'meter_photo'
+    // в режиме счётчиков ждём только фото; ответ на вопрос про перевод (reply) пропускаем дальше
+    if (meterMode && !msg.photo && !msg.reply_to_message) {
+      chat.updatedAt = chat.mode.setAt = Date.now()
+      await reply(msg, 'Жду фото счётчиков. Выйти из режима — любая другая кнопка.')
+      return
+    }
     let content
     // что бот услышал в голосовом — показываем в ответе
     let heard = ''
@@ -266,7 +299,7 @@ const createBot = config => {
       }
       content = heard
     } else if (msg.text) {
-      content = msg.text
+      content = button?.ask ?? msg.text
     } else {
       await reply(msg, 'Понимаю текст, голосовые, фото чеков и счётчиков')
       return
@@ -283,13 +316,26 @@ const createBot = config => {
       }
     }
 
+    if (meterMode && !msg.photo) {
+      await reply(msg, 'Жду фото счётчиков. Выйти из режима — любая другая кнопка.')
+      return
+    }
+    // каждое фото счётчиков — отдельная запись: прошлый диалог не тянем
+    if (meterMode) {
+      chat.history = []
+      chat.messageIds = []
+    }
     chat.history.push({ role: 'user', content })
     chat.messageIds.push(msg.message_id)
     chat.updatedAt = Date.now()
+    if (chat.mode) chat.mode.setAt = chat.updatedAt
     await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
 
     const ctx = await loadContext(rest, config.userId, config.timeZone)
-    const { toolCalls, text, usage } = await askLlm(config, ctx, chat.history, rest, log)
+    // счётчики в своём режиме читает отдельная модель — основную нейронку не зовём
+    const { toolCalls, text, usage } = meterMode
+      ? { toolCalls: [{ name: 'meter_photo', args: {} }], text: '', usage: null }
+      : await askLlm(config, ctx, chat.history, rest, log, chat.mode ? modeHint(chat.mode.tool) : '')
 
     if (toolCalls.length === 0) {
       const answer = text || 'Не понял, напиши иначе'
@@ -322,7 +368,9 @@ const createBot = config => {
         log(`чек ${entry.id} не сохранён:`, err.message)
       }
     }
-    chats.delete(msg.chat.id)
+    // режим «Счётчики» переживает запись: фото можно слать подряд; остальные режимы — разовые
+    if (meterMode) resetChat(msg.chat.id, 'meter_photo')
+    else chats.delete(msg.chat.id)
     log(`entry ${entry.id}: ${toolCalls.map(c => c.name).join(', ')} → ${rows.length} строк, $${usage?.cost ?? '?'}`)
 
     const keyboard = rows.length > 0 ? [...keyboards, undoRow(entry.id)] : keyboards
@@ -438,6 +486,13 @@ const main = async () => {
           bot = createBot(config)
           await bot.tg('deleteWebhook')
           config.username = (await bot.tg('getMe')).username
+          await bot.tg('setMyCommands', {
+            commands: [
+              { command: 'start', description: 'Меню' },
+              { command: 'weeks', description: 'Жизнь в неделях' },
+              { command: 'help', description: 'Помощь' }
+            ]
+          }).catch(err => log('setMyCommands:', err.message || err))
           offset = 0
           log(`bot @${config.username} started, model ${config.model}`)
         } else {
