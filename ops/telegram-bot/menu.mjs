@@ -13,9 +13,14 @@ export const MENU_KEYBOARD = {
       ['📰 Новости', '📡 Каналы'],
       ['🗓 Недели', '❓ Помощь']
     ],
-    resize_keyboard: true,
-    is_persistent: true
+    // без is_persistent меню сворачивается в значок у поля ввода
+    resize_keyboard: true
   }
+}
+
+// Кнопка выхода из режима записи под подсказкой режима
+export const CANCEL_MODE_KEYBOARD = {
+  reply_markup: { inline_keyboard: [[{ text: '✖ Отмена', callback_data: 'mode:cancel' }]] }
 }
 
 // Текст кнопки → что делать: mode (инструмент записи) + prompt, ask (вопрос модели) или command.

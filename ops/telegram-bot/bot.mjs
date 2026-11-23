@@ -10,7 +10,7 @@ import { createEntry, createRest, emptyContext, executeTools, loadContext, nowIn
 import { askLlm, transcribe } from './llm.mjs'
 import { sendLifeWeeks } from './lifeWeeks.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
-import { MENU_BUTTONS, MENU_KEYBOARD, modeHint } from './menu.mjs'
+import { CANCEL_MODE_KEYBOARD, MENU_BUTTONS, MENU_KEYBOARD, modeHint } from './menu.mjs'
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { normalizeReminderSettings } from './reminderSettings.mjs'
 import { startNews } from './news.mjs'
@@ -239,7 +239,7 @@ const createBot = config => {
     if (button) {
       if (button.mode) {
         resetChat(msg.chat.id, button.mode)
-        await reply(msg, button.prompt)
+        await reply(msg, button.prompt, CANCEL_MODE_KEYBOARD)
         return
       }
       resetChat(msg.chat.id)
@@ -274,7 +274,7 @@ const createBot = config => {
     // в режиме счётчиков ждём только фото; ответ на вопрос про перевод (reply) пропускаем дальше
     if (meterMode && !msg.photo && !msg.reply_to_message) {
       chat.updatedAt = chat.mode.setAt = Date.now()
-      await reply(msg, 'Жду фото счётчиков. Выйти из режима — любая другая кнопка.')
+      await reply(msg, 'Жду фото счётчиков.', CANCEL_MODE_KEYBOARD)
       return
     }
     let content
@@ -319,7 +319,7 @@ const createBot = config => {
     }
 
     if (meterMode && !msg.photo) {
-      await reply(msg, 'Жду фото счётчиков. Выйти из режима — любая другая кнопка.')
+      await reply(msg, 'Жду фото счётчиков.', CANCEL_MODE_KEYBOARD)
       return
     }
     // каждое фото счётчиков — отдельная запись: прошлый диалог не тянем
@@ -416,6 +416,16 @@ const createBot = config => {
     const [action, entryId] = (cb.data || '').split(':')
     if (action === 'sal') {
       await handleSalaryMonth(cb)
+      return
+    }
+    if (action === 'mode' && cb.message) {
+      resetChat(cb.message.chat.id)
+      await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Режим выключен' })
+      await tg('editMessageText', {
+        chat_id: cb.message.chat.id,
+        message_id: cb.message.message_id,
+        text: `${cb.message.text}\n\n✖ Отменено`
+      }).catch(() => {})
       return
     }
     if (action !== 'undo') {
