@@ -12,7 +12,6 @@ export const METER_MODEL = 'google/gemini-3.1-flash-lite'
 // Как у карточки текущего месяца на портале: до 10-го числа фото идут в прошлый месяц, если он не оплачен
 const CLOSE_PREV_UNTIL_DAY = 10
 const POLL_MS = 5000
-const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 
 // Форматы счётчиков квартиры: Миртек-12-РУ показывает 000633.80 (6+2 знака),
 // водомеры Пульс-15У — 8 барабанов: 5 чёрных (м³) и 3 красных (литры)
@@ -178,18 +177,19 @@ const rentPeriod = async (rest, ctx) => {
   return { year: y, month: m - 1 }
 }
 
-// Как на дисплее счётчика: электричество — 2 знака, вода — 3 (литры)
+// Электричество — 2 знака, как на дисплее; вода — целые м³, как в сообщении «Аренды»
 const reading = (value, digits) => value.toFixed(digits).replace('.', ',')
 
+// Сообщение для пересылки: только показания, без расчёта
 const describe = meters => {
   const lines = meters
     .filter(m => m.kind === 'electricity')
     .sort((a, b) => a.tariff.localeCompare(b.tariff))
-    .map(m => `⚡ ${m.tariff}: ${reading(m.value, 2)} кВт·ч`)
+    .map(m => `${m.tariff} ${reading(m.value, 2)}`)
   // как на портале: большее показание водомера — ХВС
-  const water = meters.filter(m => m.kind === 'water').map(m => m.value).sort((a, b) => b - a)
-  if (water.length === 2) lines.push(`💧 ХВС ${reading(water[0], 3)} м³ · ГВС ${reading(water[1], 3)} м³`)
-  else water.forEach(value => lines.push(`💧 Вода ${reading(value, 3)} м³`))
+  const water = meters.filter(m => m.kind === 'water').map(m => Math.floor(m.value)).sort((a, b) => b - a)
+  if (water.length === 2) lines.push(`ГВС ${water[1]}`, `ХВС ${water[0]}`)
+  else water.forEach(value => lines.push(`Вода ${value}`))
   return lines
 }
 
@@ -210,5 +210,5 @@ export const meterPhotoHandler = async ({ rest, ctx, track, config, photo }) => 
   })
   track('meter_ocr_jobs', job.id)
   savePhoto(config.metersDir, { id: job.id, year, month }, photo)
-  return [`📷 Счётчики → «Аренда», ${MONTHS[month]} ${year}`, ...describe(meters)].join('\n')
+  return ['Привет.', ...describe(meters)].join('\n')
 }
