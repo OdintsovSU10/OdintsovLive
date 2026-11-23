@@ -13,7 +13,7 @@ services:
       # доступен, а через прокси не проходит — его домена нет в фильтре tinyproxy)
       NODE_USE_ENV_PROXY: "1"
       HTTPS_PROXY: http://194.37.81.38:18443
-      NO_PROXY: api.telegram.org,openrouter.ai,live.meridianai.ru,api.deepgram.com
+      NO_PROXY: api.telegram.org,openrouter.ai,live.meridianai.ru,api.deepgram.com,t.me
     mem_limit: 128m
     logging:
       driver: json-file

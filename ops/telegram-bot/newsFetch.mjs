@@ -117,6 +117,10 @@ export const fetchChannel = async username => {
   }
   if (res.status === 429) throw new Error('Telegram ограничил частоту запросов, повторю позже')
   if (!res.ok) throw new Error(`Telegram ответил HTTP ${res.status}`)
+  // t.me/s/<канал> переадресует на t.me/<канал>, когда ленту не показывают в регионе сервера (так у rian_ru из РФ)
+  if (!new URL(res.url).pathname.startsWith('/s/')) {
+    throw new Error(`Telegram не показывает ленту @${name} с сервера (ограничение по региону), канал читать не получится`)
+  }
   const { title, wraps, posts } = parseChannelPage(await res.text(), name)
   // ни одного сообщения на странице: канала нет, он закрытый или без веб-просмотра (или поменялась вёрстка)
   if (wraps === 0) throw new Error(`Канал @${name} не найден или у него закрыт веб-просмотр — публичной ленты t.me/s/${name} нет`)
