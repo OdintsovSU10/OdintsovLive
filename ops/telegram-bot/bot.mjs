@@ -14,6 +14,7 @@ import { CANCEL_MODE_KEYBOARD, MENU_BUTTONS, MENU_KEYBOARD, modeHint } from './m
 import { classifyNewMerchants, startMerchantWorker } from './merchants.mjs'
 import { normalizeReminderSettings } from './reminderSettings.mjs'
 import { startNews } from './news.mjs'
+import { escapeHtml, formatNewsHtml, hasNewsLinks, isParseError } from './newsFormat.mjs'
 import { startReminders } from './reminders.mjs'
 import { startMeterAlerts } from './meterAlerts.mjs'
 import { startTodoAlerts } from './todoAlerts.mjs'
@@ -376,7 +377,21 @@ const createBot = config => {
       chat.history = chat.history.slice(-HISTORY_LIMIT)
       // диалог для модели должен начинаться с реплики пользователя
       while (chat.history[0]?.role === 'assistant') chat.history.shift()
-      const sent = await reply(msg, heardLine + answer)
+      let sent
+      if (hasNewsLinks(answer)) {
+        // новости со ссылками — аккуратным HTML; не приняла разметку — как раньше, простым текстом
+        try {
+          sent = await reply(msg, escapeHtml(heardLine) + formatNewsHtml(answer), {
+            parse_mode: 'HTML',
+            link_preview_options: { is_disabled: true }
+          })
+        } catch (err) {
+          if (!isParseError(err)) throw err
+          sent = await reply(msg, heardLine + answer)
+        }
+      } else {
+        sent = await reply(msg, heardLine + answer)
+      }
       chat.messageIds.push(sent.message_id)
       return
     }
@@ -453,11 +468,14 @@ const createBot = config => {
     if (action === 'mode' && cb.message) {
       resetChat(cb.message.chat.id)
       await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Режим выключен' })
-      await tg('editMessageText', {
-        chat_id: cb.message.chat.id,
-        message_id: cb.message.message_id,
-        text: `${cb.message.text}\n\n✖ Отменено`
-      }).catch(() => {})
+      // как при отмене записи: убираем подсказку режима и кнопку, которой его включили
+      const ids = [cb.message.reply_to_message?.message_id, cb.message.message_id].filter(Boolean)
+      await tg('deleteMessages', { chat_id: cb.message.chat.id, message_ids: ids }).catch(() =>
+        tg('editMessageText', {
+          chat_id: cb.message.chat.id,
+          message_id: cb.message.message_id,
+          text: `${cb.message.text}\n\n✖ Отменено`
+        }).catch(() => {}))
       return
     }
     if (action !== 'undo') {

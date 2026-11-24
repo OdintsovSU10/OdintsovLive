@@ -5,6 +5,7 @@ import { nowInZone } from './actions.mjs'
 import { OPENROUTER_URL } from './llm.mjs'
 import { METER_MODEL } from './meters.mjs'
 import { fetchChannel } from './newsFetch.mjs'
+import { anchor, escapeHtml, fitBlocks, formatNewsHtml, htmlToPlain, isParseError } from './newsFormat.mjs'
 import { once } from './notify.mjs'
 
 export const NEWS_MODEL = METER_MODEL
@@ -238,29 +239,26 @@ const score = async (rest, config, channels, log) => {
 const channelLabel = post => post.news_channels?.title || (post.news_channels?.username ? `@${post.news_channels.username}` : 'канал')
 const oneLine = text => (text || '').replace(/\s+/g, ' ').trim()
 
-// Одно сообщение: пункт — суть, ссылка, канал. Не больше PUSH_MAX_ITEMS пунктов и MESSAGE_MAX_CHARS знаков; тела постов сюда не попадают
-export const buildPushText = posts => {
-  const items = posts.slice(0, PUSH_MAX_ITEMS).map(post => {
-    const summary = oneLine(post.summary).slice(0, PUSH_SUMMARY_CHARS) || post.category || 'Без описания'
-    return `• ${summary}\n${post.url}\n— ${oneLine(channelLabel(post))}`
-  })
-  let text = '🔴 Важное в каналах:'
-  let shown = 0
-  for (const item of items) {
-    const next = `${text}\n\n${item}`
-    if (next.length > MESSAGE_MAX_CHARS - 40) break
-    text = next
-    shown++
-  }
-  const more = posts.length - shown
-  return more > 0 ? `${text}\n\n…и ещё ${more}` : text
+// Пункт в HTML: суть, ниже ссылка на пост с названием канала
+const postItem = post => {
+  const summary = oneLine(post.summary).slice(0, PUSH_SUMMARY_CHARS) || post.category || 'Без описания'
+  return `• ${escapeHtml(summary)}\n${anchor(post.url, oneLine(channelLabel(post)))}`
 }
 
-const sendText = (config, bot, text) => bot.tg('sendMessage', {
-  chat_id: config.ownerTelegramId,
-  text,
-  link_preview_options: { is_disabled: true }
-})
+// Одно сообщение (HTML): пункт — суть и ссылка на канал. Не больше PUSH_MAX_ITEMS пунктов и MESSAGE_MAX_CHARS знаков; тела постов сюда не попадают
+export const buildPushText = posts =>
+  fitBlocks('🔴 <b>Важное в каналах</b>', posts.slice(0, PUSH_MAX_ITEMS).map(postItem), MESSAGE_MAX_CHARS, posts.length)
+
+// HTML; если Telegram не принял разметку — один раз повторяем простым текстом
+const sendText = async (config, bot, text) => {
+  const body = { chat_id: config.ownerTelegramId, link_preview_options: { is_disabled: true } }
+  try {
+    return await bot.tg('sendMessage', { ...body, text, parse_mode: 'HTML' })
+  } catch (err) {
+    if (!isParseError(err)) throw err
+    return bot.tg('sendMessage', { ...body, text: htmlToPlain(text) })
+  }
+}
 
 const pushCritical = async (rest, config, bot, settings) => {
   const threshold = Number.isInteger(settings.push_threshold) ? settings.push_threshold : DEFAULT_PUSH_THRESHOLD
@@ -291,15 +289,10 @@ export const isDigestDue = (time, digestTime) => time.slice(0, 5) >= (digestTime
 
 const digestLine = post => `${post.id}. [${oneLine(stripMarkers(channelLabel(post)))}, ${post.importance}] ${oneLine(stripMarkers(post.summary || '')).slice(0, DIGEST_SUMMARY_CHARS)} — ${post.url}`
 
-const fallbackDigest = posts => {
-  let text = '📰 Новости за сутки'
-  for (const post of posts.slice(0, DIGEST_FALLBACK_ITEMS)) {
-    const next = `${text}\n\n• ${oneLine(post.summary).slice(0, PUSH_SUMMARY_CHARS) || post.category || 'Без описания'}\n${post.url}`
-    if (next.length > MESSAGE_MAX_CHARS) break
-    text = next
-  }
-  return text
-}
+const DIGEST_HEADER = '📰 <b>Новости за сутки</b>'
+
+const fallbackDigest = posts =>
+  fitBlocks(DIGEST_HEADER, posts.slice(0, DIGEST_FALLBACK_ITEMS).map(postItem), MESSAGE_MAX_CHARS, posts.length)
 
 const summarizeDigest = async (config, posts) => {
   if (!config.openrouterKey) throw new Error('нет ключа OpenRouter')
@@ -333,7 +326,9 @@ export const buildDigestText = async (config, posts, log) => {
     log(`news: сводка без нейронки:`, err.message || err)
     return fallbackDigest(posts)
   }
-  return `📰 Новости за сутки\n\n${body}`.slice(0, MESSAGE_MAX_CHARS)
+  const labels = new Map(posts.map(post => [post.url, oneLine(channelLabel(post))]))
+  // режем по целым пунктам (пустая строка между ними), чтобы не порвать тег
+  return fitBlocks(DIGEST_HEADER, formatNewsHtml(body, labels).split('\n\n'), MESSAGE_MAX_CHARS)
 }
 
 const dailyDigest = async (rest, config, bot, settings, log) => {
