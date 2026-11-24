@@ -32,6 +32,8 @@ const HISTORY_TTL_MS = 10 * 60_000
 const VOICE_MAX_SECONDS = 120
 // Бот-API Telegram отдаёт файлы до 20 МБ
 const STATEMENT_MAX_BYTES = 20 * 1024 * 1024
+// Фото альбома приходят отдельными сообщениями с общим media_group_id: ждём, пока долетят все
+const ALBUM_WAIT_MS = 1500
 
 const HELP = `Кнопки внизу — режимы записи и быстрые вопросы. Или пиши как есть, я разложу по разделам сайта:
 • «заправился 40 л по 62.5, пробег 123456»
@@ -131,10 +133,11 @@ const saveReceipt = (config, photo, entryId, date) => {
   fs.writeFileSync(path.join(dir, `${entryId}.jpg`), photo)
 }
 
-const photoContent = (photo, caption) => [
+// photo — один буфер или массив (альбом): на каждое фото своя часть text + image_url
+const photoContent = (photo, caption) => (Array.isArray(photo) ? photo : [photo]).flatMap(buffer => [
   { type: 'text', text: caption || 'Фото' },
-  { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${photo.toString('base64')}` } }
-]
+  { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${buffer.toString('base64')}` } }
+])
 
 const messageText = content => (typeof content === 'string' ? content : content[0].text)
 
@@ -142,6 +145,8 @@ const createBot = config => {
   const tg = createTelegram(config.token)
   const rest = createRest(config)
   const chats = new Map()
+  // альбомы, которые ещё собираются: `${chatId}:${media_group_id}` → { msgs, timer }
+  const albums = new Map()
 
   // mode — режим из меню: { tool, setAt }; живёт до другой кнопки, /start или HISTORY_TTL_MS без сообщений
   const getChat = chatId => {
@@ -150,7 +155,7 @@ const createBot = config => {
       if (chat.mode && Date.now() - chat.mode.setAt >= HISTORY_TTL_MS) chat.mode = null
       return chat
     }
-    const fresh = { history: [], messageIds: [], photo: null, mode: null, updatedAt: Date.now() }
+    const fresh = { history: [], messageIds: [], photo: null, photos: [], mode: null, updatedAt: Date.now() }
     chats.set(chatId, fresh)
     return fresh
   }
@@ -158,7 +163,7 @@ const createBot = config => {
   // чистый диалог, при необходимости сразу с режимом
   const resetChat = (chatId, tool = null) => {
     const now = Date.now()
-    const fresh = { history: [], messageIds: [], photo: null, mode: tool ? { tool, setAt: now } : null, updatedAt: now }
+    const fresh = { history: [], messageIds: [], photo: null, photos: [], mode: tool ? { tool, setAt: now } : null, updatedAt: now }
     chats.set(chatId, fresh)
     return fresh
   }
@@ -269,6 +274,22 @@ const createBot = config => {
       return
     }
 
+    // фото альбома копим и обрабатываем одним сообщением, когда долетели все
+    if (msg.photo && msg.media_group_id && !msg.album) {
+      const key = `${msg.chat.id}:${msg.media_group_id}`
+      const album = albums.get(key) ?? { msgs: [], timer: null }
+      album.msgs.push(msg)
+      clearTimeout(album.timer)
+      album.timer = setTimeout(() => {
+        albums.delete(key)
+        const msgs = album.msgs.sort((a, b) => a.message_id - b.message_id)
+        // handleUpdate сам ловит ошибки и отвечает пользователю
+        void handleUpdate({ update_id: 0, message: { ...msgs[0], album: msgs } })
+      }, ALBUM_WAIT_MS)
+      albums.set(key, album)
+      return
+    }
+
     const chat = getChat(msg.chat.id)
     const meterMode = chat.mode?.tool === 'meter_photo'
     // в режиме счётчиков ждём только фото; ответ на вопрос про перевод (reply) пропускаем дальше
@@ -282,8 +303,15 @@ const createBot = config => {
     let heard = ''
     if (msg.photo) {
       // Telegram присылает фото уже сжатым (до 1280 px) — берём самый крупный вариант как есть
-      chat.photo = await downloadFile(config, tg, msg.photo.at(-1).file_id)
-      content = photoContent(chat.photo, msg.caption)
+      // альбом (msg.album) — несколько фото в одном ответе; подпись — первая непустая
+      const photoMsgs = msg.album ?? [msg]
+      chat.photos = []
+      for (const photoMsg of photoMsgs) {
+        chat.photos.push(await downloadFile(config, tg, photoMsg.photo.at(-1).file_id))
+      }
+      chat.photo = chat.photos[0]
+      const caption = photoMsgs.map(m => m.caption).find(Boolean)
+      content = photoContent(chat.photos, caption)
     } else if (msg.voice) {
       if (!config.deepgramKey && !config.elevenlabsKey) {
         await reply(msg, 'Голосовые не настроены: нужен ключ ElevenLabs в Админке')
@@ -328,16 +356,20 @@ const createBot = config => {
       chat.messageIds = []
     }
     chat.history.push({ role: 'user', content })
-    chat.messageIds.push(msg.message_id)
+    chat.messageIds.push(...(msg.album ?? [msg]).map(m => m.message_id))
     chat.updatedAt = Date.now()
     if (chat.mode) chat.mode.setAt = chat.updatedAt
     await tg('sendChatAction', { chat_id: msg.chat.id, action: 'typing' }).catch(() => {})
 
     const ctx = await loadContext(rest, config.userId, config.timeZone)
     // счётчики в своём режиме читает отдельная модель — основную нейронку не зовём
-    const { toolCalls, text, usage } = meterMode
+    const llmResult = meterMode
       ? { toolCalls: [{ name: 'meter_photo', args: {} }], text: '', usage: null }
       : await askLlm(config, ctx, chat.history, rest, log, chat.mode ? modeHint(chat.mode.tool) : '')
+    const { text, usage } = llmResult
+    // meter_photo сам читает все фото альбома: повторные вызовы (модель зовёт его на каждое фото) отбрасываем
+    const toolCalls = llmResult.toolCalls.filter((call, i, all) =>
+      call.name !== 'meter_photo' || all.findIndex(c => c.name === 'meter_photo') === i)
 
     if (toolCalls.length === 0) {
       const answer = text || 'Не понял, напиши иначе'
@@ -360,6 +392,7 @@ const createBot = config => {
     const { lines, rows, keyboards } = await executeTools(rest, ctx, entry.id, toolCalls, {
       config,
       photo: chat.photo,
+      photos: chat.photos,
       handlers: { meter_photo: meterPhotoHandler }
     })
     // фото счётчика сохраняет meters.mjs в свою папку, в чеки его не кладём

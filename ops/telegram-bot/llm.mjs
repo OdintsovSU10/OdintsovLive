@@ -173,12 +173,44 @@ const parseArgs = raw => {
   }
 }
 
+// Часть моделей вместо tool_calls пишет вызов текстом: <|tool_call>call:NAME{args}<tool_call|>
+const TOOL_MARKUP_RE = /<\|?\/?tool_call\|?>/
+const TOOL_BLOCK_RE = /<\|?tool_call\|?>([\s\S]*?)(?:<\|?\/?tool_call\|?>|$)/g
+
+const parseTextArgs = raw => {
+  if (!raw) return {}
+  for (const candidate of [raw, raw.replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":')]) {
+    try {
+      const value = JSON.parse(candidate)
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value
+    } catch {
+      // пробуем следующий вариант
+    }
+  }
+  return {}
+}
+
+// Достаёт вызовы из текста ответа. toolNames — инструменты, которые мы отдали модели: чужие имена отбрасываем.
+// found — была ли вообще разметка вызова; text — ответ без неё
+export const parseTextToolCalls = (content, toolNames) => {
+  if (typeof content !== 'string' || !TOOL_MARKUP_RE.test(content)) return { found: false, calls: [], text: content }
+  const names = new Set(toolNames)
+  const calls = []
+  for (const [, body] of content.matchAll(TOOL_BLOCK_RE)) {
+    const parsed = body.trim().match(/^call:\s*([\w.-]+)\s*(\{[\s\S]*\})?$/)
+    if (parsed && names.has(parsed[1])) calls.push({ name: parsed[1], args: parseTextArgs(parsed[2]) })
+  }
+  const text = content.replace(TOOL_BLOCK_RE, '').replace(new RegExp(TOOL_MARKUP_RE, 'g'), '').trim()
+  return { found: true, calls, text }
+}
+
 // messages — сообщения диалога в формате OpenAI (user/assistant, а в цикле чтения ещё assistant с tool_calls и tool),
 // контент может содержать фото. withReads — давать ли модели инструменты чтения
 const hasImage = messages => messages.some(m => Array.isArray(m.content) && m.content.some(part => part.type === 'image_url'))
 
 // modeHint — строка про режим меню, добавляется в конец системного промпта
-export const callLlm = async (config, ctx, messages, withReads = false, modeHint = '') => {
+export const callLlm = async (config, ctx, messages, withReads = false, modeHint = '', log = () => {}) => {
+  const tools = withReads ? [...buildTools(ctx), ...buildReadTools()] : buildTools(ctx)
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
@@ -192,7 +224,7 @@ export const callLlm = async (config, ctx, messages, withReads = false, modeHint
       // с фото чека ответ длиннее: в нём позиции
       // после чтения данных (например, список новостей со ссылками) ответ тоже длиннее
       max_tokens: hasImage(messages) || messages.some(m => m.role === 'tool') ? 2048 : 1024,
-      tools: withReads ? [...buildTools(ctx), ...buildReadTools()] : buildTools(ctx),
+      tools,
       tool_choice: 'auto',
       usage: { include: true },
       messages: [{ role: 'system', content: modeHint ? `${buildSystemPrompt(ctx)}\n\n${modeHint}` : buildSystemPrompt(ctx) }, ...messages]
@@ -205,11 +237,30 @@ export const callLlm = async (config, ctx, messages, withReads = false, modeHint
     throw new Error(`OpenRouter ${res.status}: ${data?.error?.message || 'пустой ответ'}`)
   }
 
+  let rawToolCalls = message.tool_calls || []
+  let toolCalls = rawToolCalls.map(call => ({ id: call.id, name: call.function.name, args: parseArgs(call.function.arguments) }))
+  let text = typeof message.content === 'string' ? message.content.trim() : ''
+
+  // модель вернула вызов текстом вместо tool_calls — разбираем сами, разметку пользователю не показываем
+  if (toolCalls.length === 0) {
+    const parsed = parseTextToolCalls(message.content, tools.map(tool => tool.function.name))
+    if (parsed.found) {
+      log(`вызов инструмента текстом: ${parsed.calls.map(c => c.name).join(', ') || 'не разобран'}`)
+      text = parsed.calls.length > 0 ? parsed.text : ''
+      rawToolCalls = parsed.calls.map((call, i) => ({
+        id: `text_call_${i}`,
+        type: 'function',
+        function: { name: call.name, arguments: JSON.stringify(call.args) }
+      }))
+      toolCalls = parsed.calls.map((call, i) => ({ id: rawToolCalls[i].id, ...call }))
+    }
+  }
+
   return {
-    toolCalls: (message.tool_calls || []).map(call => ({ id: call.id, name: call.function.name, args: parseArgs(call.function.arguments) })),
+    toolCalls,
     // tool_calls как вернул OpenRouter — для следующего запроса в цикле чтения
-    rawToolCalls: message.tool_calls || [],
-    text: typeof message.content === 'string' ? message.content.trim() : '',
+    rawToolCalls,
+    text,
     // стоимость запроса в $ и токены — для лога
     usage: data.usage || null
   }
@@ -225,7 +276,7 @@ export const askLlm = async (config, ctx, history, rest, log = () => {}, modeHin
 
   for (let round = 0; ; round++) {
     const withReads = canRead && round < MAX_READ_ROUNDS
-    const result = await callLlm(config, ctx, messages, withReads, modeHint)
+    const result = await callLlm(config, ctx, messages, withReads, modeHint, log)
     cost += Number(result.usage?.cost) || 0
     const usage = { ...result.usage, cost }
 

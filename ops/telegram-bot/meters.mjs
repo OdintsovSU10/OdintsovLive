@@ -193,22 +193,40 @@ const describe = meters => {
   return lines
 }
 
-// Инструмент бота meter_photo: фото из Telegram распознаём сразу и кладём в очередь готовым
-export const meterPhotoHandler = async ({ rest, ctx, track, config, photo }) => {
-  if (!photo) throw new UserError('Пришли фото счётчика')
+// Инструмент бота meter_photo: фото из Telegram распознаём сразу и кладём в очередь готовым.
+// Альбом — несколько фото: на каждое своя запись очереди (портал применяет их по одной), ответ один
+export const meterPhotoHandler = async ({ rest, ctx, track, config, photo, photos }) => {
+  const list = photos?.length ? photos : photo ? [photo] : []
+  if (list.length === 0) throw new UserError('Пришли фото счётчика')
   const { year, month } = await rentPeriod(rest, ctx)
   const started = Date.now()
-  const meters = await recognizeMeters(config, photo.toString('base64'))
-  if (meters.length === 0) throw new UserError('Не разобрал показания — сфотографируй счётчик ближе')
+  const results = await Promise.allSettled(list.map(item => recognizeMeters(config, item.toString('base64'))))
+  if (results.every(r => r.status === 'rejected')) throw results[0].reason
   const seconds = Math.round((Date.now() - started) / 1000)
-  const [job] = await rest('meter_ocr_jobs', {
-    method: 'POST',
-    body: JSON.stringify({
-      user_id: ctx.userId, year, month, status: 'done', applied: false,
-      result: { meters, model: METER_MODEL, seconds }
+
+  const allMeters = []
+  const failed = []
+  for (const [index, result] of results.entries()) {
+    const meters = result.status === 'fulfilled' ? result.value : []
+    if (meters.length === 0) {
+      failed.push(index + 1)
+      continue
+    }
+    const [job] = await rest('meter_ocr_jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: ctx.userId, year, month, status: 'done', applied: false,
+        result: { meters, model: METER_MODEL, seconds }
+      })
     })
-  })
-  track('meter_ocr_jobs', job.id)
-  savePhoto(config.metersDir, { id: job.id, year, month }, photo)
-  return ['Привет.', ...describe(meters)].join('\n')
+    track('meter_ocr_jobs', job.id)
+    savePhoto(config.metersDir, { id: job.id, year, month }, list[index])
+    allMeters.push(...meters)
+  }
+  if (allMeters.length === 0) throw new UserError('Не разобрал показания — сфотографируй счётчик ближе')
+  return [
+    'Привет.',
+    ...describe(allMeters),
+    ...failed.map(n => `Не разобрал фото №${n} — пришли его ещё раз ближе`)
+  ].join('\n')
 }
