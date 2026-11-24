@@ -257,6 +257,10 @@ export default function AdminPage() {
     return <div className="admin-page"><p>Загрузка...</p></div>
   }
 
+  const totalUsers = users.length
+  const pendingUsers = users.filter(u => !u.approved).length
+  const adminUsers = users.filter(u => u.is_admin).length
+
   return (
     <div className="admin-page">
       <div className="admin-tabs">
@@ -292,6 +296,20 @@ export default function AdminPage() {
 
       {activeTab === 'users' && (
         <div className="tab-content">
+          <div className="admin-stats">
+            <div className="admin-card admin-stat">
+              <span className="admin-stat-value">{totalUsers}</span>
+              <span className="admin-stat-label">Всего</span>
+            </div>
+            <div className="admin-card admin-stat">
+              <span className="admin-stat-value">{pendingUsers}</span>
+              <span className="admin-stat-label">Ожидают</span>
+            </div>
+            <div className="admin-card admin-stat">
+              <span className="admin-stat-value">{adminUsers}</span>
+              <span className="admin-stat-label">Админы</span>
+            </div>
+          </div>
           <div className="users-list">
             {users.map(user => (
               <div key={user.id} className={`user-card ${user.approved ? '' : 'pending'}`}>
@@ -336,54 +354,60 @@ export default function AdminPage() {
 
       {activeTab === 'visual' && (
         <div className="tab-content">
-          <div className="visual-settings">
-            <div className="settings-section">
+          <div className="admin-grid admin-grid--visual">
+            <section className="admin-card admin-card--fonts">
               <h2><Type size={20} /> Шрифты</h2>
 
-              <div className="font-setting">
-                <label>Заголовки</label>
-                <select
-                  value={settings.font_headline}
-                  onChange={e => setSettings({ ...settings, font_headline: e.target.value })}
-                >
-                  {getAllFontOptions('headline').map(f => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-                <span className="font-preview" style={{ fontFamily: `'${settings.font_headline}', serif` }}>
-                  Пример заголовка
-                </span>
-              </div>
+              <div className="font-settings-grid">
+                <div className="font-setting">
+                  <label>Заголовки</label>
+                  <select
+                    value={settings.font_headline}
+                    onChange={e => setSettings({ ...settings, font_headline: e.target.value })}
+                  >
+                    {getAllFontOptions('headline').map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                  <span className="font-preview" style={{ fontFamily: `'${settings.font_headline}', serif` }}>
+                    Пример заголовка
+                  </span>
+                </div>
 
-              <div className="font-setting">
-                <label>Основной текст</label>
-                <select
-                  value={settings.font_body}
-                  onChange={e => setSettings({ ...settings, font_body: e.target.value })}
-                >
-                  {getAllFontOptions('body').map(f => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-                <span className="font-preview" style={{ fontFamily: `'${settings.font_body}', sans-serif` }}>
-                  Пример основного текста для чтения
-                </span>
-              </div>
+                <div className="font-setting">
+                  <label>Основной текст</label>
+                  <select
+                    value={settings.font_body}
+                    onChange={e => setSettings({ ...settings, font_body: e.target.value })}
+                  >
+                    {getAllFontOptions('body').map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                  <span className="font-preview" style={{ fontFamily: `'${settings.font_body}', sans-serif` }}>
+                    Пример основного текста для чтения
+                  </span>
+                </div>
 
-              <div className="font-setting">
-                <label>Моноширинный (даты, числа)</label>
-                <select
-                  value={settings.font_mono}
-                  onChange={e => setSettings({ ...settings, font_mono: e.target.value })}
-                >
-                  {getAllFontOptions('mono').map(f => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-                <span className="font-preview mono" style={{ fontFamily: `'${settings.font_mono}', monospace` }}>
-                  01.01.2025 — 123 456 ₽
-                </span>
+                <div className="font-setting">
+                  <label>Моноширинный (даты, числа)</label>
+                  <select
+                    value={settings.font_mono}
+                    onChange={e => setSettings({ ...settings, font_mono: e.target.value })}
+                  >
+                    {getAllFontOptions('mono').map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                  <span className="font-preview mono" style={{ fontFamily: `'${settings.font_mono}', monospace` }}>
+                    01.01.2025 — 123 456 ₽
+                  </span>
+                </div>
               </div>
+            </section>
+
+            <section className="admin-card">
+              <h2><Type size={20} /> Размер шрифта</h2>
 
               <div className="font-setting">
                 <label>Базовый размер шрифта: {settings.font_size_base}px</label>
@@ -402,9 +426,9 @@ export default function AdminPage() {
                   <span>24px</span>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="settings-section">
+            <section className="admin-card">
               <h2><Upload size={20} /> Свои шрифты</h2>
 
               <div className="custom-font-upload">
@@ -444,7 +468,7 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </section>
 
             <div className="settings-actions">
               <button className="btn-reset" onClick={resetSettings}>
@@ -460,14 +484,18 @@ export default function AdminPage() {
 
       {activeTab === 'fot' && (
         <div className="tab-content">
-          <FotTokenSettings />
+          <div className="admin-grid admin-grid--fot">
+            <FotTokenSettings />
+          </div>
         </div>
       )}
 
       {activeTab === 'bot' && (
         <div className="tab-content">
-          <BotSettings />
-          <ReminderSettings />
+          <div className="admin-grid admin-grid--bot">
+            <BotSettings />
+            <ReminderSettings />
+          </div>
         </div>
       )}
     </div>

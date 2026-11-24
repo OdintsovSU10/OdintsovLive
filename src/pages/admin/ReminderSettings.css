@@ -1,16 +1,22 @@
 /* Блок «Напоминания» в Админке → Telegram-бот; общий вид — классы fot-token-* из AdminPage.css */
-.reminder-settings {
-  margin-top: 24px;
-}
-
+/* отступ сверху даёт gap сетки .admin-grid--bot */
 .reminder-groups {
   display: grid;
+  /* не больше двух колонок: 50% минус половина зазора с запасом; на узком экране — одна */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(300px, calc(50% - 9px))), 1fr));
+  align-items: start;
   gap: 16px;
+}
+
+/* самая длинная группа («Остальные напоминания») — на всю ширину */
+.reminder-group:last-child {
+  grid-column: 1 / -1;
 }
 
 .reminder-group {
   display: grid;
   gap: 14px;
+  min-width: 0;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -165,7 +171,8 @@
 
 .reminder-checks {
   display: grid;
-  gap: 2px;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 2px 16px;
 }
 
 /* памятные даты: на узком экране дата и название в две строки, от 600px — в одну */
@@ -234,6 +241,11 @@
   flex-direction: column;
   gap: 10px;
   margin-top: 16px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .reminder-actions .fot-token-save {
@@ -249,13 +261,34 @@
     min-width: 185px;
   }
 
-  .reminder-checks {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .life-event-row {
     grid-template-columns: 14px 170px minmax(0, 1fr) 44px;
     grid-template-areas: 'dot date label remove';
+  }
+}
+
+@media (min-width: 768px) {
+  .reminder-group {
+    padding: 20px;
+  }
+}
+
+/* широкий экран: три группы в ряд, «Остальные напоминания» — третья колонка */
+@media (min-width: 1280px) {
+  .reminder-groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reminder-group:last-child {
+    grid-column: auto;
+  }
+
+  /* колонка ~300px: памятная дата снова в две строки, как на телефоне */
+  .reminder-group .life-event-row {
+    grid-template-columns: 14px minmax(0, 1fr) 44px;
+    grid-template-areas:
+      'dot date remove'
+      'label label label';
   }
 }
 
