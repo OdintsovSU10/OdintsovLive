@@ -1,20 +1,36 @@
+.root {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+}
+
 .layout {
   display: grid;
+  flex: 1 1 0;
   grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  min-height: 0;
   min-width: 0;
+}
+
+.settingsBody {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (min-width: 1024px) {
   .layout {
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: 24px;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 16px;
   }
 }

@@ -1,11 +1,13 @@
 import { useMemo, useState, type FC } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { BottomSheet } from '../../components/ui/BottomSheet'
 import { Toast } from '../../components/ui/Toast'
 import { useToast } from '../../hooks/useToast'
-import { ChannelHeader } from './ChannelHeader'
 import { ChannelSidebar } from './ChannelSidebar'
 import { FeedTab } from './FeedTab'
+import { NewsHeader } from './NewsHeader'
 import { getFeedFilter, isSpecialSelection, SELECT_ALL } from './newsSelection'
+import { SettingsTab } from './SettingsTab'
 import { useNewsChannels } from './useNewsChannels'
 import { useNewsCounts } from './useNewsCounts'
 import type { NewsPeriod } from './newsDates'
@@ -32,6 +34,25 @@ export const NewsMain: FC = () => {
   const selection = isSpecialSelection(requested) || selectedChannel || loading ? requested : SELECT_ALL
   const { channelId, minImportance } = getFeedFilter(selection)
 
+  // Настройки — модалка поверх ленты; открыта, пока в адресе tab=settings (старые ссылки тоже открывают её)
+  const settingsOpen = searchParams.get('tab') === 'settings'
+
+  const openSettings = () => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev)
+      params.set('tab', 'settings')
+      return params
+    })
+  }
+
+  const closeSettings = () => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev)
+      params.delete('tab')
+      return params
+    }, { replace: true })
+  }
+
   const select = (next: string) => {
     if (next === selection) return
     setSearchParams(next === SELECT_ALL ? {} : { ch: next })
@@ -53,32 +74,43 @@ export const NewsMain: FC = () => {
   }
 
   return (
-    <div className={styles.layout}>
-      <ChannelSidebar
-        channels={channels}
-        channelsLoading={loading}
+    <div className={styles.root}>
+      <NewsHeader
+        key={selection}
         selection={selection}
-        counts={counts}
-        onSelect={select}
-        onAdd={handleAdd}
+        channel={selectedChannel}
+        onToggle={enabled => selectedChannel && void handleToggle(selectedChannel.id, enabled)}
+        onDelete={() => selectedChannel && void handleDelete(selectedChannel.id)}
+        onOpenSettings={openSettings}
       />
-      <div className={styles.content}>
-        <ChannelHeader
+      <div className={styles.layout}>
+        <ChannelSidebar
+          channels={channels}
+          channelsLoading={loading}
           selection={selection}
-          channel={selectedChannel}
-          onToggle={enabled => selectedChannel && void handleToggle(selectedChannel.id, enabled)}
-          onDelete={() => selectedChannel && void handleDelete(selectedChannel.id)}
+          counts={counts}
+          onSelect={select}
+          onAdd={handleAdd}
         />
-        <FeedTab
-          period={period}
-          onPeriodChange={setPeriod}
-          channelId={channelId}
-          minImportance={minImportance}
-          channelNames={channelNames}
-          hasChannels={channels.length > 0}
-          error={error}
-        />
+        <div className={styles.content}>
+          <FeedTab
+            period={period}
+            onPeriodChange={setPeriod}
+            channelId={channelId}
+            minImportance={minImportance}
+            channelNames={channelNames}
+            hasChannels={channels.length > 0}
+            error={error}
+          />
+        </div>
       </div>
+      {settingsOpen && (
+        <BottomSheet title="Настройки новостей" variant="modal" onClose={closeSettings}>
+          <div className={styles.settingsBody}>
+            <SettingsTab />
+          </div>
+        </BottomSheet>
+      )}
       <Toast toast={toast} onClose={hideToast} />
     </div>
   )

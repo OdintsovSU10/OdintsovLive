@@ -49,6 +49,7 @@ export const useNewsFeed = (filters: INewsFilters) => {
   useEffect(() => {
     const requestId = ++requestRef.current
     setLoading(true)
+    setLoadingMore(false)
     void fetchPage(0).then(rows => {
       if (requestId !== requestRef.current) return
       if (rows) {

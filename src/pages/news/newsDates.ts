@@ -28,6 +28,31 @@ export const formatPostDate = (iso: string): string =>
     minute: '2-digit'
   })
 
+// Ключ календарного дня по Москве («2026-11-24»)
+export const getMoscowDayKey = (iso: string): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso))
+
+export const formatPostTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('ru-RU', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit' })
+
+// «Сегодня», «Вчера», «24 ноября» (с годом, если не текущий)
+export const formatDayLabel = (iso: string): string => {
+  const key = getMoscowDayKey(iso)
+  const today = getMoscowToday()
+  if (key === today) return 'Сегодня'
+  const [year, month, day] = today.split('-').map(Number)
+  const yesterday = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date(Date.UTC(year, month - 1, day - 1)))
+  if (key === yesterday) return 'Вчера'
+  const sameYear = key.slice(0, 4) === today.slice(0, 4)
+  return new Date(iso).toLocaleDateString('ru-RU', {
+    timeZone: TIME_ZONE,
+    day: 'numeric',
+    month: 'long',
+    ...(sameYear ? {} : { year: 'numeric' })
+  })
+}
+
 const plural = (n: number, one: string, few: string, many: string): string => {
   const mod10 = n % 10
   const mod100 = n % 100

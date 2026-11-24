@@ -1,0 +1,142 @@
+.panel {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 8px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-tertiary);
+}
+
+.fade {
+  animation: panel-in 0.18s ease-out;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.content {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  margin-top: auto;
+  min-width: 0;
+}
+
+.top {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+}
+
+.moreBtn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.moreBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.startNote {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.day {
+  min-width: 0;
+}
+
+.dateRow {
+  position: sticky;
+  top: 8px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 0;
+  pointer-events: none;
+}
+
+.dateChip {
+  padding: 3px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  background: color-mix(in srgb, var(--surface-solid) 90%, transparent);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.empty {
+  max-width: 420px;
+  margin: auto;
+  padding: 24px 16px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.skeletonBubble {
+  height: 64px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--surface);
+  opacity: 0.7;
+}
+
+.skeletonBubble:nth-child(1) { width: 72%; }
+.skeletonBubble:nth-child(2) { width: 48%; height: 48px; }
+.skeletonBubble:nth-child(3) { width: 84%; height: 88px; }
+.skeletonBubble:nth-child(4) { width: 60%; }
+
+@media (min-width: 768px) {
+  .panel {
+    padding: 0 16px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade {
+    animation: none;
+  }
+}

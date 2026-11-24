@@ -1,6 +1,6 @@
 import { useEffect, useState, type FC } from 'react'
 import { ClearableInput } from '../../components/ui/ClearableInput'
-import { NewsCard } from './NewsCard'
+import { NewsChat } from './NewsChat'
 import { useNewsFeed } from './useNewsFeed'
 import type { NewsPeriod } from './newsDates'
 import shared from './NewsShared.module.css'
@@ -44,58 +44,49 @@ export const FeedTab: FC<IFeedTabProps> = ({
 
   const { posts, loading, loadingMore, hasMore, error, loadMore } = useNewsFeed({ period, minImportance, channelId, query })
 
+  const emptyText = hasChannels
+    ? 'Новостей за период нет. Первые новости нового канала появляются в течение 15 минут.'
+    : 'Каналов пока нет. Добавьте первый публичный канал в списке «Каналы».'
+
   return (
     <div className={styles.feed}>
       <div className={styles.filters}>
-        <label className={shared.field}>
-          <span>Период</span>
-          <select className={shared.input} value={period} onChange={event => onPeriodChange(event.target.value as NewsPeriod)}>
-            {PERIODS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-        </label>
-        <div className={shared.field}>
-          <span>Поиск</span>
-          <ClearableInput
-            className={shared.input}
-            type="text"
-            value={searchInput}
-            placeholder="Поиск по тексту"
-            aria-label="Поиск по тексту"
-            clearLabel="Очистить поиск"
-            autoComplete="off"
-            enterKeyHint="search"
-            onChange={event => setSearchInput(event.target.value)}
-            onClear={() => setSearchInput('')}
-          />
-        </div>
+        <select
+          className={`${shared.input} ${styles.period}`}
+          value={period}
+          aria-label="Период"
+          onChange={event => onPeriodChange(event.target.value as NewsPeriod)}
+        >
+          {PERIODS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select>
+        <ClearableInput
+          wrapperClassName={styles.search}
+          className={shared.input}
+          type="text"
+          value={searchInput}
+          placeholder="Поиск по тексту"
+          aria-label="Поиск по тексту"
+          clearLabel="Очистить поиск"
+          autoComplete="off"
+          enterKeyHint="search"
+          onChange={event => setSearchInput(event.target.value)}
+          onClear={() => setSearchInput('')}
+        />
       </div>
 
       {(error || channelsError) && <div className={shared.alert} role="alert">{error ?? channelsError}</div>}
 
-      {loading ? (
-        <div className={shared.skeleton} aria-busy="true" />
-      ) : posts.length === 0 ? (
-        !error && (
-          <div className={shared.empty}>
-            {hasChannels
-              ? 'Новостей за период нет. Первые новости нового канала появляются в течение 15 минут.'
-              : 'Каналов пока нет. Добавьте первый публичный канал в списке «Каналы».'}
-          </div>
-        )
-      ) : (
-        <>
-          <ul className={styles.list}>
-            {posts.map(post => (
-              <NewsCard key={post.id} post={post} channelName={channelNames.get(post.channel_id) ?? 'Канал удалён'} />
-            ))}
-          </ul>
-          {hasMore && (
-            <button type="button" className={`${shared.button} ${styles.more}`} disabled={loadingMore} onClick={() => void loadMore()}>
-              {loadingMore ? 'Загрузка…' : 'Ещё'}
-            </button>
-          )}
-        </>
-      )}
+      <NewsChat
+        posts={posts}
+        loading={loading}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        hasError={Boolean(error)}
+        loadMore={loadMore}
+        showChannel={channelId === ''}
+        channelNames={channelNames}
+        emptyText={emptyText}
+      />
     </div>
   )
 }
