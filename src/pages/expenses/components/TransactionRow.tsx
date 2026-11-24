@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import type { ExpenseReceiptItem, ExpenseTransaction, ExpenseUserCategory } from '../types'
 import { isFailed, isInternalTransfer } from '../utils/analysis'
 import { formatAmount, formatDateTime } from '../utils/format'
+import { getCategoryIcon, getSpendingGroup } from '../utils/spendingGroups'
 
 interface Props {
   transaction: ExpenseTransaction
@@ -26,6 +27,11 @@ export function TransactionRow({ transaction, categoryName, compact = false, cat
   const internal = !failed && isInternalTransfer(transaction)
   const sign = transaction.flow_direction === 'in' ? '+' : transaction.flow_direction === 'out' ? '−' : ''
   const tone = failed || internal ? 'muted' : transaction.flow_direction === 'in' ? 'positive' : 'negative'
+  const incoming = transaction.flow_direction === 'in'
+  const icon = failed ? '⚠️' : internal ? '🔁' : incoming ? '💰' : getCategoryIcon(transaction.bank_category)
+  const iconColor = failed || internal
+    ? 'var(--text-muted)'
+    : incoming ? 'var(--fp-income)' : getSpendingGroup(transaction.bank_category).color
   const bonus = transaction.cashback_amount || transaction.bonuses_amount || 0
 
   const toggle = () => setExpanded(prev => !prev)
@@ -54,32 +60,37 @@ export function TransactionRow({ transaction, categoryName, compact = false, cat
         ) : categoryName}
       </td>
       <td>
-        <span className="description-cell">
-          {transaction.merchant_name || transaction.description || '—'}
-          {transaction.source === 'telegram' && <span className="type-badge bot">Бот</span>}
-          {hasItems && (
-            <button
-              type="button"
-              className={`receipt-toggle ${expanded ? 'open' : ''}`}
-              aria-expanded={expanded}
-              aria-label={`Позиции чека: ${receiptItems.length}`}
-              onClick={event => {
-                event.stopPropagation()
-                toggle()
-              }}
-            >
-              <span aria-hidden="true">🧾</span> {receiptItems.length}
-            </button>
-          )}
-          {failed && <span className="type-badge failed">Ошибка</span>}
-          {internal && <span className="type-badge internal">Свои счета</span>}
-        </span>
-        {transaction.merchant_name && transaction.description && transaction.merchant_name !== transaction.description && (
-          <span className="note-cell">{transaction.description}</span>
-        )}
-        {transaction.note && transaction.note !== transaction.description && (
-          <span className="note-cell">{transaction.note}</span>
-        )}
+        <div className="tx-main">
+          <span className="tx-icon" aria-hidden="true" style={{ '--tx-color': iconColor } as CSSProperties}>{icon}</span>
+          <div className="tx-text">
+            <span className="description-cell">
+              {transaction.merchant_name || transaction.description || '—'}
+              {transaction.source === 'telegram' && <span className="type-badge bot">Бот</span>}
+              {hasItems && (
+                <button
+                  type="button"
+                  className={`receipt-toggle ${expanded ? 'open' : ''}`}
+                  aria-expanded={expanded}
+                  aria-label={`Позиции чека: ${receiptItems.length}`}
+                  onClick={event => {
+                    event.stopPropagation()
+                    toggle()
+                  }}
+                >
+                  <span aria-hidden="true">🧾</span> {receiptItems.length}
+                </button>
+              )}
+              {failed && <span className="type-badge failed">Ошибка</span>}
+              {internal && <span className="type-badge internal">Свои счета</span>}
+            </span>
+            {transaction.merchant_name && transaction.description && transaction.merchant_name !== transaction.description && (
+              <span className="note-cell">{transaction.description}</span>
+            )}
+            {transaction.note && transaction.note !== transaction.description && (
+              <span className="note-cell">{transaction.note}</span>
+            )}
+          </div>
+        </div>
       </td>
       {!compact && <td>{transaction.mcc || '—'}</td>}
       {!compact && <td>{transaction.card_mask || '—'}</td>}

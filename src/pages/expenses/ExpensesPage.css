@@ -617,6 +617,38 @@
   gap: 6px;
 }
 
+.tx-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tx-text {
+  min-width: 0;
+}
+
+.tx-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 17px;
+  line-height: 1;
+  background: color-mix(in srgb, var(--tx-color) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx-color) 45%, transparent);
+}
+
+@media (max-width: 480px) {
+  .tx-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+}
+
 .type-badge {
   padding: 1px 8px;
   border-radius: 999px;
