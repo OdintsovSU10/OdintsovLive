@@ -121,7 +121,7 @@ export const fetchChannel = async username => {
   // t.me/s/<канал> переадресует на t.me/<канал>, когда ленту не показывают в регионе сервера (так у rian_ru из РФ)
   if (!new URL(res.url).pathname.startsWith('/s/')) {
     throw Object.assign(
-      new Error(`Telegram не показывает ленту @${name} в веб-версии (закрыт предпросмотр канала или ограничение по региону). Чтобы читать его, войди аккаунтом Telegram: tgLogin.mjs`),
+      new Error(`Telegram не показывает ленту @${name} в веб-версии: у канала закрыт предпросмотр, без входа аккаунтом его не прочитать`),
       { webClosed: true }
     )
   }
