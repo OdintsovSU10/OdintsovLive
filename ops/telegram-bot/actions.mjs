@@ -1,7 +1,30 @@
 // Запись разобранных нейронкой данных в таблицы Supabase (PostgREST) и отмена записей бота.
 // Всё, что стоит денег, дублируется строкой в expense_transactions (source='telegram'):
 // при импорте банковской выписки портал склеивает её с банковской операцией.
+import { setTimeout as sleep } from 'node:timers/promises'
 import { fetchChannel, normalizeChannel } from './newsFetch.mjs'
+
+// Сеть с сервера бота пропадает пачками по несколько минут (fetch failed) — короткие сбои переживаем повтором.
+// safe — запрос можно повторить при любом сетевом сбое; иначе только если соединение не установилось
+const CONNECT_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH', 'UND_ERR_CONNECT_TIMEOUT'])
+const RETRY_DELAYS_MS = [1000, 3000]
+
+export const fetchRetry = async (url, init, timeoutMs, safe = true) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
+    } catch (err) {
+      const code = err.cause?.code
+      const retryable = err.message === 'fetch failed' && (safe || CONNECT_CODES.has(code))
+      if (!retryable || attempt >= RETRY_DELAYS_MS.length) {
+        // причина сбоя (ECONNRESET, ENOTFOUND…) — в лог и в ответ пользователю
+        if (code) err.message = `${err.message} (${code})`
+        throw err
+      }
+      await sleep(RETRY_DELAYS_MS[attempt])
+    }
+  }
+}
 
 export const FUEL_TYPES = ['АИ-95', 'АИ-100']
 export const CAR_EXPENSE_CATEGORIES = ['Мойка', 'Парковка', 'Штраф', 'Страховка', 'Налог', 'Запчасти', 'Аксессуары', 'Другое']
@@ -41,7 +64,9 @@ export const createRest = ({ supabaseUrl, supabaseKey }) => async (route, init =
     ...(supabaseKey.startsWith('eyJ') ? { Authorization: `Bearer ${supabaseKey}` } : {}),
     ...init.headers
   }
-  const res = await fetch(`${supabaseUrl}/rest/v1/${route}`, { ...init, headers, signal: AbortSignal.timeout(30_000) })
+  // POST повторяем, только если соединение не установилось: иначе запись могла уже пройти
+  const method = (init.method || 'GET').toUpperCase()
+  const res = await fetchRetry(`${supabaseUrl}/rest/v1/${route}`, { ...init, headers }, 30_000, method !== 'POST')
   const text = await res.text()
   if (!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 300)}`)
   return text ? JSON.parse(text) : null

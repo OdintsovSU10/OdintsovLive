@@ -6,7 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { createEntry, createRest, emptyContext, executeTools, loadContext, nowInZone, parseSalaryCallback, undoEntry } from './actions.mjs'
+import { createEntry, createRest, emptyContext, executeTools, fetchRetry, loadContext, nowInZone, parseSalaryCallback, undoEntry } from './actions.mjs'
 import { askLlm, transcribe } from './llm.mjs'
 import { sendLifeWeeks } from './lifeWeeks.mjs'
 import { meterPhotoHandler, startMeterWorker } from './meters.mjs'
@@ -106,12 +106,11 @@ const reportStatus = (rest, patch) => rest('bot_settings?id=eq.1', {
 }).catch(err => log('статус не сохранён:', err.message))
 
 const createTelegram = token => async (method, body = {}) => {
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+  const res = await fetchRetry(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(70_000)
-  })
+    body: JSON.stringify(body)
+  }, 70_000)
   const data = await res.json().catch(() => null)
   if (!data?.ok) throw new Error(`Telegram ${method}: ${data?.description || res.status}`)
   return data.result

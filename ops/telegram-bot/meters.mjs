@@ -193,6 +193,19 @@ const describe = meters => {
   return lines
 }
 
+// Последние показания месяца: электричество — по тарифу, вода — набор с последнего фото водомеров.
+// jobsMeters — показания записей по порядку создания; fresh — только что распознанные (на случай, если чтение не удалось)
+const latestMeters = (jobsMeters, fresh) => {
+  const electricity = new Map()
+  let water = []
+  for (const meters of [...jobsMeters, fresh]) {
+    meters.filter(m => m.kind === 'electricity').forEach(m => electricity.set(m.tariff, m))
+    const photoWater = meters.filter(m => m.kind === 'water')
+    if (photoWater.length > 0) water = photoWater
+  }
+  return [...electricity.values(), ...water]
+}
+
 // Инструмент бота meter_photo: фото из Telegram распознаём сразу и кладём в очередь готовым.
 // Альбом — несколько фото: на каждое своя запись очереди (портал применяет их по одной), ответ один
 export const meterPhotoHandler = async ({ rest, ctx, track, config, photo, photos }) => {
@@ -224,9 +237,13 @@ export const meterPhotoHandler = async ({ rest, ctx, track, config, photo, photo
     allMeters.push(...meters)
   }
   if (allMeters.length === 0) throw new UserError('Не разобрал показания — сфотографируй счётчик ближе')
+  // в сообщении — все показания месяца: фото можно слать по одному, ответ каждый раз полный
+  const monthJobs = await rest(
+    `meter_ocr_jobs?user_id=eq.${ctx.userId}&year=eq.${year}&month=eq.${month}&status=eq.done&select=result&order=created_at.asc`
+  ).catch(() => [])
   return [
     'Привет.',
-    ...describe(allMeters),
+    ...describe(latestMeters(monthJobs.map(job => job.result?.meters || []), allMeters)),
     ...failed.map(n => `Не разобрал фото №${n} — пришли его ещё раз ближе`)
   ].join('\n')
 }
