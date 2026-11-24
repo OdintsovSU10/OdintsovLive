@@ -65,6 +65,8 @@ const loadEnv = () => {
     timeZone: env.TZ || 'Europe/Moscow',
     receiptsDir: env.RECEIPTS_DIR || path.join(DIR, 'data', 'receipts'),
     metersDir: env.METERS_DIR || path.join(DIR, 'data', 'meters'),
+    // общая папка данных бота: сессия аккаунта Telegram для новостей (tg-user.json) лежит в ней
+    dataDir: env.DATA_DIR || path.join(DIR, 'data'),
     deepgramKey: env.DEEPGRAM_API_KEY,
     deepgramModel: env.DEEPGRAM_MODEL || 'nova-3',
     deepgramLanguage: env.DEEPGRAM_LANGUAGE || 'ru',

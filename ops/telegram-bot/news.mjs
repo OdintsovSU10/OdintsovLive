@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { nowInZone } from './actions.mjs'
 import { OPENROUTER_URL } from './llm.mjs'
 import { METER_MODEL } from './meters.mjs'
-import { fetchChannel } from './newsFetch.mjs'
+import { fetchChannelWithFallback } from './newsFetch.mjs'
 import { anchor, escapeHtml, fitBlocks, formatNewsHtml, htmlToPlain, isParseError } from './newsFormat.mjs'
 import { once } from './notify.mjs'
 
@@ -137,7 +137,7 @@ export const scorePost = async (config, interests, post, channelName) => {
 }
 
 const collectChannel = async (rest, config, channel) => {
-  const { title, posts } = await fetchChannel(channel.username)
+  const { title, posts } = await fetchChannelWithFallback(channel.username, config.dataDir, channel.last_post_id ?? 0)
   const since = Date.now() - FIRST_FETCH_DAYS * DAY_MS
   const fresh = posts.filter(post => (channel.last_post_id === null ? Date.parse(post.publishedAt) >= since : post.postId > channel.last_post_id))
   if (fresh.length > 0) {

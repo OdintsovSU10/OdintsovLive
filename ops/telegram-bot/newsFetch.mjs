@@ -4,6 +4,7 @@
 // Селекторы взяты из TG_Info/backend/src/ingest/telegramWeb.ts — при смене вёрстки править там и здесь.
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fetchChannelViaUser, isTgUserConfigured } from './tgUser.mjs'
 
 const FETCH_TIMEOUT_MS = 20_000
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
@@ -119,12 +120,26 @@ export const fetchChannel = async username => {
   if (!res.ok) throw new Error(`Telegram ответил HTTP ${res.status}`)
   // t.me/s/<канал> переадресует на t.me/<канал>, когда ленту не показывают в регионе сервера (так у rian_ru из РФ)
   if (!new URL(res.url).pathname.startsWith('/s/')) {
-    throw new Error(`Telegram не показывает ленту @${name} с сервера (ограничение по региону), канал читать не получится`)
+    throw Object.assign(
+      new Error(`Telegram не показывает ленту @${name} в веб-версии (закрыт предпросмотр канала или ограничение по региону). Чтобы читать его, войди аккаунтом Telegram: tgLogin.mjs`),
+      { webClosed: true }
+    )
   }
   const { title, wraps, posts } = parseChannelPage(await res.text(), name)
   // ни одного сообщения на странице: канала нет, он закрытый или без веб-просмотра (или поменялась вёрстка)
   if (wraps === 0) throw new Error(`Канал @${name} не найден или у него закрыт веб-просмотр — публичной ленты t.me/s/${name} нет`)
   return { title, posts }
+}
+
+// Сначала веб; если веб-просмотр закрыт (редирект с t.me/s) и аккаунт Telegram настроен — читаем им.
+// Остальные ошибки и каналы идут как раньше.
+export const fetchChannelWithFallback = async (username, dataDir, sinceId = 0) => {
+  try {
+    return await fetchChannel(username)
+  } catch (err) {
+    if (!err.webClosed || !dataDir || !isTgUserConfigured(dataDir)) throw err
+    return fetchChannelViaUser(dataDir, normalizeChannel(username), sinceId)
+  }
 }
 
 // node newsFetch.mjs --probe <канал> — проверка на живой странице
