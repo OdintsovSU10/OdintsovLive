@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getUserId } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
-import { weekAgoIso } from './newsDates'
 import type { INewsChannel } from './types'
 
 const CHANNEL_FIELDS = 'id, user_id, username, title, enabled, last_post_id, last_checked_at, last_error, created_at'
 
-export const useNewsChannels = (withCounts: boolean) => {
+export interface IAddResult {
+  status: 'ok' | 'duplicate' | 'error'
+  id?: string
+}
+
+export const useNewsChannels = () => {
   const [userId, setUserId] = useState<string | null>(null)
   const [channels, setChannels] = useState<INewsChannel[]>([])
-  const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,37 +38,22 @@ export const useNewsChannels = (withCounts: boolean) => {
     setChannels(rows)
     setError(null)
     setLoading(false)
-
-    if (!withCounts) return
-    // Один раз на загрузку: точный count по каждому каналу, без выборки самих постов
-    const since = weekAgoIso()
-    const results = await Promise.all(rows.map(channel =>
-      supabase
-        .from('news_posts')
-        .select('id', { count: 'exact', head: true })
-        .eq('channel_id', channel.id)
-        .gte('published_at', since)
-    ))
-    const next: Record<string, number> = {}
-    rows.forEach((channel, index) => { next[channel.id] = results[index].count ?? 0 })
-    setCounts(next)
-  }, [withCounts])
+  }, [])
 
   useEffect(() => {
     void load()
   }, [load])
 
-  const add = useCallback(async (username: string): Promise<'ok' | 'duplicate' | 'error'> => {
-    if (!userId) return 'error'
+  const add = useCallback(async (username: string): Promise<IAddResult> => {
+    if (!userId) return { status: 'error' }
     const { data, error: queryError } = await supabase
       .from('news_channels')
       .insert({ user_id: userId, username })
       .select(CHANNEL_FIELDS)
       .single<INewsChannel>()
-    if (queryError || !data) return queryError?.code === '23505' ? 'duplicate' : 'error'
+    if (queryError || !data) return { status: queryError?.code === '23505' ? 'duplicate' : 'error' }
     setChannels(prev => [...prev, data])
-    setCounts(prev => ({ ...prev, [data.id]: 0 }))
-    return 'ok'
+    return { status: 'ok', id: data.id }
   }, [userId])
 
   const setEnabled = useCallback(async (id: string, enabled: boolean): Promise<boolean> => {
@@ -82,5 +70,5 @@ export const useNewsChannels = (withCounts: boolean) => {
     return true
   }, [])
 
-  return { channels, counts, loading, error, add, setEnabled, remove }
+  return { channels, loading, error, add, setEnabled, remove }
 }

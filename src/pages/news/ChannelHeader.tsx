@@ -1,36 +1,53 @@
 import { useState, type FC } from 'react'
 import { Trash2 } from 'lucide-react'
 import { formatRelative } from './newsDates'
+import { IMPORTANT_MIN, SELECT_ALL, SELECT_IMPORTANT } from './newsSelection'
 import type { INewsChannel } from './types'
 import shared from './NewsShared.module.css'
-import styles from './ChannelRow.module.css'
+import styles from './ChannelHeader.module.css'
 
-interface IChannelRowProps {
-  channel: INewsChannel
-  postsCount: number | undefined
+interface IChannelHeaderProps {
+  selection: string
+  channel: INewsChannel | null
   onToggle: (enabled: boolean) => void
   onDelete: () => void
 }
 
-export const ChannelRow: FC<IChannelRowProps> = ({ channel, postsCount, onToggle, onDelete }) => {
+export const ChannelHeader: FC<IChannelHeaderProps> = ({ selection, channel, onToggle, onDelete }) => {
   const [confirming, setConfirming] = useState(false)
 
+  if (selection === SELECT_ALL || selection === SELECT_IMPORTANT) {
+    return (
+      <section className={styles.card}>
+        <h2 className={styles.title}>{selection === SELECT_ALL ? 'Все каналы' : 'Важные'}</h2>
+        {selection === SELECT_IMPORTANT && <span className={styles.meta}>Важность {IMPORTANT_MIN} и выше</span>}
+      </section>
+    )
+  }
+
+  if (!channel) {
+    return (
+      <section className={styles.card}>
+        <h2 className={styles.title}>Канал…</h2>
+      </section>
+    )
+  }
+
   return (
-    <li className={styles.row}>
+    <section className={styles.card}>
       <div className={styles.main}>
-        <a
-          className={styles.name}
-          href={`https://t.me/${channel.username}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {channel.title || `@${channel.username}`}
-        </a>
-        {channel.title && <span className={styles.username}>@{channel.username}</span>}
-        <span className={styles.meta}>
-          Проверен: {formatRelative(channel.last_checked_at)}
-          {postsCount !== undefined && ` · за 7 дней: ${postsCount}`}
-        </span>
+        <h2 className={styles.title}>{channel.title || `@${channel.username}`}</h2>
+        {channel.title && (
+          <a
+            className={styles.username}
+            href={`https://t.me/${channel.username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            @{channel.username}
+          </a>
+        )}
+        <span className={styles.meta}>Проверен: {formatRelative(channel.last_checked_at)}</span>
         {channel.last_error && <span className={styles.error}>{channel.last_error}</span>}
       </div>
 
@@ -42,7 +59,7 @@ export const ChannelRow: FC<IChannelRowProps> = ({ channel, postsCount, onToggle
             onChange={event => onToggle(event.target.checked)}
           />
           <span className={styles.track} aria-hidden="true" />
-          <span className={styles.switchLabel}>{channel.enabled ? 'Вкл' : 'Выкл'}</span>
+          <span className={styles.switchLabel}>Читать</span>
         </label>
         <button
           type="button"
@@ -51,6 +68,7 @@ export const ChannelRow: FC<IChannelRowProps> = ({ channel, postsCount, onToggle
           onClick={() => setConfirming(true)}
         >
           <Trash2 size={18} strokeWidth={1.5} />
+          <span className={styles.deleteLabel}>Удалить</span>
         </button>
       </div>
 
@@ -63,6 +81,6 @@ export const ChannelRow: FC<IChannelRowProps> = ({ channel, postsCount, onToggle
           </div>
         </div>
       )}
-    </li>
+    </section>
   )
 }

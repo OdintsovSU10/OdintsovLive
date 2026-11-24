@@ -1,0 +1,249 @@
+/* Мобильные: горизонтальная лента чипов. От 1024px: карточка-список слева. */
+
+.sidebar {
+  min-width: 0;
+}
+
+.title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: 0 0 auto;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.18s ease-out, color 0.18s ease-out, border-color 0.18s ease-out, opacity 0.18s ease-out;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.off {
+  opacity: 0.55;
+}
+
+.icon {
+  flex: 0 0 auto;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  flex: 0 0 auto;
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.active .count {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.warn {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+
+.loading {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.addBtn {
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+  border-style: dashed;
+  color: var(--text-secondary);
+}
+
+.addLabel {
+  display: none;
+}
+
+.addPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.addPanel p {
+  margin: 0;
+}
+
+@media (hover: hover) {
+  .btn:hover:not(.active) {
+    background: var(--bg-tertiary);
+  }
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+
+  .title {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0 0 8px;
+    padding: 0 8px;
+    overflow: visible;
+    clip: auto;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .list {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .item {
+    flex: 0 0 auto;
+  }
+
+  .btn {
+    width: 100%;
+    max-width: none;
+    padding: 0 8px 0 12px;
+    border-color: transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+  }
+
+  .active {
+    border-color: transparent;
+  }
+
+  .name {
+    flex: 1 1 auto;
+  }
+
+  .divider {
+    width: auto;
+    height: 1px;
+    margin: 6px 4px;
+    background: var(--border-light);
+  }
+
+  .loading {
+    padding: 10px 12px;
+  }
+
+  .addBtn {
+    justify-content: flex-start;
+    width: 100%;
+    margin-top: 6px;
+    border-style: solid;
+    border-color: transparent;
+    color: var(--text-secondary);
+  }
+
+  .addLabel {
+    display: inline;
+  }
+
+  .addPanel {
+    margin-top: 8px;
+    padding: 12px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border-light);
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}

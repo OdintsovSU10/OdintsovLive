@@ -1,5 +1,4 @@
 const TIME_ZONE = 'Europe/Moscow'
-const DAY_MS = 24 * 60 * 60 * 1000
 
 export type NewsPeriod = 'today' | 'yesterday' | 'week' | 'month'
 
@@ -19,8 +18,6 @@ export const getPeriodRange = (period: NewsPeriod): { from: string; to: string |
   if (period === 'week') return { from: moscowMidnight(6), to: null }
   return { from: moscowMidnight(29), to: null }
 }
-
-export const weekAgoIso = (): string => new Date(Date.now() - 7 * DAY_MS).toISOString()
 
 export const formatPostDate = (iso: string): string =>
   new Date(iso).toLocaleString('ru-RU', {

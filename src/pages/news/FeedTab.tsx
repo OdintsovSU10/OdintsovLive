@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState, type FC } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, type FC } from 'react'
 import { ClearableInput } from '../../components/ui/ClearableInput'
 import { NewsCard } from './NewsCard'
-import { useNewsChannels } from './useNewsChannels'
 import { useNewsFeed } from './useNewsFeed'
 import type { NewsPeriod } from './newsDates'
 import shared from './NewsShared.module.css'
@@ -17,18 +15,25 @@ const PERIODS: { value: NewsPeriod; label: string }[] = [
   { value: 'month', label: '30 дней' }
 ]
 
-const IMPORTANCE_LEVELS: { value: number; label: string }[] = [
-  { value: 0, label: 'Все' },
-  { value: 25, label: 'Обычное 25+' },
-  { value: 55, label: 'Важное 55+' },
-  { value: 80, label: 'Критичное 80+' }
-]
+interface IFeedTabProps {
+  period: NewsPeriod
+  onPeriodChange: (period: NewsPeriod) => void
+  channelId: string
+  minImportance: number
+  channelNames: Map<string, string>
+  hasChannels: boolean
+  error: string | null
+}
 
-export const FeedTab: FC = () => {
-  const { channels, error: channelsError } = useNewsChannels(false)
-  const [period, setPeriod] = useState<NewsPeriod>('week')
-  const [minImportance, setMinImportance] = useState(55)
-  const [channelId, setChannelId] = useState('')
+export const FeedTab: FC<IFeedTabProps> = ({
+  period,
+  onPeriodChange,
+  channelId,
+  minImportance,
+  channelNames,
+  hasChannels,
+  error: channelsError
+}) => {
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
 
@@ -39,37 +44,16 @@ export const FeedTab: FC = () => {
 
   const { posts, loading, loadingMore, hasMore, error, loadMore } = useNewsFeed({ period, minImportance, channelId, query })
 
-  const channelNames = useMemo(() => {
-    const map = new Map<string, string>()
-    channels.forEach(channel => map.set(channel.id, channel.title || `@${channel.username}`))
-    return map
-  }, [channels])
-
   return (
     <div className={styles.feed}>
       <div className={styles.filters}>
         <label className={shared.field}>
           <span>Период</span>
-          <select className={shared.input} value={period} onChange={event => setPeriod(event.target.value as NewsPeriod)}>
+          <select className={shared.input} value={period} onChange={event => onPeriodChange(event.target.value as NewsPeriod)}>
             {PERIODS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </label>
-        <label className={shared.field}>
-          <span>Важность</span>
-          <select className={shared.input} value={minImportance} onChange={event => setMinImportance(Number(event.target.value))}>
-            {IMPORTANCE_LEVELS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-        </label>
-        <label className={shared.field}>
-          <span>Канал</span>
-          <select className={shared.input} value={channelId} onChange={event => setChannelId(event.target.value)}>
-            <option value="">Все каналы</option>
-            {channels.map(channel => (
-              <option key={channel.id} value={channel.id}>{channel.title || `@${channel.username}`}</option>
-            ))}
-          </select>
-        </label>
-        <div className={`${shared.field} ${styles.search}`}>
+        <div className={shared.field}>
           <span>Поиск</span>
           <ClearableInput
             className={shared.input}
@@ -93,7 +77,9 @@ export const FeedTab: FC = () => {
       ) : posts.length === 0 ? (
         !error && (
           <div className={shared.empty}>
-            Новостей нет. Добавьте каналы во вкладке «<Link to="/news?tab=channels">Каналы</Link>»
+            {hasChannels
+              ? 'Новостей за период нет. Первые новости нового канала появляются в течение 15 минут.'
+              : 'Каналов пока нет. Добавьте первый публичный канал в списке «Каналы».'}
           </div>
         )
       ) : (
@@ -104,7 +90,7 @@ export const FeedTab: FC = () => {
             ))}
           </ul>
           {hasMore && (
-            <button type="button" className={shared.button} disabled={loadingMore} onClick={() => void loadMore()}>
+            <button type="button" className={`${shared.button} ${styles.more}`} disabled={loadingMore} onClick={() => void loadMore()}>
               {loadingMore ? 'Загрузка…' : 'Ещё'}
             </button>
           )}
