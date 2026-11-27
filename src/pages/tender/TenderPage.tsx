@@ -5,6 +5,7 @@ import { useTenderData } from './hooks/useTenderData'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { TimesheetGrid } from './components/TimesheetGrid'
 import { DepartmentFOT } from './components/DepartmentFOT'
+import { OfficeFloor } from './components/office/OfficeFloor'
 import { DashboardOverview } from './components/DashboardOverview'
 import { EmployeeDetail } from './components/EmployeeDetail'
 import { ArchiveSheet } from './components/ArchiveSheet'
@@ -13,7 +14,7 @@ import type { AdminPanelSheet } from './components/dashboard/dashboardTypes'
 import type { EmployeeWithStats } from './types'
 import './TenderPage.css'
 
-type ShellTab = 'dashboard' | 'timesheet' | 'fot'
+type ShellTab = 'dashboard' | 'office' | 'timesheet' | 'fot'
 type SheetKind = 'archive' | 'settings'
 
 const monthNames = [
@@ -23,6 +24,7 @@ const monthNames = [
 
 const BASE_TABS: Array<{ key: ShellTab; label: string }> = [
   { key: 'dashboard', label: 'Дашборд' },
+  { key: 'office', label: 'Офис' },
   { key: 'timesheet', label: 'Табель' },
   { key: 'fot', label: 'ФОТ' }
 ]
@@ -308,6 +310,8 @@ export default function TenderPage({ isAdmin = false }: { isAdmin?: boolean }) {
                   onLoadingChange={setDashboardLoading}
                 />
               )}
+
+              {activeTab === 'office' && <OfficeFloor allEmployees={allEmployees} />}
 
               {activeTab === 'timesheet' && (
                 <TimesheetGrid

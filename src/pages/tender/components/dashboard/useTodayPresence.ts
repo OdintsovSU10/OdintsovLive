@@ -65,6 +65,8 @@ export interface ITodayPresence {
   refresh: () => void
   // Дата «сегодня» по Москве (YYYY-MM-DD), по которой посчитаны статусы
   todayIso: string
+  // Все запросы проходов закончились ошибкой (связи со СКУД нет); частичный сбой — «noData» у отдельных людей
+  error: boolean
 }
 
 // Статус «сегодня» по сотрудникам: табель → проходы СКУД → выходной/нет отметки
@@ -76,6 +78,7 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
   const [refreshing, setRefreshing] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   const [todayIso, setTodayIso] = useState('')
+  const [error, setError] = useState(false)
   const loadedRef = useRef(false)
 
   const refresh = useCallback(() => setRefreshTick(tick => tick + 1), [])
@@ -94,6 +97,7 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
       setFirstEntries(EMPTY_FIRST_ENTRIES)
       setLoading(false)
       setRefreshing(false)
+      setError(false)
       return
     }
 
@@ -105,6 +109,7 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
     const resultPasses = new Map<number, ITodayPass[]>()
     const resultFirstEntries = new Map<number, string>()
     const needEvents: EmployeeWithStats[] = []
+    let failedRequests = 0
 
     for (const employee of employees) {
       if (employee.excluded_from_timesheet) continue
@@ -146,6 +151,7 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
           else if (direction === 'exit') result.set(employee.id, 'left')
           else result.set(employee.id, getStatusWithoutPasses(isDayOff, moscow.hour))
         } catch {
+          if (!controller.signal.aborted) failedRequests += 1
           result.set(employee.id, 'noData')
         }
       })
@@ -155,6 +161,7 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
       setStatuses(result)
       setPasses(resultPasses)
       setFirstEntries(resultFirstEntries)
+      setError(needEvents.length > 0 && failedRequests === needEvents.length)
       setLoading(false)
       setRefreshing(false)
     }
@@ -163,5 +170,5 @@ export function useTodayPresence(employees: EmployeeWithStats[], enabled: boolea
     return () => controller.abort()
   }, [employees, enabled, refreshTick])
 
-  return { statuses, passes, firstEntries, loading, refreshing, refresh, todayIso }
+  return { statuses, passes, firstEntries, loading, refreshing, refresh, todayIso, error }
 }

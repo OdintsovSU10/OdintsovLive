@@ -1,0 +1,248 @@
+/* Вкладка «Офис»: шапка, план и список под ним. Mobile-first от 360 px: план — в контейнере с горизонтальной
+   прокруткой (SVG не уже 760 px), от 1024 px — во всю ширину без прокрутки. Цвета — только токены темы.
+   Рисунки человечков и их движение — в Sprite.module.css; здесь — раскладка и «заморозка» недоступных данных. */
+
+.office {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.count {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.updated,
+.loadingNote {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.loadingNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.refresh:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.refresh:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--tone-bad);
+  border-radius: var(--radius-md);
+  background: var(--tone-bad-bg);
+  color: var(--tone-bad-text);
+  font-size: 14px;
+}
+
+/* --- план ------------------------------------------------------------------------ */
+
+.planWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  /* Только по X: обычный `contain` на горизонтальном скроллере глотает вертикальное колесо */
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.plan {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+}
+
+.room {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.wall {
+  stroke: var(--text-muted);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.seatName,
+.seatStatus {
+  text-anchor: middle;
+  font-family: inherit;
+}
+
+.seatName {
+  fill: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.seatStatus {
+  fill: var(--tone-text, var(--text-secondary));
+  font-size: 13px;
+}
+
+/* --- тона: цвет маркера в списке и подписи статуса на плане ---------------------------- */
+
+.toneOffice { --tone-color: var(--tone-ok); --tone-text: var(--tone-ok-text); }
+.toneLeft { --tone-color: var(--text-muted); --tone-text: var(--text-secondary); }
+.toneNone { --tone-color: var(--tone-warn); --tone-text: var(--text-secondary); }
+.toneLeave { --tone-color: var(--chart-2); --tone-text: var(--chart-2-text); }
+.toneLoading,
+.toneUnavailable { --tone-color: var(--text-muted); --tone-text: var(--text-secondary); }
+
+/* --- список под планом -------------------------------------------------------------- */
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.marker {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tone-color);
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.itemStatus {
+  color: var(--text-secondary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* --- недоступные данные: застыло и посерело ------------------------------------------------ */
+
+.frozen .planWrap svg {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+/* `!important` — чтобы никакая поза не оживила застывшее */
+.frozen .planWrap * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office *,
+  .office *::before,
+  .office *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* --- ширины ------------------------------------------------------------------------ */
+
+@media (min-width: 768px) {
+  .list {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .plan {
+    min-width: 0;
+  }
+
+  .planWrap {
+    overflow-x: visible;
+  }
+}
