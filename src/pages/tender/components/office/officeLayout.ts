@@ -119,8 +119,8 @@ export const OFFICE_DESKS: readonly IOfficeDesk[] = [
   desk('GRIGORENKO', 903, 433, 957, 540, 'E'),
   desk('UZUN', 217, 665, 271, 772, 'W'),
   desk('TOPCHIY', 271, 665, 325, 772, 'E', 12),
-  desk('STEFANEEV', 624, 825, 732, 879, 'N'),
-  desk('SHANIN', 857, 752, 910, 860, 'W', 14),
+  desk('STEFANEEV', 624, 825, 732, 879, 'N', 14),
+  desk('SHANIN', 857, 752, 910, 860, 'W'),
   desk('NATALYA', 910, 698, 1019, 752, 'N', 13),
   desk('CHEPIKOV', 155, 945, 262, 1000, 'S'),
   desk('ODINTSOV', 825, 903, 879, 1011, 'E', 15)
