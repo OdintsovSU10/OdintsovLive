@@ -76,10 +76,12 @@ const PeopleColumnBase: FC<IPeopleColumnProps> = ({
   const defaultSort: PanelSortKey = hasPresence ? 'arrival' : 'accrued'
   const activeSort: PanelSortKey = sort && sortKeys.includes(sort) ? sort : defaultSort
 
-  const rows = useMemo(
-    () => buildPanelRows({ trends, isLive, progress, scores, severity, statuses, firstEntries }),
-    [trends, isLive, progress, scores, severity, statuses, firstEntries]
-  )
+  // В текущем месяце архивных не показываем: они уже не работают, хотя часы месяца в итогах остаются.
+  // В прошлых месяцах — показываем, там они работали
+  const rows = useMemo(() => {
+    const listed = hasPresence ? trends.filter(trend => !trend.employee.is_archived) : trends
+    return buildPanelRows({ trends: listed, isLive, progress, scores, severity, statuses, firstEntries })
+  }, [hasPresence, trends, isLive, progress, scores, severity, statuses, firstEntries])
   const tabCounts = useMemo(() => Object.fromEntries(
     tabs.map(key => [key, rows.filter(row => matchesTab(row, key)).length])
   ) as Record<PanelTabKey, number>, [rows, tabs])
