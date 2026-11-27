@@ -1,6 +1,6 @@
-// Неподвижные части сцены: пол, стены, двери, шкаф, кадка, а также стол с монитором и стул. Чистые функции three.
+// Неподвижные части сцены: пол, стены, двери, шкафы, колонны, а также стол с монитором и стул. Чистые функции three.
 import * as THREE from 'three'
-import { COLUMNS, DOORS, ENTRANCE, NORTH_WALL, PLANT, ROOM_RECT, WALLS, WARDROBES, WINDOWS, PX_PER_M, type TWallKind } from './officeLayout'
+import { COLUMNS, DOORS, ENTRANCE, NORTH_WALL, ROOM_RECT, WALLS, WARDROBES, WINDOWS, PX_PER_M, type TWallKind } from './officeLayout'
 import {
   DESK_TOP_Y,
   LOW_WALL_HEIGHT,
@@ -120,17 +120,13 @@ export const buildShell = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   return shell
 }
 
-// Шкаф и кадка с растением
+// Шкафы
 export const buildDecor = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   const decor = new THREE.Group()
   WARDROBES.forEach(rect => {
     const wardrobe = toMetricRect(rect)
     decor.add(makeBox(reg, mats.desk, [wardrobe.width, WARDROBE_HEIGHT, wardrobe.depth], [wardrobe.cx, WARDROBE_HEIGHT / 2, wardrobe.cz]))
   })
-  const plant = toMetricRect(PLANT)
-  const potHeight = 0.4
-  decor.add(makeBox(reg, mats.monitor, [plant.width, potHeight, plant.depth], [plant.cx, potHeight / 2, plant.cz]))
-  decor.add(makeBox(reg, mats.plant, [plant.width * 0.8, 0.9, plant.depth * 0.8], [plant.cx, potHeight + 0.45, plant.cz]))
   return decor
 }
 

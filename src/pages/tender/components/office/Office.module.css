@@ -151,10 +151,6 @@
   fill: var(--office-monitor);
 }
 
-.planPlant {
-  fill: var(--office-plant);
-}
-
 .planWindow {
   fill: var(--office-glass);
 }

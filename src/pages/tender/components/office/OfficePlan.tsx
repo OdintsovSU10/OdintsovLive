@@ -2,7 +2,6 @@ import type { FC } from 'react'
 import {
   DOORS,
   OFFICE_DESKS,
-  PLANT,
   PLAN_VIEW,
   PX_PER_M,
   ROOM_RECT,
@@ -117,7 +116,6 @@ export const OfficePlan: FC<IOfficePlanProps> = ({ states }) => {
         {WARDROBES.map(w => (
           <rect key={`${w.x0}-${w.y0}`} className={styles.planDesk} x={w.x0} y={w.y0} width={w.x1 - w.x0} height={w.y1 - w.y0} />
         ))}
-        <rect className={styles.planPlant} x={PLANT.x0} y={PLANT.y0} width={PLANT.x1 - PLANT.x0} height={PLANT.y1 - PLANT.y0} rx="8" />
         {OFFICE_DESKS.map(desk => (
           <PlanDesk key={desk.id} desk={desk} state={desk.seatNo === undefined ? undefined : byNo.get(desk.seatNo)} />
         ))}

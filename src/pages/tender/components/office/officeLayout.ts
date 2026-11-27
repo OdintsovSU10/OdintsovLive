@@ -42,7 +42,11 @@ export const WINDOWS: readonly { x0: number; x1: number }[] = [
 ]
 
 // Колонна у северной стены за местом Некрасова
-export const COLUMNS: readonly IPxRect[] = [{ x0: 572, y0: 48, x1: 612, y1: 88 }]
+// и колонна у свободного стола (на чертеже — квадрат со штриховкой)
+export const COLUMNS: readonly IPxRect[] = [
+  { x0: 572, y0: 48, x1: 612, y1: 88 },
+  { x0: 622, y0: 723, x1: 668, y1: 773 }
+]
 
 export const WALLS: readonly IWall[] = [
   NORTH_WALL,
@@ -132,7 +136,6 @@ export const WARDROBES: readonly IPxRect[] = [
   // Шкаф слева от свободного стола у кабинета Одинцова
   { x0: 576, y0: 764, x1: 618, y1: 866 }
 ]
-export const PLANT: IPxRect = { x0: 622, y0: 723, x1: 668, y1: 773 }
 
 export interface IOfficeSeat {
   // Номер места — порядок списка под видом; цвет рубашки и сдвиг фаз анимации
