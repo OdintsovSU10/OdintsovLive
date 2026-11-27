@@ -1,6 +1,6 @@
 // Неподвижные части сцены: пол, стены, двери, шкафы, колонны, а также стол с монитором и стул. Чистые функции three.
 import * as THREE from 'three'
-import { COLUMNS, DOORS, ENTRANCE, NORTH_WALL, ROOM_RECT, WALLS, WARDROBES, WINDOWS, PX_PER_M, type TWallKind } from './officeLayout'
+import { COLUMNS, DOORS, ENTRANCE, NORTH_WALL, ROOM_RECT, WALLS, TUMBAS, WARDROBES, WINDOWS, PX_PER_M, type TWallKind } from './officeLayout'
 import {
   DESK_TOP_Y,
   LOW_WALL_HEIGHT,
@@ -21,7 +21,13 @@ export const SIT_OFFSET = 0.12
 export const SEAT_HEIGHT = 0.46
 // Клавиатура и монитор отсчитываются от кромки стола со стороны человека
 export const KEYBOARD_FROM_EDGE = 0.15
-const MONITOR_FROM_EDGE = 0.42
+const MONITOR_FROM_EDGE = 0.5
+// Два монитора рядом: зазор между панелями и разворот каждого к человеку внутрь
+const MONITOR_WIDTH = 0.5
+const MONITOR_GAP = 0.06
+const MONITOR_YAW = (10 * Math.PI) / 180
+const TUMBA_HEIGHT = 0.72
+const TUMBA_SLOT_THICKNESS = 0.004
 const DESK_THICKNESS = 0.04
 const WARDROBE_HEIGHT = 1.9
 const DOOR_HEIGHT = 2.0
@@ -120,25 +126,32 @@ export const buildShell = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   return shell
 }
 
-// Шкафы
+// Шкафы и тумбы (короб материалом стола, сверху тёмная щель ящика вдоль длинной стороны)
 export const buildDecor = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   const decor = new THREE.Group()
   WARDROBES.forEach(rect => {
     const wardrobe = toMetricRect(rect)
     decor.add(makeBox(reg, mats.desk, [wardrobe.width, WARDROBE_HEIGHT, wardrobe.depth], [wardrobe.cx, WARDROBE_HEIGHT / 2, wardrobe.cz]))
   })
+  TUMBAS.forEach(rect => {
+    const tumba = toMetricRect(rect)
+    decor.add(makeBox(reg, mats.desk, [tumba.width, TUMBA_HEIGHT, tumba.depth], [tumba.cx, TUMBA_HEIGHT / 2, tumba.cz]))
+    const alongX = tumba.width >= tumba.depth
+    const slot: [number, number, number] = alongX ? [tumba.width * 0.8, TUMBA_SLOT_THICKNESS, 0.02] : [0.02, TUMBA_SLOT_THICKNESS, tumba.depth * 0.8]
+    decor.add(makeBox(reg, mats.monitor, slot, [tumba.cx, TUMBA_HEIGHT + TUMBA_SLOT_THICKNESS / 2, tumba.cz]))
+  })
   return decor
 }
 
 export interface IDeskSet {
   group: THREE.Group
-  // Экран монитора: материал подменяется по занятости места
-  screen: THREE.Mesh
+  // Экраны двух мониторов: материал подменяется по занятости места
+  screens: THREE.Mesh[]
 }
 
 const LEG_SIZE = 0.05
 
-// Стол с клавиатурой и монитором в локальных осях: центр стола в нуле, человек — на -Z, экран смотрит на него
+// Стол с клавиатурой и двумя мониторами в локальных осях: центр стола в нуле, человек — на -Z, экран смотрит на него
 export const createDeskSet = (reg: IRegistry, mats: IMaterials, width: number, depth: number): IDeskSet => {
   const group = new THREE.Group()
   const topY = DESK_TOP_Y - DESK_THICKNESS / 2
@@ -155,13 +168,22 @@ export const createDeskSet = (reg: IRegistry, mats: IMaterials, width: number, d
   const edge = -depth / 2
   group.add(makeBox(reg, mats.keyboard, [0.38, 0.015, 0.13], [0, DESK_TOP_Y + 0.0075, edge + KEYBOARD_FROM_EDGE]))
   const monitorZ = edge + MONITOR_FROM_EDGE
-  group.add(makeBox(reg, mats.monitor, [0.2, 0.015, 0.14], [0, DESK_TOP_Y + 0.0075, monitorZ]))
-  group.add(makeBox(reg, mats.monitor, [0.05, 0.1, 0.03], [0, DESK_TOP_Y + 0.065, monitorZ]))
   const panelY = DESK_TOP_Y + 0.2
-  group.add(makeBox(reg, mats.monitor, [0.5, 0.3, 0.03], [0, panelY, monitorZ]))
-  const screen = makeMesh(reg.box(0.46, 0.26, 0.006), mats.screenOff, [0, panelY, monitorZ - 0.0165], { cast: false, receive: false })
-  group.add(screen)
-  return { group, screen }
+  const screens: THREE.Mesh[] = []
+  ;[-1, 1].forEach(side => {
+    // Монитор в своих осях: центр основания в нуле, экран на -Z; разворот внутрь — экран смотрит на ось стола
+    const monitor = new THREE.Group()
+    monitor.position.set(side * (MONITOR_WIDTH + MONITOR_GAP) / 2, 0, monitorZ)
+    monitor.rotation.y = side * MONITOR_YAW
+    monitor.add(makeBox(reg, mats.monitor, [0.2, 0.015, 0.14], [0, DESK_TOP_Y + 0.0075, 0]))
+    monitor.add(makeBox(reg, mats.monitor, [0.05, 0.1, 0.03], [0, DESK_TOP_Y + 0.065, 0]))
+    monitor.add(makeBox(reg, mats.monitor, [MONITOR_WIDTH, 0.3, 0.03], [0, panelY, 0]))
+    const screen = makeMesh(reg.box(MONITOR_WIDTH - 0.04, 0.26, 0.006), mats.screenOff, [0, panelY, -0.0165], { cast: false, receive: false })
+    monitor.add(screen)
+    screens.push(screen)
+    group.add(monitor)
+  })
+  return { group, screens }
 }
 
 const CHAIR_SIZE = 0.4

@@ -11,6 +11,7 @@ import {
   WINDOWS,
   COLUMNS,
   NORTH_WALL,
+  TUMBAS,
   WARDROBES,
   type IOfficeDesk,
   type TChairSide
@@ -24,7 +25,8 @@ const CHAIR_CENTER_PX = 0.45 * PX_PER_M
 const CHAIR_SIZE_PX = 38
 const SPRITE_PLAN_WIDTH = 64
 const SPRITE_PLAN_HEIGHT = (SPRITE_PLAN_WIDTH * SPRITE_HEIGHT) / SPRITE_WIDTH
-const MONITOR_LENGTH_PX = 30
+const MONITOR_LENGTH_PX = 26
+const MONITOR_GAP_PX = 5
 const MONITOR_THICKNESS_PX = 5
 const MONITOR_INSET_PX = 10
 const TEXT_TOP_PX = 31
@@ -67,7 +69,16 @@ const PlanDesk: FC<IDeskProps> = ({ desk, state }) => {
     <g transform={transform}>
       <rect className={styles.planChair} x={-CHAIR_SIZE_PX / 2} y={chairY - CHAIR_SIZE_PX / 2} width={CHAIR_SIZE_PX} height={CHAIR_SIZE_PX} rx="10" />
       <rect className={styles.planDesk} x={-width / 2} y={-height / 2} width={width} height={height} />
-      <rect className={styles.planMonitor} x={-MONITOR_LENGTH_PX / 2} y={monitorY} width={MONITOR_LENGTH_PX} height={MONITOR_THICKNESS_PX} />
+      {[-1, 1].map(side => (
+        <rect
+          key={side}
+          className={styles.planMonitor}
+          x={side < 0 ? -MONITOR_GAP_PX / 2 - MONITOR_LENGTH_PX : MONITOR_GAP_PX / 2}
+          y={monitorY}
+          width={MONITOR_LENGTH_PX}
+          height={MONITOR_THICKNESS_PX}
+        />
+      ))}
       {state && (
         <>
           <text className={styles.seatName} x="0" y={nameY}>{state.name}</text>
@@ -112,6 +123,9 @@ export const OfficePlan: FC<IOfficePlanProps> = ({ states }) => {
             x2={door.x + door.dx * door.lengthPx}
             y2={door.y + door.dy * door.lengthPx}
           />
+        ))}
+        {TUMBAS.map(t => (
+          <rect key={`tumba-${t.x0}-${t.y0}`} className={styles.planDesk} x={t.x0} y={t.y0} width={t.x1 - t.x0} height={t.y1 - t.y0} />
         ))}
         {WARDROBES.map(w => (
           <rect key={`${w.x0}-${w.y0}`} className={styles.planDesk} x={w.x0} y={w.y0} width={w.x1 - w.x0} height={w.y1 - w.y0} />

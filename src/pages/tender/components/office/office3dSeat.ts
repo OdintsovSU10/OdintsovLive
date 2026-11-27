@@ -136,7 +136,9 @@ export const createSeatRig = (
       const present = view.pose !== 'empty'
       if (view.pose !== 'empty') person.setPose(view.pose, !animate)
       person.setPresent(present, animate)
-      deskSet.screen.material = present ? mats.screenOn : mats.screenOff
+      deskSet.screens.forEach(screen => {
+        screen.material = present ? mats.screenOn : mats.screenOff
+      })
       pushTarget = present ? 0 : 1
       if (!animate) {
         push = pushTarget

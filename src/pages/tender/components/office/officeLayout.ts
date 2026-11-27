@@ -33,7 +33,7 @@ export interface IWall {
 // Северная стена с окнами: в 3D строится отдельно (простенки, подоконники, стекло)
 export const NORTH_WALL: IWall = { kind: 'tall', rect: { x0: 135, y0: 33, x1: 1041, y1: 48 } }
 
-// Окна в северной стене (x0…x1 в px), простенок с колонной за Некрасовым — x 550…635
+// Окна в северной стене (x0…x1 в px), простенок x 550…635
 export const WINDOWS: readonly { x0: number; x1: number }[] = [
   { x0: 175, x1: 335 },
   { x0: 385, x1: 545 },
@@ -41,11 +41,13 @@ export const WINDOWS: readonly { x0: number; x1: number }[] = [
   { x0: 850, x1: 1005 }
 ]
 
-// Колонна у северной стены за местом Некрасова
-// и колонна у свободного стола (на чертеже — квадрат со штриховкой)
-export const COLUMNS: readonly IPxRect[] = [
-  { x0: 572, y0: 48, x1: 612, y1: 88 },
-  { x0: 622, y0: 723, x1: 668, y1: 773 }
+// Колонна у свободного стола (на чертеже — квадрат со штриховкой)
+export const COLUMNS: readonly IPxRect[] = [{ x0: 622, y0: 723, x1: 668, y1: 773 }]
+
+// Тумбы: у северной кромки блока B|C по центру стыка столов (между стульями Артамонова и Некрасова) и слева от нижнего блока Зинина
+export const TUMBAS: readonly IPxRect[] = [
+  { x0: 518, y0: 109, x1: 558, y1: 151 },
+  { x0: 700, y0: 438, x1: 745, y1: 535 }
 ]
 
 export const WALLS: readonly IWall[] = [
@@ -102,32 +104,37 @@ const desk = (id: string, x0: number, y0: number, x1: number, y1: number, chair:
   seatNo
 })
 
+// Стол — 128×54 px (1.6×0.675 м); блоки смежных столов стоят вплотную
 export const OFFICE_DESKS: readonly IOfficeDesk[] = [
-  desk('LUIS', 155, 151, 263, 205, 'N', 1),
-  desk('KAZAKOV', 155, 205, 263, 258, 'S', 2),
-  desk('ARTAMONOV', 430, 151, 538, 205, 'N', 3),
-  desk('KHOLODOV', 430, 205, 538, 258, 'S', 4),
-  desk('LEV', 538, 151, 646, 205, 'N', 5),
-  desk('KUZMIN', 538, 205, 646, 258, 'S'),
-  desk('ZININ', 796, 151, 903, 205, 'N', 6),
-  desk('KOVALENKO', 796, 205, 903, 258, 'S', 7),
-  desk('IVANOV', 155, 433, 263, 487, 'N', 8),
-  desk('STEPANOV', 155, 487, 263, 540, 'S', 9),
-  desk('KUKLEV', 430, 433, 538, 487, 'N', 10),
-  desk('ZHUK', 430, 487, 538, 540, 'S'),
-  desk('GOLOTIN', 538, 433, 646, 487, 'N', 11),
-  desk('SAVOSTENKO', 538, 487, 646, 540, 'S'),
-  desk('LYUBOV', 796, 433, 903, 487, 'N'),
-  desk('KULDYAEV', 796, 487, 903, 540, 'S'),
-  desk('KUZNETSOV', 903, 151, 957, 258, 'E'),
-  desk('GRIGORENKO', 903, 433, 957, 540, 'E'),
-  desk('UZUN', 217, 665, 271, 772, 'W'),
-  desk('TOPCHIY', 271, 665, 325, 772, 'E', 12),
-  desk('STEFANEEV', 624, 825, 732, 879, 'N', 14),
-  desk('SHANIN', 857, 752, 910, 860, 'W'),
-  desk('NATALYA', 910, 698, 1019, 752, 'N', 13),
-  desk('CHEPIKOV', 155, 945, 262, 1000, 'S'),
-  desk('ODINTSOV', 825, 903, 879, 1011, 'E', 15)
+  desk('LUIS', 151, 151, 279, 205, 'N', 1),
+  desk('KAZAKOV', 151, 205, 279, 258, 'S', 2),
+  desk('ARTAMONOV', 410, 151, 538, 205, 'N', 3),
+  desk('KHOLODOV', 410, 205, 538, 258, 'S', 4),
+  desk('LEV', 538, 151, 666, 205, 'N', 5),
+  desk('KUZMIN', 538, 205, 666, 258, 'S'),
+  // Блок Зинина 2×2: Зинин — верхний левый, Коваленко — нижний правый
+  desk('ZININ', 748, 151, 876, 205, 'N', 6),
+  desk('D_TR', 876, 151, 1004, 205, 'N'),
+  desk('D_BL', 748, 205, 876, 258, 'S'),
+  desk('KOVALENKO', 876, 205, 1004, 258, 'S', 7),
+  desk('IVANOV', 151, 433, 279, 487, 'N', 8),
+  desk('STEPANOV', 151, 487, 279, 540, 'S', 9),
+  desk('KUKLEV', 410, 433, 538, 487, 'N', 10),
+  desk('ZHUK', 410, 487, 538, 540, 'S'),
+  desk('GOLOTIN', 538, 433, 666, 487, 'N', 11),
+  desk('SAVOSTENKO', 538, 487, 666, 540, 'S'),
+  // Блок под ним 2×2, все столы свободны
+  desk('H_TL', 748, 433, 876, 487, 'N'),
+  desk('H_TR', 876, 433, 1004, 487, 'N'),
+  desk('H_BL', 748, 487, 876, 540, 'S'),
+  desk('H_BR', 876, 487, 1004, 540, 'S'),
+  desk('UZUN', 217, 651, 271, 779, 'W'),
+  desk('TOPCHIY', 271, 651, 325, 779, 'E', 12),
+  desk('STEFANEEV', 623, 825, 751, 879, 'N', 14),
+  desk('SHANIN', 857, 751.5, 910, 879.5, 'W'),
+  desk('NATALYA', 898, 697.5, 1026, 751.5, 'N', 13),
+  desk('CHEPIKOV', 151, 945, 279, 1000, 'S'),
+  desk('ODINTSOV', 825, 895, 879, 1023, 'E', 15)
 ]
 
 // Декор
