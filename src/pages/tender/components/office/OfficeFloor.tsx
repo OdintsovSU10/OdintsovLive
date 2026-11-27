@@ -1,115 +1,54 @@
-import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState, type FC } from 'react'
 import { RefreshCw, TriangleAlert } from 'lucide-react'
-import { supabase } from '../../../../lib/supabase'
-import { useReducedMotion } from '../../../../hooks/useReducedMotion'
-import type { EmployeeWithStats, TimesheetEntry } from '../../types'
-import { getMoscowParts } from '../../utils/livePayroll'
-import { toIsoDate } from '../../utils/employeeFormat'
-import { useTodayPresence } from '../dashboard/useTodayPresence'
-import {
-  OFFICE_SEATS,
-  PLAN_HEIGHT,
-  PLAN_RADIUS,
-  PLAN_WIDTH,
-  SEAT_EMPLOYEE_IDS,
-  SEAT_WIDTH,
-  SPRITE_HEIGHT,
-  SPRITE_WIDTH,
-  WALL_LINES
-} from './officeLayout'
-import {
-  buildSeatStates,
-  pickSeatEmployees,
-  type IOfficeSeatState,
-  type TOfficePhase,
-  type TSeatTone
-} from './officeModel'
-import { OfficeSprite } from './OfficeSprite'
+import type { EmployeeWithStats } from '../../types'
+import { OFFICE_SEATS } from './officeLayout'
+import type { IOffice3DProps } from './Office3D'
+import { OfficePlan } from './OfficePlan'
+import { TONE_CLASS } from './officeTones'
+import { useOfficeSeats } from './useOfficeSeats'
 import styles from './Office.module.css'
 
-// Один общий таймер этажа: поза каждого места пересчитывается от времени (см. workPose)
-const CLOCK_TICK_MS = 5000
 const LOADING_TEXT = 'Загрузка…'
+const VIEW_STORAGE_KEY = 'tender-office-view'
 
-const TONE_CLASS: Record<TSeatTone, string> = {
-  office: styles.toneOffice,
-  left: styles.toneLeft,
-  none: styles.toneNone,
-  leave: styles.toneLeave,
-  loading: styles.toneLoading,
-  unavailable: styles.toneUnavailable
+type TOfficeView = '3d' | 'plan'
+
+const VIEWS: ReadonlyArray<{ id: TOfficeView; label: string }> = [
+  { id: '3d', label: '3D' },
+  { id: 'plan', label: 'План' }
+]
+
+// Чанк с three не загрузился (нет сети): ведём себя как при отсутствии WebGL
+const Office3DFailed: FC<IOffice3DProps> = ({ onUnsupported }) => {
+  useEffect(() => {
+    onUnsupported()
+  }, [onUnsupported])
+  return null
 }
+
+// three уходит в отдельный чанк: он грузится только когда открыт 3D-вид
+const Office3D = lazy(() =>
+  import('./Office3D')
+    .then(module => ({ default: module.Office3D }))
+    .catch(() => ({ default: Office3DFailed }))
+)
 
 const joinClasses = (...names: Array<string | undefined>): string => names.filter(Boolean).join(' ')
 
-const formatMoscowTime = (date: Date): string => date.toLocaleTimeString('ru-RU', {
-  timeZone: 'Europe/Moscow',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false
-})
-
-interface ITodayTimesheet {
-  rows: TimesheetEntry[]
-  // Запрос выполнен хотя бы раз (успешно или нет)
-  ready: boolean
-  failed: boolean
-  reload: () => Promise<void>
+const readStoredView = (): TOfficeView => {
+  try {
+    return window.localStorage.getItem(VIEW_STORAGE_KEY) === 'plan' ? 'plan' : '3d'
+  } catch {
+    return '3d'
+  }
 }
 
-// Табель за сегодня (по Москве) только по сотрудникам мест — независимо от месяца, выбранного в Тендере
-const useTodayTimesheet = (): ITodayTimesheet => {
-  const [rows, setRows] = useState<TimesheetEntry[]>([])
-  const [ready, setReady] = useState(false)
-  const [failed, setFailed] = useState(false)
-
-  const reload = useCallback(async () => {
-    const moscow = getMoscowParts(new Date())
-    const today = toIsoDate(moscow.year, moscow.month, moscow.day)
-    const { data, error } = await supabase
-      .from('tender_timesheet')
-      .select('*')
-      .in('employee_id', [...SEAT_EMPLOYEE_IDS])
-      .eq('work_date', today)
-    if (error) {
-      setFailed(true)
-    } else {
-      setRows((data ?? []) as TimesheetEntry[])
-      setFailed(false)
-    }
-    setReady(true)
-  }, [])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  return { rows, ready, failed, reload }
-}
-
-interface ISeatProps {
-  state: IOfficeSeatState
-}
-
-const OfficeSeat: FC<ISeatProps> = ({ state }) => {
-  const { seat, index, name, fullName, subdivision, pose, status, tone } = state
-  const center = SEAT_WIDTH / 2
-  const statusText = status || 'загрузка'
-  return (
-    <g transform={`translate(${seat.x} ${seat.y})`}>
-      <title>{`${fullName}, ${subdivision}: ${statusText}`}</title>
-      <OfficeSprite
-        pose={pose}
-        shirt={index}
-        x={(SEAT_WIDTH - SPRITE_WIDTH) / 2}
-        y={0}
-        width={SPRITE_WIDTH}
-        height={SPRITE_HEIGHT}
-      />
-      <text className={styles.seatName} x={center} y={SPRITE_HEIGHT + 16}>{name}</text>
-      <text className={joinClasses(styles.seatStatus, TONE_CLASS[tone])} x={center} y={SPRITE_HEIGHT + 33}>{status}</text>
-    </g>
-  )
+const storeView = (view: TOfficeView): void => {
+  try {
+    window.localStorage.setItem(VIEW_STORAGE_KEY, view)
+  } catch {
+    // Хранилище недоступно (приватный режим): выбор живёт до перезагрузки
+  }
 }
 
 interface IOfficeFloorProps {
@@ -117,63 +56,17 @@ interface IOfficeFloorProps {
 }
 
 export const OfficeFloor: FC<IOfficeFloorProps> = ({ allEmployees }) => {
-  const timesheet = useTodayTimesheet()
-  const reducedMotion = useReducedMotion()
-  const [nowMs, setNowMs] = useState(() => Date.now())
-  const [updatedAt, setUpdatedAt] = useState('')
+  const { states, phase, inOffice, updatedAt, busy, bannerText, refresh } = useOfficeSeats(allEmployees)
+  const [view, setView] = useState<TOfficeView>(readStoredView)
+  // WebGL недоступен: показываем план, но сохранённый выбор не затираем
+  const [webglFailed, setWebglFailed] = useState(false)
+  const activeView: TOfficeView = webglFailed ? 'plan' : view
 
-  // Сотрудники мест. Ссылка на массив меняется только при смене полей, которые читает хук присутствия:
-  // иначе каждая смена месяца в Тендере перезапускала бы эффект хука и слала запросы в СКУД заново.
-  const picked = pickSeatEmployees(allEmployees)
-  const signature = JSON.stringify(
-    picked.map(employee => [employee.id, employee.fot_employee_id, employee.excluded_from_timesheet, employee.employmentPeriods])
-  )
-  const [stable, setStable] = useState({ signature, list: picked })
-  if (stable.signature !== signature) setStable({ signature, list: picked })
-
-  // Табель за сегодня подменяет `timesheet` сотрудника целиком — в форме, которую ожидает хук
-  const presenceEmployees = useMemo(
-    () => stable.list.map(employee => ({
-      ...employee,
-      timesheet: timesheet.rows.filter(row => row.employee_id === employee.id)
-    })),
-    [stable.list, timesheet.rows]
-  )
-
-  // Проходы запрашиваем только когда табель уже получен: иначе хук отстрелял бы запросы дважды
-  const hookEnabled = timesheet.ready && !timesheet.failed
-  const presence = useTodayPresence(presenceEmployees, hookEnabled)
-  const loaded = hookEnabled && presence.todayIso !== '' && !presence.loading
-
-  let phase: TOfficePhase = 'loading'
-  if (timesheet.failed || (loaded && presence.error)) phase = 'unavailable'
-  else if (loaded) phase = 'ready'
-
-  const animate = phase === 'ready' && !reducedMotion
-  useEffect(() => {
-    if (!animate) return
-    const timer = window.setInterval(() => setNowMs(Date.now()), CLOCK_TICK_MS)
-    return () => window.clearInterval(timer)
-  }, [animate])
-
-  const { statuses, passes, firstEntries } = presence
-  useEffect(() => {
-    if (statuses.size > 0) setUpdatedAt(formatMoscowTime(new Date()))
-  }, [statuses])
-
-  const states = useMemo(
-    () => buildSeatStates(stable.list, phase, { statuses, passes, firstEntries }, nowMs),
-    [stable.list, phase, statuses, passes, firstEntries, nowMs]
-  )
-  const inOffice = states.filter(state => state.inOffice).length
-
-  const handleRefresh = async () => {
-    await timesheet.reload()
-    presence.refresh()
+  const handleSelect = (next: TOfficeView): void => {
+    setView(next)
+    storeView(next)
   }
-
-  const busy = phase === 'loading' || presence.refreshing
-  const bannerText = timesheet.failed ? 'Не удалось загрузить табель' : 'Нет связи со СКУД'
+  const handleUnsupported = useCallback(() => setWebglFailed(true), [])
 
   return (
     <section className={joinClasses(styles.office, phase === 'unavailable' ? styles.frozen : undefined)} aria-busy={phase === 'loading'}>
@@ -190,10 +83,26 @@ export const OfficeFloor: FC<IOfficeFloorProps> = ({ allEmployees }) => {
           )}
           {updatedAt && phase !== 'loading' && <span className={styles.updated}>Обновлено в {updatedAt}</span>}
         </div>
-        <button type="button" className={styles.refresh} onClick={handleRefresh} disabled={busy}>
-          <RefreshCw size={18} strokeWidth={1.5} className={busy ? styles.spinning : undefined} aria-hidden="true" />
-          <span>Обновить</span>
-        </button>
+        <div className={styles.toolbarActions}>
+          <div className={styles.viewSwitch} role="radiogroup" aria-label="Вид офиса">
+            {VIEWS.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                role="radio"
+                aria-checked={activeView === item.id}
+                className={joinClasses(styles.viewButton, activeView === item.id ? styles.viewButtonActive : undefined)}
+                onClick={() => handleSelect(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" className={styles.refresh} onClick={refresh} disabled={busy}>
+            <RefreshCw size={18} strokeWidth={1.5} className={busy ? styles.spinning : undefined} aria-hidden="true" />
+            <span>Обновить</span>
+          </button>
+        </div>
       </div>
 
       {phase === 'unavailable' && (
@@ -203,22 +112,27 @@ export const OfficeFloor: FC<IOfficeFloorProps> = ({ allEmployees }) => {
         </div>
       )}
 
-      <div className={styles.planWrap}>
-        <svg className={styles.plan} viewBox={`0 0 ${PLAN_WIDTH} ${PLAN_HEIGHT}`} role="img" aria-label="План офиса">
-          <rect
-            className={styles.room}
-            x="1"
-            y="1"
-            width={PLAN_WIDTH - 2}
-            height={PLAN_HEIGHT - 2}
-            rx={PLAN_RADIUS}
-          />
-          {WALL_LINES.map(line => (
-            <line key={`${line.x1}-${line.y1}-${line.x2}-${line.y2}`} className={styles.wall} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} />
-          ))}
-          {states.map(state => <OfficeSeat key={state.seat.no} state={state} />)}
-        </svg>
-      </div>
+      {webglFailed && (
+        <div className={styles.banner} role="status">
+          <TriangleAlert size={18} strokeWidth={1.5} aria-hidden="true" />
+          <span>3D не поддерживается браузером</span>
+        </div>
+      )}
+
+      {activeView === '3d' ? (
+        <Suspense
+          fallback={
+            <div className={styles.viewLoading} role="status">
+              <span className={styles.spinner} aria-hidden="true" />
+              {LOADING_TEXT}
+            </div>
+          }
+        >
+          <Office3D states={states} frozen={phase === 'unavailable'} onUnsupported={handleUnsupported} />
+        </Suspense>
+      ) : (
+        <OfficePlan states={states} />
+      )}
 
       <ul className={styles.list}>
         {states.map(state => (

@@ -117,6 +117,16 @@
   --office-shirt-3: #2F9BD6;
   --office-shirt-4: #7A5AF8;
   --office-shirt-5: #D6559F;
+
+  /* 3D-вид офиса: пол, стены, стекло, клавиатура, брюки */
+  --office-floor: #E6E1D8;
+  --office-floor-line: #D1CABD;
+  --office-wall: #DAD4C8;
+  --office-glass: #9CC7E3;
+  --office-glass-frame: #8A8F9C;
+  --office-keyboard: #4B505C;
+  --office-pants: #3E4A63;
+  --office-plant: #4F9E5C;
 }
 
 [data-theme="dark"] {
@@ -188,6 +198,14 @@
   --office-shirt-3: #4CB4EE;
   --office-shirt-4: #9B82FF;
   --office-shirt-5: #F070B8;
+  --office-floor: #2B2B2E;
+  --office-floor-line: #3A3A3F;
+  --office-wall: #3D3D42;
+  --office-glass: #6FA6C9;
+  --office-glass-frame: #7C8190;
+  --office-keyboard: #2A2D35;
+  --office-pants: #4B5878;
+  --office-plant: #5BB06A;
 }
 
 * {

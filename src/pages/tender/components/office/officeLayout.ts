@@ -1,53 +1,145 @@
-// Места на плане офиса: сотрудник привязан по id из tender_employees. Только константы, без логики.
+// Планировка Тендерного отдела 2026 (PDF от заказчика): столы, стулья, стены. Только константы, без логики.
+// Координаты — пиксели картинки плана: X вправо, Y вниз. 80 px = 1 м. И 2D-план, и 3D-сцена строятся отсюда.
+
+export const PX_PER_M = 80
+// Левый верхний угол внутреннего контура помещения (начало координат 3D: X_m = (x - ORIGIN.x) / PX_PER_M)
+export const ORIGIN = { x: 150, y: 48 } as const
+// Внутренний контур помещения
+export const ROOM_RECT = { x0: 150, y0: 48, x1: 1026, y1: 1079 } as const
+export const WALL_THICKNESS_PX = 15
+// Рамка 2D-плана: внутренний контур плюс стены
+export const PLAN_VIEW = {
+  x: ROOM_RECT.x0 - WALL_THICKNESS_PX,
+  y: ROOM_RECT.y0 - WALL_THICKNESS_PX,
+  width: ROOM_RECT.x1 - ROOM_RECT.x0 + 2 * WALL_THICKNESS_PX,
+  height: ROOM_RECT.y1 - ROOM_RECT.y0 + 2 * WALL_THICKNESS_PX
+} as const
+
+export interface IPxRect {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
+// tall — наружные северная и западная (полная высота); rail — наружные южная и восточная (бортик); low — стены кабинетов
+export type TWallKind = 'tall' | 'rail' | 'low'
+
+export interface IWall {
+  rect: IPxRect
+  kind: TWallKind
+}
+
+export const WALLS: readonly IWall[] = [
+  { kind: 'tall', rect: { x0: 135, y0: 33, x1: 1041, y1: 48 } },
+  { kind: 'tall', rect: { x0: 135, y0: 48, x1: 150, y1: 1094 } },
+  { kind: 'rail', rect: { x0: 1026, y0: 48, x1: 1041, y1: 1094 } },
+  // Южная стена — с проёмом входа x 510…658
+  { kind: 'rail', rect: { x0: 150, y0: 1079, x1: 510, y1: 1094 } },
+  { kind: 'rail', rect: { x0: 658, y0: 1079, x1: 1026, y1: 1094 } },
+  // Кабинет слева внизу
+  { kind: 'low', rect: { x0: 150, y0: 779.5, x1: 437.5, y1: 794.5 } },
+  { kind: 'low', rect: { x0: 422.5, y0: 794.5, x1: 437.5, y1: 1000 } },
+  // Кабинет справа внизу
+  { kind: 'low', rect: { x0: 707, y0: 879.5, x1: 1026, y1: 894.5 } },
+  { kind: 'low', rect: { x0: 707.5, y0: 894.5, x1: 722.5, y1: 1000 } }
+]
+
+// Проём входа в южной стене
+export const ENTRANCE: IPxRect = { x0: 510, y0: 1079, x1: 658, y1: 1094 }
+
+export interface IDoor {
+  // Петля и единичное направление открытой створки (в плоскости плана)
+  x: number
+  y: number
+  dx: number
+  dy: number
+  lengthPx: number
+}
+
+// Двери кабинетов открыты внутрь коридора (проёмы y 1000…1079)
+export const DOORS: readonly IDoor[] = [
+  { x: 430, y: 1000, dx: 0.966, dy: 0.259, lengthPx: 79 },
+  { x: 715, y: 1000, dx: -0.966, dy: 0.259, lengthPx: 79 }
+]
+
+// Сторона стола, с которой стоит стул: N — человек севернее стола и смотрит на юг, S — на север, E — на запад, W — на восток
+export type TChairSide = 'N' | 'S' | 'E' | 'W'
+
+export interface IOfficeDesk {
+  id: string
+  rect: IPxRect
+  chair: TChairSide
+  // Номер места человека (IOfficeSeat.no); без номера — пустой стол
+  seatNo?: number
+}
+
+const desk = (id: string, x0: number, y0: number, x1: number, y1: number, chair: TChairSide, seatNo?: number): IOfficeDesk => ({
+  id,
+  rect: { x0, y0, x1, y1 },
+  chair,
+  seatNo
+})
+
+export const OFFICE_DESKS: readonly IOfficeDesk[] = [
+  desk('LUIS', 155, 151, 263, 205, 'N', 1),
+  desk('KAZAKOV', 155, 205, 263, 258, 'S', 2),
+  desk('ARTAMONOV', 377, 151, 485, 205, 'N', 3),
+  desk('KHOLODOV', 377, 205, 485, 258, 'S', 4),
+  desk('LEV', 591, 151, 698, 205, 'N', 5),
+  desk('KUZMIN', 591, 205, 698, 258, 'S'),
+  desk('ZININ', 796, 151, 903, 205, 'N', 6),
+  desk('KOVALENKO', 796, 205, 903, 258, 'S', 7),
+  desk('IVANOV', 155, 433, 263, 487, 'N', 8),
+  desk('STEPANOV', 155, 487, 263, 540, 'S', 9),
+  desk('KUKLEV', 377, 433, 485, 487, 'N', 10),
+  desk('ZHUK', 377, 487, 485, 540, 'S'),
+  desk('GOLOTIN', 591, 433, 698, 487, 'N', 11),
+  desk('SAVOSTENKO', 591, 487, 698, 540, 'S'),
+  desk('LYUBOV', 796, 433, 903, 487, 'N'),
+  desk('KULDYAEV', 796, 487, 903, 540, 'S'),
+  desk('KUZNETSOV', 903, 151, 957, 258, 'E'),
+  desk('GRIGORENKO', 903, 433, 957, 540, 'E'),
+  desk('UZUN', 217, 665, 271, 772, 'W'),
+  desk('TOPCHIY', 271, 665, 325, 772, 'E', 12),
+  desk('STEFANEEV', 673, 752, 727, 860, 'E'),
+  desk('SHANIN', 857, 752, 910, 860, 'W', 13),
+  desk('NATALYA', 910, 698, 1019, 752, 'N'),
+  desk('CHEPIKOV', 155, 945, 262, 1000, 'S'),
+  desk('ODINTSOV', 825, 903, 879, 1011, 'E')
+]
+
+// Декор
+export const WARDROBE: IPxRect = { x0: 208, y0: 838, x1: 262, y1: 945 }
+export const PLANT: IPxRect = { x0: 622, y0: 723, x1: 668, y1: 773 }
 
 export interface IOfficeSeat {
-  // Номер места — порядок списка под планом; на плане не показывается
+  // Номер места — порядок списка под видом; цвет рубашки и сдвиг фаз анимации
   no: number
   employeeId: number
   // Запасная подпись, если сотрудника нет в загруженном списке
   surname: string
-  // Левый верхний угол места на плане
-  x: number
-  y: number
 }
 
-export const PLAN_WIDTH = 1200
-export const PLAN_HEIGHT = 760
-export const PLAN_RADIUS = 24
-
-export const SEAT_WIDTH = 110
-export const SEAT_HEIGHT = 130
-export const SPRITE_WIDTH = 96
-export const SPRITE_HEIGHT = 93
-
+// Люди по id из tender_employees, в порядке списка
 export const OFFICE_SEATS: readonly IOfficeSeat[] = [
-  { no: 1, employeeId: 194, surname: 'Луис', x: 40, y: 30 },
-  { no: 2, employeeId: 182, surname: 'Артамонов', x: 210, y: 30 },
-  { no: 3, employeeId: 188, surname: 'Казаков', x: 40, y: 170 },
-  { no: 4, employeeId: 185, surname: 'Жук', x: 210, y: 170 },
-  { no: 5, employeeId: 199, surname: 'Сапожникова', x: 40, y: 340 },
-  { no: 6, employeeId: 192, surname: 'Куклев', x: 210, y: 340 },
-  { no: 7, employeeId: 209, surname: 'Буслов', x: 40, y: 480 },
-  { no: 8, employeeId: 202, surname: 'Топчий', x: 40, y: 620 },
-  { no: 9, employeeId: 195, surname: 'Некрасов', x: 390, y: 30 },
-  { no: 10, employeeId: 186, surname: 'Зинин', x: 620, y: 30 },
-  { no: 11, employeeId: 189, surname: 'Коваленко', x: 830, y: 190 },
-  { no: 12, employeeId: 205, surname: 'Шанин', x: 1040, y: 450 },
-  { no: 13, employeeId: 183, surname: 'Голотин', x: 330, y: 340 }
-]
-
-export interface IWallLine {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-}
-
-// Перегородка и комната в правом нижнем углу (без подписи)
-export const WALL_LINES: readonly IWallLine[] = [
-  { x1: 620, y1: 170, x2: 1010, y2: 170 },
-  { x1: 900, y1: 590, x2: 1200, y2: 590 },
-  { x1: 900, y1: 590, x2: 910, y2: 760 }
+  { no: 1, employeeId: 194, surname: 'Луис' },
+  { no: 2, employeeId: 188, surname: 'Казаков' },
+  { no: 3, employeeId: 182, surname: 'Артамонов' },
+  { no: 4, employeeId: 185, surname: 'Жук' },
+  { no: 5, employeeId: 195, surname: 'Некрасов' },
+  { no: 6, employeeId: 186, surname: 'Зинин' },
+  { no: 7, employeeId: 189, surname: 'Коваленко' },
+  { no: 8, employeeId: 199, surname: 'Сапожникова' },
+  { no: 9, employeeId: 209, surname: 'Буслов' },
+  { no: 10, employeeId: 192, surname: 'Куклев' },
+  { no: 11, employeeId: 183, surname: 'Голотин' },
+  { no: 12, employeeId: 202, surname: 'Топчий' },
+  { no: 13, employeeId: 205, surname: 'Шанин' }
 ]
 
 export const SEAT_EMPLOYEE_IDS: readonly number[] = OFFICE_SEATS.map(seat => seat.employeeId)
+
+// Размеры человечка на 2D-плане (OfficeSprite рисуется в 96×93)
+export const SPRITE_WIDTH = 96
+export const SPRITE_HEIGHT = 93

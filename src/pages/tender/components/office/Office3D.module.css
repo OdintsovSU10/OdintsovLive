@@ -1,0 +1,114 @@
+/* 3D-вид офиса: рамка, слой подписей, кнопка «Сбросить вид». Mobile-first от 360 px.
+   Цвета — только токены темы; цвет точки статуса задают классы тонов из Office.module.css (--tone-color). */
+
+.frame {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 55svh;
+  min-height: 320px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+}
+
+/* Данные недоступны: застыло и посерело */
+.frozen {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+/* Контейнер, на который навешено управление камерой (OrbitControls) */
+.host {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 160px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone-color, var(--text-muted));
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reset {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reset:hover {
+  background: var(--surface-hover);
+}
+
+/* На узком экране подписи с именами слипаются: остаются цветные точки статуса, имена — в списке ниже */
+@media (max-width: 519px) {
+  .text {
+    display: none;
+  }
+
+  .label {
+    padding: 4px;
+  }
+}
+
+@media (min-width: 768px) {
+  .frame {
+    height: min(70svh, 640px);
+  }
+
+  .label {
+    font-size: 13px;
+  }
+}

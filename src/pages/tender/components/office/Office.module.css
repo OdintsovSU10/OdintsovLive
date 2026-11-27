@@ -1,5 +1,5 @@
-/* Вкладка «Офис»: шапка, план и список под ним. Mobile-first от 360 px: план — в контейнере с горизонтальной
-   прокруткой (SVG не уже 760 px), от 1024 px — во всю ширину без прокрутки. Цвета — только токены темы.
+/* Вкладка «Офис»: шапка, вид (3D или план) и список под ним. Mobile-first от 360 px: план — в контейнере с горизонтальной
+   прокруткой (SVG не уже 640 px), от 1024 px — без прокрутки. Цвета — только токены темы.
    Рисунки человечков и их движение — в Sprite.module.css; здесь — раскладка и «заморозка» недоступных данных. */
 
 .office {
@@ -117,21 +117,42 @@
 .plan {
   display: block;
   width: 100%;
-  min-width: 760px;
+  min-width: 640px;
+  max-width: 760px;
   height: auto;
+  margin: 0 auto;
 }
 
 .room {
   fill: var(--surface);
-  stroke: var(--border);
-  stroke-width: 2;
 }
 
-.wall {
-  stroke: var(--text-muted);
-  stroke-width: 3;
+.wallFill {
+  fill: var(--office-wall);
+}
+
+.planDoor {
+  stroke: var(--office-wall);
+  stroke-width: 6;
   stroke-linecap: round;
-  opacity: 0.6;
+}
+
+.planDesk {
+  fill: var(--office-desk);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.planChair {
+  fill: var(--office-chair);
+}
+
+.planMonitor {
+  fill: var(--office-monitor);
+}
+
+.planPlant {
+  fill: var(--office-plant);
 }
 
 .seatName,
@@ -142,13 +163,13 @@
 
 .seatName {
   fill: var(--text-primary);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .seatStatus {
   fill: var(--tone-text, var(--text-secondary));
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* --- тона: цвет маркера в списке и подписи статуса на плане ---------------------------- */
@@ -245,4 +266,59 @@
   .planWrap {
     overflow-x: visible;
   }
+}
+
+/* --- переключатель вида и заглушка загрузки 3D ------------------------------------------ */
+
+.viewSwitch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.viewButton {
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.viewButton:hover {
+  background: var(--surface-hover);
+}
+
+.viewButtonActive,
+.viewButtonActive:hover {
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+}
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 14px;
 }
