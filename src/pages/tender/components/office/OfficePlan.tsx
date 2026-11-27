@@ -9,7 +9,10 @@ import {
   SPRITE_HEIGHT,
   SPRITE_WIDTH,
   WALLS,
-  WARDROBE,
+  WINDOWS,
+  COLUMNS,
+  NORTH_WALL,
+  WARDROBES,
   type IOfficeDesk,
   type TChairSide
 } from './officeLayout'
@@ -95,6 +98,12 @@ export const OfficePlan: FC<IOfficePlanProps> = ({ states }) => {
         {WALLS.map(({ rect }) => (
           <rect key={`${rect.x0}-${rect.y0}-${rect.x1}-${rect.y1}`} className={styles.wallFill} x={rect.x0} y={rect.y0} width={rect.x1 - rect.x0} height={rect.y1 - rect.y0} />
         ))}
+        {WINDOWS.map(win => (
+          <rect key={`win-${win.x0}`} className={styles.planWindow} x={win.x0} y={NORTH_WALL.rect.y0 + 4} width={win.x1 - win.x0} height={NORTH_WALL.rect.y1 - NORTH_WALL.rect.y0 - 8} />
+        ))}
+        {COLUMNS.map(c => (
+          <rect key={`col-${c.x0}-${c.y0}`} className={styles.wallFill} x={c.x0} y={c.y0} width={c.x1 - c.x0} height={c.y1 - c.y0} />
+        ))}
         {DOORS.map(door => (
           <line
             key={`${door.x}-${door.y}`}
@@ -105,7 +114,9 @@ export const OfficePlan: FC<IOfficePlanProps> = ({ states }) => {
             y2={door.y + door.dy * door.lengthPx}
           />
         ))}
-        <rect className={styles.planDesk} x={WARDROBE.x0} y={WARDROBE.y0} width={WARDROBE.x1 - WARDROBE.x0} height={WARDROBE.y1 - WARDROBE.y0} />
+        {WARDROBES.map(w => (
+          <rect key={`${w.x0}-${w.y0}`} className={styles.planDesk} x={w.x0} y={w.y0} width={w.x1 - w.x0} height={w.y1 - w.y0} />
+        ))}
         <rect className={styles.planPlant} x={PLANT.x0} y={PLANT.y0} width={PLANT.x1 - PLANT.x0} height={PLANT.y1 - PLANT.y0} rx="8" />
         {OFFICE_DESKS.map(desk => (
           <PlanDesk key={desk.id} desk={desk} state={desk.seatNo === undefined ? undefined : byNo.get(desk.seatNo)} />

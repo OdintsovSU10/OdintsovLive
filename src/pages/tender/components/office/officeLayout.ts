@@ -30,8 +30,22 @@ export interface IWall {
   kind: TWallKind
 }
 
+// Северная стена с окнами: в 3D строится отдельно (простенки, подоконники, стекло)
+export const NORTH_WALL: IWall = { kind: 'tall', rect: { x0: 135, y0: 33, x1: 1041, y1: 48 } }
+
+// Окна в северной стене (x0…x1 в px), простенок с колонной за Некрасовым — x 550…635
+export const WINDOWS: readonly { x0: number; x1: number }[] = [
+  { x0: 175, x1: 335 },
+  { x0: 385, x1: 545 },
+  { x0: 640, x1: 800 },
+  { x0: 850, x1: 1005 }
+]
+
+// Колонна у северной стены за местом Некрасова
+export const COLUMNS: readonly IPxRect[] = [{ x0: 572, y0: 48, x1: 612, y1: 88 }]
+
 export const WALLS: readonly IWall[] = [
-  { kind: 'tall', rect: { x0: 135, y0: 33, x1: 1041, y1: 48 } },
+  NORTH_WALL,
   { kind: 'tall', rect: { x0: 135, y0: 48, x1: 150, y1: 1094 } },
   { kind: 'rail', rect: { x0: 1026, y0: 48, x1: 1041, y1: 1094 } },
   // Южная стена — с проёмом входа x 510…658
@@ -42,7 +56,10 @@ export const WALLS: readonly IWall[] = [
   { kind: 'low', rect: { x0: 422.5, y0: 794.5, x1: 437.5, y1: 1000 } },
   // Кабинет справа внизу
   { kind: 'low', rect: { x0: 707, y0: 879.5, x1: 1026, y1: 894.5 } },
-  { kind: 'low', rect: { x0: 707.5, y0: 894.5, x1: 722.5, y1: 1000 } }
+  { kind: 'low', rect: { x0: 707.5, y0: 894.5, x1: 722.5, y1: 1000 } },
+  // Стена за местом Шанина (под столом) и справа от места Стефанеева
+  { kind: 'low', rect: { x0: 910, y0: 752, x1: 1026, y1: 767 } },
+  { kind: 'low', rect: { x0: 910, y0: 767, x1: 925, y1: 879.5 } }
 ]
 
 // Проём входа в южной стене
@@ -84,33 +101,37 @@ const desk = (id: string, x0: number, y0: number, x1: number, y1: number, chair:
 export const OFFICE_DESKS: readonly IOfficeDesk[] = [
   desk('LUIS', 155, 151, 263, 205, 'N', 1),
   desk('KAZAKOV', 155, 205, 263, 258, 'S', 2),
-  desk('ARTAMONOV', 377, 151, 485, 205, 'N', 3),
-  desk('KHOLODOV', 377, 205, 485, 258, 'S', 4),
-  desk('LEV', 591, 151, 698, 205, 'N', 5),
-  desk('KUZMIN', 591, 205, 698, 258, 'S'),
+  desk('ARTAMONOV', 430, 151, 538, 205, 'N', 3),
+  desk('KHOLODOV', 430, 205, 538, 258, 'S', 4),
+  desk('LEV', 538, 151, 646, 205, 'N', 5),
+  desk('KUZMIN', 538, 205, 646, 258, 'S'),
   desk('ZININ', 796, 151, 903, 205, 'N', 6),
   desk('KOVALENKO', 796, 205, 903, 258, 'S', 7),
   desk('IVANOV', 155, 433, 263, 487, 'N', 8),
   desk('STEPANOV', 155, 487, 263, 540, 'S', 9),
-  desk('KUKLEV', 377, 433, 485, 487, 'N', 10),
-  desk('ZHUK', 377, 487, 485, 540, 'S'),
-  desk('GOLOTIN', 591, 433, 698, 487, 'N', 11),
-  desk('SAVOSTENKO', 591, 487, 698, 540, 'S'),
+  desk('KUKLEV', 430, 433, 538, 487, 'N', 10),
+  desk('ZHUK', 430, 487, 538, 540, 'S'),
+  desk('GOLOTIN', 538, 433, 646, 487, 'N', 11),
+  desk('SAVOSTENKO', 538, 487, 646, 540, 'S'),
   desk('LYUBOV', 796, 433, 903, 487, 'N'),
   desk('KULDYAEV', 796, 487, 903, 540, 'S'),
   desk('KUZNETSOV', 903, 151, 957, 258, 'E'),
   desk('GRIGORENKO', 903, 433, 957, 540, 'E'),
   desk('UZUN', 217, 665, 271, 772, 'W'),
   desk('TOPCHIY', 271, 665, 325, 772, 'E', 12),
-  desk('STEFANEEV', 673, 752, 727, 860, 'E'),
-  desk('SHANIN', 857, 752, 910, 860, 'W', 13),
-  desk('NATALYA', 910, 698, 1019, 752, 'N'),
+  desk('STEFANEEV', 624, 825, 732, 879, 'N'),
+  desk('SHANIN', 857, 752, 910, 860, 'W', 14),
+  desk('NATALYA', 910, 698, 1019, 752, 'N', 13),
   desk('CHEPIKOV', 155, 945, 262, 1000, 'S'),
-  desk('ODINTSOV', 825, 903, 879, 1011, 'E')
+  desk('ODINTSOV', 825, 903, 879, 1011, 'E', 15)
 ]
 
 // Декор
-export const WARDROBE: IPxRect = { x0: 208, y0: 838, x1: 262, y1: 945 }
+export const WARDROBES: readonly IPxRect[] = [
+  { x0: 208, y0: 838, x1: 262, y1: 945 },
+  // Шкаф слева от свободного стола у кабинета Одинцова
+  { x0: 576, y0: 764, x1: 618, y1: 866 }
+]
 export const PLANT: IPxRect = { x0: 622, y0: 723, x1: 668, y1: 773 }
 
 export interface IOfficeSeat {
@@ -135,7 +156,9 @@ export const OFFICE_SEATS: readonly IOfficeSeat[] = [
   { no: 10, employeeId: 192, surname: 'Куклев' },
   { no: 11, employeeId: 183, surname: 'Голотин' },
   { no: 12, employeeId: 202, surname: 'Топчий' },
-  { no: 13, employeeId: 205, surname: 'Шанин' }
+  { no: 13, employeeId: 205, surname: 'Шанин' },
+  { no: 14, employeeId: 201, surname: 'Стефанеев' },
+  { no: 15, employeeId: 196, surname: 'Одинцов' }
 ]
 
 export const SEAT_EMPLOYEE_IDS: readonly number[] = OFFICE_SEATS.map(seat => seat.employeeId)

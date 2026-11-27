@@ -1,6 +1,6 @@
 // Неподвижные части сцены: пол, стены, двери, шкаф, кадка, а также стол с монитором и стул. Чистые функции three.
 import * as THREE from 'three'
-import { DOORS, ENTRANCE, PLANT, ROOM_RECT, WALLS, WARDROBE, PX_PER_M, type TWallKind } from './officeLayout'
+import { COLUMNS, DOORS, ENTRANCE, NORTH_WALL, PLANT, ROOM_RECT, WALLS, WARDROBES, WINDOWS, PX_PER_M, type TWallKind } from './officeLayout'
 import {
   DESK_TOP_Y,
   LOW_WALL_HEIGHT,
@@ -28,6 +28,9 @@ const DOOR_HEIGHT = 2.0
 const DOOR_THICKNESS = 0.04
 const ENTRANCE_HEIGHT = 2.1
 const GRID_STEP = 1
+const SILL_HEIGHT = 0.9
+const WINDOW_TOP = 2.4
+const GLASS_THICKNESS = 0.02
 
 const WALL_HEIGHTS: Record<TWallKind, number> = {
   tall: WALL_HEIGHT,
@@ -46,6 +49,32 @@ const buildGrid = (reg: IRegistry, mats: IMaterials, width: number, depth: numbe
   return grid
 }
 
+// Северная стена: простенки во всю высоту, под окнами подоконная часть, над ними перемычка, в проёмах стекло
+const buildNorthWall = (reg: IRegistry, mats: IMaterials): THREE.Group => {
+  const group = new THREE.Group()
+  const wall = toMetricRect(NORTH_WALL.rect)
+  const addPart = (x0: number, x1: number, y0: number, y1: number, material: THREE.Material, depth = wall.depth): void => {
+    group.add(makeBox(reg, material, [x1 - x0, y1 - y0, depth], [(x0 + x1) / 2, (y0 + y1) / 2, wall.cz]))
+  }
+  const left = pxToX(NORTH_WALL.rect.x0)
+  const right = pxToX(NORTH_WALL.rect.x1)
+  let cursor = left
+  WINDOWS.forEach(win => {
+    const x0 = pxToX(win.x0)
+    const x1 = pxToX(win.x1)
+    addPart(cursor, x0, 0, WALL_HEIGHT, mats.wall)
+    addPart(x0, x1, 0, SILL_HEIGHT, mats.wall)
+    addPart(x0, x1, WINDOW_TOP, WALL_HEIGHT, mats.wall)
+    addPart(x0, x1, SILL_HEIGHT, WINDOW_TOP, mats.glass, GLASS_THICKNESS)
+    // Импост посередине окна
+    const mid = (x0 + x1) / 2
+    addPart(mid - 0.03, mid + 0.03, SILL_HEIGHT, WINDOW_TOP, mats.glassFrame, wall.depth * 0.6)
+    cursor = x1
+  })
+  addPart(cursor, right, 0, WALL_HEIGHT, mats.wall)
+  return group
+}
+
 // Пол (плита с лёгкой сеткой) и все стены, двери, входная коробка
 export const buildShell = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   const shell = new THREE.Group()
@@ -56,10 +85,18 @@ export const buildShell = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   grid.position.z = room.cz - room.depth / 2
   shell.add(grid)
 
-  WALLS.forEach(({ rect, kind }) => {
+  WALLS.forEach(wallItem => {
+    if (wallItem === NORTH_WALL) return
+    const { rect, kind } = wallItem
     const wall = toMetricRect(rect)
     const height = WALL_HEIGHTS[kind]
     shell.add(makeBox(reg, mats.wall, [wall.width, height, wall.depth], [wall.cx, height / 2, wall.cz]))
+  })
+
+  shell.add(buildNorthWall(reg, mats))
+  COLUMNS.forEach(rect => {
+    const column = toMetricRect(rect)
+    shell.add(makeBox(reg, mats.wall, [column.width, WALL_HEIGHT, column.depth], [column.cx, WALL_HEIGHT / 2, column.cz]))
   })
 
   // Вход: порог и дверная коробка в проёме южной стены
@@ -86,8 +123,10 @@ export const buildShell = (reg: IRegistry, mats: IMaterials): THREE.Group => {
 // Шкаф и кадка с растением
 export const buildDecor = (reg: IRegistry, mats: IMaterials): THREE.Group => {
   const decor = new THREE.Group()
-  const wardrobe = toMetricRect(WARDROBE)
-  decor.add(makeBox(reg, mats.desk, [wardrobe.width, WARDROBE_HEIGHT, wardrobe.depth], [wardrobe.cx, WARDROBE_HEIGHT / 2, wardrobe.cz]))
+  WARDROBES.forEach(rect => {
+    const wardrobe = toMetricRect(rect)
+    decor.add(makeBox(reg, mats.desk, [wardrobe.width, WARDROBE_HEIGHT, wardrobe.depth], [wardrobe.cx, WARDROBE_HEIGHT / 2, wardrobe.cz]))
+  })
   const plant = toMetricRect(PLANT)
   const potHeight = 0.4
   decor.add(makeBox(reg, mats.monitor, [plant.width, potHeight, plant.depth], [plant.cx, potHeight / 2, plant.cz]))
